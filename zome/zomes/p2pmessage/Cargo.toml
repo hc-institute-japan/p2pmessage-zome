@@ -1,17 +1,14 @@
 [package]
-name = "message"
+name = "p2pmessage"
 version = "0.0.1"
 authors = ["hcij"]
 edition = "2018"
-exclude = ["ui", "example-dna"]
 
 [lib]
-name = "message"
+name = "p2pmessage"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-serde = "1.0.104"
+serde = "1"
+derive_more = "0"
 hdk3 = { git = "https://github.com/holochain/holochain.git", branch = "develop" }
-derive_more = "0.99.9"
-chrono = { version = "0.4", features = ['alloc', 'std']}
-thiserror = "1.0.20"

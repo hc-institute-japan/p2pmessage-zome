@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "zomes/message",
+  "zome/zomes/p2pmessage",
 ]
 
 [profile.dev]

@@ -1,0 +1,11 @@
+{
+    "name": "p2pmessage",
+    "uuid": "",
+    "properties": null,
+    "zomes": {
+      "p2pmessage": {
+        "wasm_path": "../../../holochain/target/wasm32-unknown-unknown/release/p2pmessage.wasm"
+      }
+    }
+  }
+  
