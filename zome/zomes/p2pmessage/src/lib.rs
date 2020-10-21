@@ -1,15 +1,16 @@
 use hdk3::prelude::*;
 mod entries;
+mod utils;
 use entries::message;
 
 use message::{
     MessageEntry,
     MessageInput,
+    MessageOutput,
     MessageOutputOption,
     MessageListWrapper,
-    MessagesByAgentListWrapper,
     AgentListWrapper,
-    RemoteCallArgument,
+    MessagesByAgentListWrapper,
     MessageRange
 };
 
@@ -27,8 +28,8 @@ fn send_message(message_input: MessageInput) -> ExternResult<MessageOutputOption
 }
 
 #[hdk_extern]
-fn receive_message(remote_input: RemoteCallArgument) -> ExternResult<MessageOutputOption> {
-    message::handlers::receive_message(remote_input)
+fn receive_message(message_input: MessageOutput) -> ExternResult<MessageOutputOption> {
+    message::handlers::receive_message(message_input)
 }
 
 #[hdk_extern]

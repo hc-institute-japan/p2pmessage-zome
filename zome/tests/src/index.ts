@@ -170,7 +170,7 @@ orchestrator.registerScenario("remote call", async (s, t) => {
 
   const last_message = {
       author: agent_pubkey_carly,
-      last_message_timestamp_seconds: send_carly_4.timestamp[0]+2
+      last_message_timestamp_seconds: send_carly_4.time_sent[0]+2
   };
 
   const batch_messages = await get_batch_messages_on_conversation(last_message)(conductor, 'alice');

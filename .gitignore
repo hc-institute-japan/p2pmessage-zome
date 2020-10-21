@@ -2,5 +2,8 @@
 .DS_Store
 
 /target/
+/zome/target/
+/zome/zomes/p2pmessage/target/
+/zome/tests/node_modules/
 /example-dna/tests/node_modules/
 /example-dna/target
