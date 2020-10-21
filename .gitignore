@@ -1,6 +1,6 @@
 # For OXS
 .DS_Store
 
-/target/
-/example-dna/tests/node_modules/
-/example-dna/target
+target/
+node_modules/
+dist/
