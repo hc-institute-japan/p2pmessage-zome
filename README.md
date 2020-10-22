@@ -23,7 +23,7 @@ These are the things you need to know to decide if you can use this module in yo
 4. Add this zome as a dependency in the `Cargo.toml` file:
 ```toml
 [dependencies]
-todo_rename_zome = {git = "https://github.com/hc-institute-japan/p2pmessage-zome", package = "p2pmessage"}
+p2pmessage = {git = "https://github.com/hc-institute-japan/p2pmessage-zome", package = "p2pmessage"}
 ```
 5. Create a `src` folder besides the `Cargo.toml` with this content:
 ```rust
