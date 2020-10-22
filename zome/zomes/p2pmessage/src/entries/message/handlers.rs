@@ -186,7 +186,7 @@ pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageO
         },
         ZomeCallResponse::Unauthorized => {
             debug!("nicko call remote unauthorized")?;
-            crate::error("{\"code\": \"401\", \"message\": \"This agent has no proper authorization\"}")
+            crate::error("{\"code\": \"401\", \"message\": \"This agent has no proper authorization to send the message to the receiver\"}")
         }
     }
 }
@@ -205,7 +205,7 @@ pub(crate) fn receive_message(remote_input: RemoteCallArgument) -> ExternResult<
     let now = sys_time!()?;
     let message_entry = MessageEntry {
         author: author,
-        receiver: agent_info!()?.agent_initial_pubkey,
+        receiver: agent_info!()?.agent_latest_pubkey,
         payload: message_input.payload,
         timestamp: Timestamp(now.as_secs() as i64, now.subsec_nanos()),
     };
@@ -340,7 +340,7 @@ pub(crate) fn get_all_messages_from_addresses(agent_list: AgentListWrapper) -> E
         agent_messages_vec.push(
             MessagesByAgent {
                 author: agent.to_owned(),
-                messages: (*list.to_owned()).to_vec()
+                messages: list.to_owned()
             }
         );
     }
@@ -348,6 +348,7 @@ pub(crate) fn get_all_messages_from_addresses(agent_list: AgentListWrapper) -> E
     Ok(MessagesByAgentListWrapper(agent_messages_vec))
 }
 
+// TODO: change implementation once query! macro accepts timestamp range.
 pub(crate) fn get_batch_messages_on_conversation(message_range: MessageRange) -> ExternResult<MessageListWrapper> {
 
     // batch parameters

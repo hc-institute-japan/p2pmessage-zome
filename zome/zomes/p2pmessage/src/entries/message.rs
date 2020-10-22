@@ -1,8 +1,12 @@
-use hdk3::prelude::*;
+use hdk3::prelude::{
+    timestamp::Timestamp,
+    *,
+};
 use derive_more::{From, Into};
-use crate::{timestamp::Timestamp};
 pub mod handlers;
 
+// currently a public entry because of a bug in committing entries
+// privately with call_remote.
 #[hdk_entry(id = "message", visibility = "public")]
 pub struct MessageEntry {
     author: AgentPubKey,
