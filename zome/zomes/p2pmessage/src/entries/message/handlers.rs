@@ -1,9 +1,7 @@
 use hdk3::prelude::*;
 use crate::{timestamp::Timestamp};
 use crate::utils::{
-    try_get_and_convert,
     try_from_element,
-    try_from_entry,
     address_deduper
 };
 
