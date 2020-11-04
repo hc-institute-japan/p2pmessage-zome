@@ -4,6 +4,7 @@ use crate::utils::{
     try_from_element,
     address_deduper
 };
+// use hdk3::host_fn::call::call;
 
 use super::{
     MessageEntry,
@@ -42,6 +43,15 @@ use super::{
 //     Ok(InitCallbackResult::Pass)
 // }
 
+fn vec_to_arr<T>(v: Vec<T>) -> [T; 4] {
+    let boxed_slice = v.into_boxed_slice();
+    let boxed_array: Box<[T; 4]> = match boxed_slice.try_into() {
+        Ok(ba) => ba,
+        Err(o) => panic!("Expected a Vec of length {} but it was {}", 64, o.len()),
+    };
+    *boxed_array
+}
+
 pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageOutputOption> {
     
     // build entry structure to be passed
@@ -55,12 +65,15 @@ pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageO
     };
 
     let payload: SerializedBytes = message.try_into()?;
+    // let secret: &[u8; 64] = &message_input.secret;
+    // let secret: SerializedBytes = message_input.secret.try_into()?;
 
     match call_remote!(
         message_input.receiver,
         zome_info!()?.zome_name,
         "receive_message".into(),
-        None,
+        // None,
+        Some(message_input.secret),
         payload
     )? {
         ZomeCallResponse::Ok(output) => {

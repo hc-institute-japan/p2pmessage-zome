@@ -15,7 +15,8 @@ pub struct MessageEntry {
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct MessageInput {
     receiver: AgentPubKey, 
-    payload: String
+    payload: String,
+    secret: CapSecret
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
