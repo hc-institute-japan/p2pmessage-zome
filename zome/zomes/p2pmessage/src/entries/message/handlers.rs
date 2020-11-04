@@ -4,7 +4,7 @@ use crate::utils::{
     try_from_element,
     address_deduper
 };
-// use hdk3::host_fn::call::call;
+use hdk3::host_fn::call::call;
 
 use super::{
     MessageEntry,
@@ -18,42 +18,33 @@ use super::{
     MessageRange
 };
 
-// #[hdk_extern]
-// fn init(_: ()) -> ExternResult<InitCallbackResult> {
-//     let mut functions: GrantedFunctions = HashSet::new();
-//     functions.insert((zome_info!()?.zome_name, "receive_message".into()));
-//     create_cap_grant!(
-//         CapGrantEntry {
-//             tag: "receive".into(),
-//             access: ().into(),
-//             functions,
-//         }
-//     )?;
+/*
+ * ZOME FUNCTIONS ARE RESTRICTED BY DEFAULT
+ * USERS OF THIS ZOME SHOULD IMPLEMENT
+ * A WAY TO SET AND GET CAPABILITY GRANTS AND CLAIMS FOR CALL_REMOTE
+ * OR SET UNRESTRICTED ACCESS TO ZOME FUNCTIONS
+ */
 
-//     let mut functions2: GrantedFunctions = HashSet::new();
-//     functions2.insert((zome_info!()?.zome_name, "needs_cap_claim".into()));
-//     create_cap_grant!(
-//         CapGrantEntry {
-//             tag: "needs_cap_claim".into(),
-//             access: ().into(),
-//             functions: functions2
-//         }
-//     )?;
-
-//     Ok(InitCallbackResult::Pass)
-// }
-
-fn vec_to_arr<T>(v: Vec<T>) -> [T; 4] {
-    let boxed_slice = v.into_boxed_slice();
-    let boxed_array: Box<[T; 4]> = match boxed_slice.try_into() {
-        Ok(ba) => ba,
-        Err(o) => panic!("Expected a Vec of length {} but it was {}", 64, o.len()),
-    };
-    *boxed_array
+/*
+ * ZOME INIT FUNCTION TO SET UNRESTRICTED ACCESS
+ */
+ /*
+#[hdk_extern]
+fn init(_: ()) -> ExternResult<InitCallbackResult> {
+    let mut functions: GrantedFunctions = HashSet::new();
+    functions.insert((zome_info!()?.zome_name, "receive_message".into()));
+    create_cap_grant!(
+        CapGrantEntry {
+            tag: "receive".into(),
+            access: ().into(),
+            functions,
+        }
+    )?;
+    Ok(InitCallbackResult::Pass)
 }
+*/
 
-pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageOutputOption> {
-    
+pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageOutputOption> {    
     // build entry structure to be passed
     let now = sys_time!()?;
     let message = MessageOutput {
@@ -65,15 +56,12 @@ pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageO
     };
 
     let payload: SerializedBytes = message.try_into()?;
-    // let secret: &[u8; 64] = &message_input.secret;
-    // let secret: SerializedBytes = message_input.secret.try_into()?;
 
     match call_remote!(
         message_input.receiver,
         zome_info!()?.zome_name,
         "receive_message".into(),
-        // None,
-        Some(message_input.secret),
+        None,
         payload
     )? {
         ZomeCallResponse::Ok(output) => {
