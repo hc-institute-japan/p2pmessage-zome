@@ -89,11 +89,20 @@ orchestrator.registerScenario("remote call", async (s, t) => {
   // alice sends a message to bob
   const send_alice = await send_message(message)(conductor, 'alice');
   await delay(1000);
-  console.log("alice sends message to bob");
+  console.log("alice sends a message to bob");
   console.log(send_alice);
   t.deepEqual(send_alice.author, agent_pubkey_alice);
   t.deepEqual(send_alice.receiver, agent_pubkey_bobby);
   t.deepEqual(send_alice.payload, "Hello world");
+
+  // alice sends another message to bob
+  const send_alice_2 = await send_message(message)(conductor, 'alice');
+  await delay(1000);
+  console.log("alice sends a message to bob");
+  console.log(send_alice_2);
+  t.deepEqual(send_alice_2.author, agent_pubkey_alice);
+  t.deepEqual(send_alice_2.receiver, agent_pubkey_bobby);
+  t.deepEqual(send_alice_2.payload, "Hello world");
 
   // bob sends a message to alice
   const send_bobby = await send_message(message_2)(conductor, 'bobby');
@@ -109,14 +118,14 @@ orchestrator.registerScenario("remote call", async (s, t) => {
   await delay(1000);
   console.log("alice gets all messages in her source chain");
   console.log(all_messages_alice);
-  t.deepEqual(all_messages_alice.length, 2);
+  t.deepEqual(all_messages_alice.length, 3);
 
   // bob gets all messages in her source chain
   const all_messages_bobby = await get_all_messages()(conductor, 'bobby');
   await delay(1000);
   console.log("bob gets all messages in his source chain");
   console.log(all_messages_bobby);
-  t.deepEqual(all_messages_bobby.length, 2);
+  t.deepEqual(all_messages_bobby.length, 3);
 
   const send_carly = await send_message(message_3)(conductor, 'carly');
   await delay(1000);

@@ -17,30 +17,30 @@ use super::{
     MessageRange
 };
 
-#[hdk_extern]
-fn init(_: ()) -> ExternResult<InitCallbackResult> {
-    let mut functions: GrantedFunctions = HashSet::new();
-    functions.insert((zome_info!()?.zome_name, "receive_message".into()));
-    create_cap_grant!(
-        CapGrantEntry {
-            tag: "receive".into(),
-            access: ().into(),
-            functions,
-        }
-    )?;
+// #[hdk_extern]
+// fn init(_: ()) -> ExternResult<InitCallbackResult> {
+//     let mut functions: GrantedFunctions = HashSet::new();
+//     functions.insert((zome_info!()?.zome_name, "receive_message".into()));
+//     create_cap_grant!(
+//         CapGrantEntry {
+//             tag: "receive".into(),
+//             access: ().into(),
+//             functions,
+//         }
+//     )?;
 
-    let mut functions2: GrantedFunctions = HashSet::new();
-    functions2.insert((zome_info!()?.zome_name, "needs_cap_claim".into()));
-    create_cap_grant!(
-        CapGrantEntry {
-            tag: "needs_cap_claim".into(),
-            access: ().into(),
-            functions: functions2
-        }
-    )?;
+//     let mut functions2: GrantedFunctions = HashSet::new();
+//     functions2.insert((zome_info!()?.zome_name, "needs_cap_claim".into()));
+//     create_cap_grant!(
+//         CapGrantEntry {
+//             tag: "needs_cap_claim".into(),
+//             access: ().into(),
+//             functions: functions2
+//         }
+//     )?;
 
-    Ok(InitCallbackResult::Pass)
-}
+//     Ok(InitCallbackResult::Pass)
+// }
 
 pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageOutputOption> {
     
