@@ -4,7 +4,6 @@ use crate::utils::{
     try_from_element,
     address_deduper
 };
-use hdk3::host_fn::call::call;
 
 use super::{
     MessageEntry,
@@ -16,7 +15,6 @@ use super::{
     MessagesByAgentListWrapper,
     AgentListWrapper,
     MessageRange,
-    Claims
 };
 
 /*
@@ -47,31 +45,29 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
 
 pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageOutputOption> {
     // get claims using request-zome
-    let claims: Option<Claims> = match call(
-        agent_info!()?.agent_latest_pubkey,
-        "request".into(),
-        "get_cap_claims".into(),
-        None,
-        ().try_into()?
-    )? {
-        ZomeCallResponse::Ok(output) => {
-            let vec: Claims = output.into_inner().try_into()?;
-            let chat_to_agent_claims: Vec<CapClaim> = vec
-                .0
-                .into_iter()
-                .filter_map(|claim| {
-                    let id = format!("receive_message_{:?}", message_input.receiver.clone());
-                    if id == claim.tag().to_string() { Some(claim) } 
-                    else { None }
-                })
-                .collect();
-            Some(Claims(chat_to_agent_claims))
-        },
-        _ => None
-    };
 
-    if let None = claims { return crate::error("{\"code\": \"401\", \"message\": \"This agent has no proper claims\"}") };
-    let chat_claims = claims.unwrap().0;
+    let query_result = query!(
+        QueryFilter::new()
+        .entry_type(EntryType::CapClaim)
+        .include_entries(true)
+    )?;
+
+    let claims: Vec<CapClaim> = query_result
+        .0
+        .into_iter()
+        .filter_map(|e| 
+            match e.header() {
+                Header::Create(_create) => {
+                    let id = format!("receive_message_{:?}", message_input.receiver.clone());
+                    let claim = e.clone().into_inner().1.into_option().unwrap().as_cap_claim().unwrap().to_owned();
+                    if claim.tag() == id { Some(claim) }
+                    else { None }
+                },
+                _ => None,
+            })
+        .collect();
+    
+    if claims.len() <= 0 { return crate::error("{\"code\": \"401\", \"message\": \"This agent has no proper claims\"}") };
 
     // build entry structure to be passed
     let now = sys_time!()?;
@@ -89,7 +85,7 @@ pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageO
         message_input.receiver,
         zome_info!()?.zome_name,
         "receive_message".into(),
-        Some(*chat_claims[0].secret()),
+        Some(*claims[0].secret()),
         payload
     )? {
         ZomeCallResponse::Ok(output) => {
