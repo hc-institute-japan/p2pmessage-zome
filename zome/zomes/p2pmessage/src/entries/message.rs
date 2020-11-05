@@ -77,3 +77,6 @@ pub struct AgentListWrapper(Vec<AgentPubKey>);
 
 #[derive(From, Into, Serialize, Deserialize, SerializedBytes)]
 pub struct MessagesByAgentListWrapper(Vec<MessagesByAgent>);
+
+#[derive(Serialize, Deserialize, SerializedBytes, Debug)]
+pub struct Claims(Vec<CapClaim>);

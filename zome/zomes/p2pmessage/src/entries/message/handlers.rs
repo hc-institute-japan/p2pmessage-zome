@@ -15,7 +15,8 @@ use super::{
     MessagesByAgent,
     MessagesByAgentListWrapper,
     AgentListWrapper,
-    MessageRange
+    MessageRange,
+    Claims
 };
 
 /*
@@ -44,7 +45,34 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
 }
 */
 
-pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageOutputOption> {    
+pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageOutputOption> {
+    // get claims using request-zome
+    let claims: Option<Claims> = match call(
+        agent_info!()?.agent_latest_pubkey,
+        "request".into(),
+        "get_cap_claims".into(),
+        None,
+        ().try_into()?
+    )? {
+        ZomeCallResponse::Ok(output) => {
+            let vec: Claims = output.into_inner().try_into()?;
+            let chat_to_agent_claims: Vec<CapClaim> = vec
+                .0
+                .into_iter()
+                .filter_map(|claim| {
+                    let id = format!("receive_message_{:?}", message_input.receiver.clone());
+                    if id == claim.tag().to_string() { Some(claim) } 
+                    else { None }
+                })
+                .collect();
+            Some(Claims(chat_to_agent_claims))
+        },
+        _ => None
+    };
+
+    if let None = claims { return crate::error("{\"code\": \"401\", \"message\": \"This agent has no proper claims\"}") };
+    let chat_claims = claims.unwrap().0;
+
     // build entry structure to be passed
     let now = sys_time!()?;
     let message = MessageOutput {
@@ -61,7 +89,7 @@ pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageO
         message_input.receiver,
         zome_info!()?.zome_name,
         "receive_message".into(),
-        None,
+        Some(*chat_claims[0].secret()),
         payload
     )? {
         ZomeCallResponse::Ok(output) => {
