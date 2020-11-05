@@ -60,12 +60,14 @@ pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageO
                 Header::Create(_create) => {
                     let id = format!("receive_message_{:?}", message_input.receiver.clone());
                     let claim = e.clone().into_inner().1.into_option().unwrap().as_cap_claim().unwrap().to_owned();
-                    if claim.tag() == id { Some(claim) }
+                    if claim.tag().to_string() == id.to_string() { Some(claim) }
                     else { None }
                 },
                 _ => None,
             })
         .collect();
+
+    debug!(format!("the claims are {:?}", claims))?;
     
     if claims.len() <= 0 { return crate::error("{\"code\": \"401\", \"message\": \"This agent has no proper claims\"}") };
 
