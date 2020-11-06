@@ -4,6 +4,7 @@ use crate::utils::{
     try_from_element,
     address_deduper
 };
+use hex;
 
 use super::{
     MessageEntry,
@@ -52,23 +53,24 @@ pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageO
         .include_entries(true)
     )?;
 
+    let id = format!(
+        "claim_to_send_message_to_{}", 
+        hex::encode(message_input.receiver.get_core_bytes()
+    ));
     let claims: Vec<CapClaim> = query_result
         .0
         .into_iter()
         .filter_map(|e| 
             match e.header() {
                 Header::Create(_create) => {
-                    let id = format!("receive_message_{:?}", message_input.receiver.clone());
                     let claim = e.clone().into_inner().1.into_option().unwrap().as_cap_claim().unwrap().to_owned();
-                    if claim.tag().to_string() == id.to_string() { Some(claim) }
+                    if claim.tag() == id { Some(claim) }
                     else { None }
                 },
                 _ => None,
             })
         .collect();
 
-    debug!(format!("the claims are {:?}", claims))?;
-    
     if claims.len() <= 0 { return crate::error("{\"code\": \"401\", \"message\": \"This agent has no proper claims\"}") };
 
     // build entry structure to be passed
