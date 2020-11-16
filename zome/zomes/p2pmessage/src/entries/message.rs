@@ -12,7 +12,8 @@ pub struct MessageEntry {
     author: AgentPubKey,
     receiver: AgentPubKey,
     payload: String,
-    timestamp: Timestamp
+    time_sent: Timestamp,
+    time_received: Option<Timestamp>
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
@@ -23,17 +24,35 @@ pub struct MessageInput {
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct MessageOutput {
-    header: HeaderHash,
     author: AgentPubKey,
     receiver: AgentPubKey,
     payload: String,
-    timestamp: Timestamp,
+    time_sent: Timestamp,
+    time_received: Option<Timestamp>
 }
 
-#[derive(From, Into, Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub struct RemoteCallArgument {
-    author: AgentPubKey,
-    input: MessageInput
+impl MessageEntry {
+    pub fn from_output(message_output: MessageOutput) -> Self {
+        MessageEntry {
+            author: message_output.author,
+            receiver: message_output.receiver,
+            payload: message_output.payload,
+            time_sent: message_output.time_sent,
+            time_received: message_output.time_received
+        }
+    }
+}
+
+impl MessageOutput {
+    pub fn from_entry(message_entry: MessageEntry) -> Self {
+        MessageOutput {
+            author: message_entry.author,
+            receiver: message_entry.receiver,
+            payload: message_entry.payload,
+            time_sent: message_entry.time_sent,
+            time_received: message_entry.time_received
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
@@ -63,4 +82,5 @@ pub struct AgentListWrapper(Vec<AgentPubKey>);
 #[derive(From, Into, Serialize, Deserialize, SerializedBytes)]
 pub struct MessagesByAgentListWrapper(Vec<MessagesByAgent>);
 
-
+#[derive(Serialize, Deserialize, SerializedBytes, Debug)]
+pub struct Claims(Vec<CapClaim>);
