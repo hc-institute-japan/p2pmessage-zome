@@ -19,16 +19,15 @@ use super::{
 };
 
 /*
- * ZOME FUNCTIONS ARE RESTRICTED BY DEFAULT
- * USERS OF THIS ZOME SHOULD IMPLEMENT
+ * ZOME FUNCTIONS ARE UNRESTRICTED BY DEFAULT
+ * USERS OF THIS ZOME COULD IMPLEMENT
  * A WAY TO SET AND GET CAPABILITY GRANTS AND CLAIMS FOR CALL_REMOTE
- * OR SET UNRESTRICTED ACCESS TO ZOME FUNCTIONS
+ * TO SET SELECTED ACCESS TO ZOME FUNCTIONS
  */
 
 /*
  * ZOME INIT FUNCTION TO SET UNRESTRICTED ACCESS
  */
- /*
 #[hdk_extern]
 fn init(_: ()) -> ExternResult<InitCallbackResult> {
     let mut functions: GrantedFunctions = HashSet::new();
@@ -42,7 +41,6 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
     )?;
     Ok(InitCallbackResult::Pass)
 }
-*/
 
 pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageOutputOption> {    
     // build entry structure to be passed
