@@ -120,21 +120,23 @@ orchestrator.registerScenario("remote call", async (s, t) => {
   console.log(all_messages_alice);
   t.deepEqual(all_messages_alice.length, 3);
 
-  // bob gets all messages in her source chain
+  // bob gets all messages in his source chain
   const all_messages_bobby = await get_all_messages()(conductor, 'bobby');
   await delay(1000);
   console.log("bob gets all messages in his source chain");
   console.log(all_messages_bobby);
   t.deepEqual(all_messages_bobby.length, 3);
 
+  // carly sends a message to alice
   const send_carly = await send_message(message_3)(conductor, 'carly');
   await delay(1000);
-  console.log("carly sends message to alice");
+  console.log("carly sends a message to alice");
   console.log(send_carly);
   t.deepEqual(send_carly.author, agent_pubkey_carly);
   t.deepEqual(send_carly.receiver, agent_pubkey_alice);
   t.deepEqual(send_carly.payload, "Hello alice");
 
+  // carly sends another message to alice
   const send_carly_2 = await send_message(message_4)(conductor, 'carly');
   await delay(1000);
   console.log("carly sends message to alice again");
@@ -149,6 +151,7 @@ orchestrator.registerScenario("remote call", async (s, t) => {
   console.log("alice gets her messages from bobby and carly");
   console.log(messages_in_alice_from_both);
   t.deepEqual(messages_in_alice_from_both.length, 2);
+  t.deepEqual(messages_in_alice_from_both[0].messages.length + messages_in_alice_from_both[1].messages.length, 3);
 
   // author order may be arbitrary so the following assertions can fail
   // t.deepEqual(messages_in_alice_from_both[0].messages.length, 2);
@@ -159,7 +162,6 @@ orchestrator.registerScenario("remote call", async (s, t) => {
   // t.deepEqual(messages_in_alice_from_both[1].messages[0].payload, "Hello alice");
   // t.deepEqual(messages_in_alice_from_both[1].messages[1].payload, "I am Carly");
 
-  await delay(5000);
   const send_carly_3 = await send_message(message_late_1)(conductor, 'carly');
   await delay(1000);
   console.log("carly sends message to alice again");
@@ -168,7 +170,8 @@ orchestrator.registerScenario("remote call", async (s, t) => {
   t.deepEqual(send_carly_3.receiver, agent_pubkey_alice);
   t.deepEqual(send_carly_3.payload, "Hello again");
 
-  await delay(15000);
+  await delay(10000);
+
   const send_carly_4 = await send_message(message_late_2)(conductor, 'carly');
   await delay(1000);
   console.log("carly sends message to alice again");
@@ -186,7 +189,7 @@ orchestrator.registerScenario("remote call", async (s, t) => {
   await delay(1000);
   console.log("alice batch fetches her messages");
   console.log(batch_messages);
-  console.log(batch_messages.length);
+  t.deepEqual(batch_messages.length, 1);
 });
 
 

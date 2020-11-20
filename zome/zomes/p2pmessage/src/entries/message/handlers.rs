@@ -153,23 +153,20 @@ pub(crate) fn get_all_messages_from_addresses(agent_list: AgentListWrapper) -> E
         agent_messages_hashmap.insert(agent, message_list);                                                                                                                                                                               
     };
 
-    let _map_result = query_result.0
-        .into_iter()
-        .map(|el| {
-            let entry = try_from_element(el);
-            match entry {
-                Ok(message_entry) => {
-                    let message_output = MessageOutput::from_entry(message_entry);
-                    if agent_messages_hashmap.contains_key(&message_output.author) {
-                        if let Some(vec) = agent_messages_hashmap.get_mut(&message_output.author) {
-                            &vec.push(message_output.clone());
-                        };
-                    }
-                    Some(message_output)
-                },
-                _ => None
-            }
-        });
+    for element in query_result.0.into_iter() {
+        let entry = try_from_element(element);
+        match entry {
+            Ok(message_entry) => {
+                let message_output = MessageOutput::from_entry(message_entry);
+                if agent_messages_hashmap.contains_key(&message_output.clone().author) {
+                    if let Some(vec) = agent_messages_hashmap.get_mut(&message_output.clone().author) {
+                        vec.push(message_output.clone());
+                    } else { () }
+                } else { () }
+            },
+            _ => ()
+        };
+    };
 
     let mut agent_messages_vec: Vec<MessagesByAgent> = Vec::new();
     for (agent, list) in agent_messages_hashmap.iter() {
