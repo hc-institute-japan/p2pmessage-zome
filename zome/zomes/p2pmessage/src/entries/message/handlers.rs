@@ -4,6 +4,7 @@ use crate::utils::{
     try_from_element,
     address_deduper
 };
+use hex;
 
 use super::{
     MessageEntry,
@@ -18,15 +19,16 @@ use super::{
 };
 
 /*
- * ZOME FUNCTIONS ARE UNRESTRICTED BY DEFAULT
- * USERS OF THIS ZOME COULD IMPLEMENT
+ * ZOME FUNCTIONS ARE RESTRICTED BY DEFAULT
+ * USERS OF THIS ZOME SHOULD IMPLEMENT
  * A WAY TO SET AND GET CAPABILITY GRANTS AND CLAIMS FOR CALL_REMOTE
- * TO SET SELECTED ACCESS TO ZOME FUNCTIONS
+ * OR SET UNRESTRICTED ACCESS TO ZOME FUNCTIONS
  */
 
 /*
  * ZOME INIT FUNCTION TO SET UNRESTRICTED ACCESS
  */
+ /*
 #[hdk_extern]
 fn init(_: ()) -> ExternResult<InitCallbackResult> {
     let mut functions: GrantedFunctions = HashSet::new();
@@ -40,6 +42,7 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
     )?;
     Ok(InitCallbackResult::Pass)
 }
+*/
 
 pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageOutputOption> {
     // get claims using request-zome
