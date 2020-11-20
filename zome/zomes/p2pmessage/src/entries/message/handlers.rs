@@ -4,7 +4,6 @@ use crate::utils::{
     try_from_element,
     address_deduper
 };
-use hdk3::host_fn::call::call;
 
 use super::{
     MessageEntry,
