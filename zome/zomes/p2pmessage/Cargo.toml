@@ -9,7 +9,6 @@ name = "p2pmessage"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-serde = "=1.0.104"
-hdk3 = { git = "https://github.com/holochain/holochain.git", rev = "60292d" }
-derive_more = "0.99.9"
-hex = "0.4.2"
+serde = "1"
+derive_more = "0"
+hdk3 = { git = "https://github.com/holochain/holochain.git", rev = "60292dc6aa8413866da6f44d8af11c7bd600608a" }

@@ -4,8 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "RUST_LOG=debug TRYORAMA_LOG_LEVEL=debug RUST_BACKTRACE=1 TRYORAMA_HOLOCHAIN_PATH=\"holochain\" ts-node src/index.ts",
-    "build": "concurrently \"cd .. && cargo build --release --target wasm32-unknown-unknown\" \"cd .. && dna-util -c ./p2pmessage.dna.workdir\""
+    "test": "RUST_LOG=debug TRYORAMA_LOG_LEVEL=error RUST_BACKTRACE=1 TRYORAMA_HOLOCHAIN_PATH=\"holochain\" ts-node src/index.ts"
   },
   "author": "",
   "license": "ISC",
