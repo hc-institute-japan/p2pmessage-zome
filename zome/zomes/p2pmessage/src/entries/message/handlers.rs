@@ -14,7 +14,8 @@ use super::{
     MessagesByAgent,
     MessagesByAgentListWrapper,
     AgentListWrapper,
-    MessageRange
+    MessageRange,
+    Status
 };
 
 /*
@@ -49,7 +50,8 @@ pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageO
         receiver: message_input.receiver.clone(),
         payload: message_input.payload,
         time_sent: Timestamp(now.as_secs() as i64, now.subsec_nanos()),
-        time_received: None
+        time_received: None,
+        status: Status::Sent
     };
 
     let payload: SerializedBytes = message.try_into()?;
@@ -86,6 +88,7 @@ pub(crate) fn receive_message(message_input: MessageOutput) -> ExternResult<Mess
     let mut message_entry = MessageEntry::from_output(message_input.clone());
     let now = sys_time!()?;
     message_entry.time_received = Some(Timestamp(now.as_secs() as i64, now.subsec_nanos()));
+    message_entry.status = Status::Delivered;
 
     match create_entry!(&message_entry) {
         Ok(_header) => {

@@ -3,13 +3,22 @@ use derive_more::{From, Into};
 use crate::{timestamp::Timestamp};
 pub mod handlers;
 
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub enum Status {
+    Sent, // the message has been transmitted to the network
+    Delivered, // the message has successfully traversed the network and reached the receiver
+    Read, // the message has been opened by the receiver
+    Failed
+}
+
 #[hdk_entry(id = "message", visibility = "public")]
 pub struct MessageEntry {
     author: AgentPubKey,
     receiver: AgentPubKey,
     payload: String,
     time_sent: Timestamp,
-    time_received: Option<Timestamp>
+    time_received: Option<Timestamp>,
+    status: Status
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
@@ -24,7 +33,8 @@ pub struct MessageOutput {
     receiver: AgentPubKey,
     payload: String,
     time_sent: Timestamp,
-    time_received: Option<Timestamp>
+    time_received: Option<Timestamp>,
+    status: Status
 }
 
 impl MessageEntry {
@@ -34,7 +44,8 @@ impl MessageEntry {
             receiver: message_output.receiver,
             payload: message_output.payload,
             time_sent: message_output.time_sent,
-            time_received: message_output.time_received
+            time_received: message_output.time_received,
+            status: message_output.status
         }
     }
 }
@@ -46,7 +57,8 @@ impl MessageOutput {
             receiver: message_entry.receiver,
             payload: message_entry.payload,
             time_sent: message_entry.time_sent,
-            time_received: message_entry.time_received
+            time_received: message_entry.time_received,
+            status: message_entry.status
         }
     }
 }
