@@ -4,7 +4,6 @@ use crate::utils::{
     try_from_element,
     address_deduper
 };
-use hex;
 
 use super::{
     MessageEntry,
@@ -16,19 +15,19 @@ use super::{
     MessagesByAgentListWrapper,
     AgentListWrapper,
     MessageRange,
+    Status
 };
 
 /*
- * ZOME FUNCTIONS ARE RESTRICTED BY DEFAULT
- * USERS OF THIS ZOME SHOULD IMPLEMENT
+ * ZOME FUNCTIONS ARE UNRESTRICTED BY DEFAULT
+ * USERS OF THIS ZOME COULD IMPLEMENT
  * A WAY TO SET AND GET CAPABILITY GRANTS AND CLAIMS FOR CALL_REMOTE
- * OR SET UNRESTRICTED ACCESS TO ZOME FUNCTIONS
+ * TO SET SELECTED ACCESS TO ZOME FUNCTIONS
  */
 
 /*
  * ZOME INIT FUNCTION TO SET UNRESTRICTED ACCESS
  */
- /*
 #[hdk_extern]
 fn init(_: ()) -> ExternResult<InitCallbackResult> {
     let mut functions: GrantedFunctions = HashSet::new();
@@ -42,37 +41,8 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
     )?;
     Ok(InitCallbackResult::Pass)
 }
-*/
 
 pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageOutputOption> {
-    // get claims using request-zome
-
-    let query_result = query!(
-        QueryFilter::new()
-        .entry_type(EntryType::CapClaim)
-        .include_entries(true)
-    )?;
-
-    let id = format!(
-        "claim_to_send_message_to_{}", 
-        hex::encode(message_input.receiver.get_core_bytes()
-    ));
-    let claims: Vec<CapClaim> = query_result
-        .0
-        .into_iter()
-        .filter_map(|e| 
-            match e.header() {
-                Header::Create(_create) => {
-                    let claim = e.clone().into_inner().1.into_option().unwrap().as_cap_claim().unwrap().to_owned();
-                    if claim.tag() == id { Some(claim) }
-                    else { None }
-                },
-                _ => None,
-            })
-        .collect();
-
-    if claims.len() <= 0 { return crate::error("{\"code\": \"401\", \"message\": \"This agent has no proper claims\"}") };
-
     // build entry structure to be passed
     let now = sys_time!()?;
     let message = MessageOutput {
@@ -80,7 +50,8 @@ pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageO
         receiver: message_input.receiver.clone(),
         payload: message_input.payload,
         time_sent: Timestamp(now.as_secs() as i64, now.subsec_nanos()),
-        time_received: None
+        time_received: None,
+        status: Status::Sent
     };
 
     let payload: SerializedBytes = message.try_into()?;
@@ -89,7 +60,7 @@ pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageO
         message_input.receiver,
         zome_info!()?.zome_name,
         "receive_message".into(),
-        Some(*claims[0].secret()),
+        None,
         payload
     )? {
         ZomeCallResponse::Ok(output) => {
@@ -104,7 +75,6 @@ pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageO
                     Ok(MessageOutputOption(None))
                 }
             }
-            
         },
         ZomeCallResponse::Unauthorized => {
             crate::error("{\"code\": \"401\", \"message\": \"This agent has no proper authorization\"}")
@@ -117,6 +87,7 @@ pub(crate) fn receive_message(message_input: MessageOutput) -> ExternResult<Mess
     let mut message_entry = MessageEntry::from_output(message_input.clone());
     let now = sys_time!()?;
     message_entry.time_received = Some(Timestamp(now.as_secs() as i64, now.subsec_nanos()));
+    message_entry.status = Status::Delivered;
 
     match create_entry!(&message_entry) {
         Ok(_header) => {
@@ -184,23 +155,20 @@ pub(crate) fn get_all_messages_from_addresses(agent_list: AgentListWrapper) -> E
         agent_messages_hashmap.insert(agent, message_list);                                                                                                                                                                               
     };
 
-    let _map_result = query_result.0
-        .into_iter()
-        .map(|el| {
-            let entry = try_from_element(el);
-            match entry {
-                Ok(message_entry) => {
-                    let message_output = MessageOutput::from_entry(message_entry);
-                    if agent_messages_hashmap.contains_key(&message_output.author) {
-                        if let Some(vec) = agent_messages_hashmap.get_mut(&message_output.author) {
-                            &vec.push(message_output.clone());
-                        };
-                    }
-                    Some(message_output)
-                },
-                _ => None
-            }
-        });
+    for element in query_result.0.into_iter() {
+        let entry = try_from_element(element);
+        match entry {
+            Ok(message_entry) => {
+                let message_output = MessageOutput::from_entry(message_entry);
+                if agent_messages_hashmap.contains_key(&message_output.clone().author) {
+                    if let Some(vec) = agent_messages_hashmap.get_mut(&message_output.clone().author) {
+                        vec.push(message_output.clone());
+                    } else { () }
+                } else { () }
+            },
+            _ => ()
+        };
+    };
 
     let mut agent_messages_vec: Vec<MessagesByAgent> = Vec::new();
     for (agent, list) in agent_messages_hashmap.iter() {
