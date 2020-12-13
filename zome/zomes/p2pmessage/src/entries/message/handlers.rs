@@ -7,15 +7,16 @@ use crate::utils::{
 
 use super::{
     MessageEntry,
-    MessageOutput,
+    MessageParameter,
     MessageInput,
-    MessageOutputOption,
+    MessageParameterOption,
     MessageListWrapper,
     MessagesByAgent,
     MessagesByAgentListWrapper,
     AgentListWrapper,
     MessageRange,
-    Status
+    Status,
+    Reply
 };
 
 /*
@@ -42,16 +43,17 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
     Ok(InitCallbackResult::Pass)
 }
 
-pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageOutputOption> {
+pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageParameterOption> {
     // build entry structure to be passed
     let now = sys_time!()?;
-    let message = MessageOutput {
+    let message = MessageParameter {
         author: agent_info!()?.agent_latest_pubkey,
         receiver: message_input.receiver.clone(),
         payload: message_input.payload,
         time_sent: Timestamp(now.as_secs() as i64, now.subsec_nanos()),
         time_received: None,
-        status: Status::Sent
+        status: Status::Sent,
+        reply_to: None
     };
 
     let payload: SerializedBytes = message.try_into()?;
@@ -64,15 +66,15 @@ pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageO
         payload
     )? {
         ZomeCallResponse::Ok(output) => {
-            let message_output: MessageOutputOption = output.into_inner().try_into()?;
+            let message_output: MessageParameterOption = output.into_inner().try_into()?;
             match message_output.0 {
                 Some(message_output) => {
-                    let message_entry = MessageEntry::from_output(message_output.clone());
+                    let message_entry = MessageEntry::from_parameter(message_output.clone());
                     create_entry!(&message_entry)?;
-                    Ok(MessageOutputOption(Some(message_output)))
+                    Ok(MessageParameterOption(Some(message_output)))
                 },
                 None => {
-                    Ok(MessageOutputOption(None))
+                    Ok(MessageParameterOption(None))
                 }
             }
         },
@@ -82,20 +84,65 @@ pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageO
     }
 }
 
-pub(crate) fn receive_message(message_input: MessageOutput) -> ExternResult<MessageOutputOption> {
+pub(crate) fn reply_to_message(reply_input: Reply) -> ExternResult<MessageParameterOption> {
+    // construct entry hash
+    let message_entry = MessageEntry::from_parameter(reply_input.replied_message.clone());
+    let message_entry_hash = hash_entry!(&message_entry)?;
+
+    // build entry structure to be passed
+    let now = sys_time!()?;
+    let reply_message_payload = MessageParameter {
+        author: agent_info!()?.agent_latest_pubkey,
+        receiver: reply_input.replied_message.author.clone(),
+        payload: reply_input.reply,
+        time_sent: Timestamp(now.as_secs() as i64, now.subsec_nanos()),
+        time_received: None,
+        status: Status::Sent,
+        reply_to: Some(message_entry_hash)
+    };
+
+    let payload: SerializedBytes = reply_message_payload.try_into()?;
+
+    match call_remote!(
+        reply_input.replied_message.author,
+        zome_info!()?.zome_name,
+        "receive_message".into(),
+        None,
+        payload
+    )? {
+        ZomeCallResponse::Ok(output) => {
+            let message_output: MessageParameterOption = output.into_inner().try_into()?;
+            match message_output.0 {
+                Some(message_output) => {
+                    let message_entry = MessageEntry::from_parameter(message_output.clone());
+                    create_entry!(&message_entry)?;
+                    Ok(MessageParameterOption(Some(message_output)))
+                },
+                None => {
+                    Ok(MessageParameterOption(None))
+                }
+            }
+        },
+        ZomeCallResponse::Unauthorized => {
+            crate::error("{\"code\": \"401\", \"message\": \"This agent has no proper authorization\"}")
+        }
+    }
+}
+
+pub(crate) fn receive_message(message_input: MessageParameter) -> ExternResult<MessageParameterOption> {
     
-    let mut message_entry = MessageEntry::from_output(message_input.clone());
+    let mut message_entry = MessageEntry::from_parameter(message_input.clone());
     let now = sys_time!()?;
     message_entry.time_received = Some(Timestamp(now.as_secs() as i64, now.subsec_nanos()));
     message_entry.status = Status::Delivered;
 
     match create_entry!(&message_entry) {
         Ok(_header) => {
-            let message_output = MessageOutput::from_entry(message_entry);
-            Ok(MessageOutputOption(Some(message_output)))
+            let message_output = MessageParameter::from_entry(message_entry);
+            Ok(MessageParameterOption(Some(message_output)))
         },
         _ => {
-            Ok(MessageOutputOption(None))
+            Ok(MessageParameterOption(None))
         }
     }
 }
@@ -115,13 +162,13 @@ pub(crate) fn get_all_messages() -> ExternResult<MessageListWrapper> {
         .include_entries(true)
     )?;
 
-    let message_vec: Vec<MessageOutput> = query_result.0
+    let message_vec: Vec<MessageParameter> = query_result.0
         .into_iter()
         .filter_map(|el| {
             let entry = try_from_element(el);
             match entry {
                 Ok(message_entry) => {
-                    let message_output = MessageOutput::from_entry(message_entry);
+                    let message_output = MessageParameter::from_entry(message_entry);
                     Some(message_output)
                 },
                 _ => None
@@ -151,7 +198,7 @@ pub(crate) fn get_all_messages_from_addresses(agent_list: AgentListWrapper) -> E
 
     let mut agent_messages_hashmap = std::collections::HashMap::new();
     for agent in deduped_agents {
-        let message_list: Vec<MessageOutput> = Vec::new();
+        let message_list: Vec<MessageParameter> = Vec::new();
         agent_messages_hashmap.insert(agent, message_list);                                                                                                                                                                               
     };
 
@@ -159,7 +206,7 @@ pub(crate) fn get_all_messages_from_addresses(agent_list: AgentListWrapper) -> E
         let entry = try_from_element(element);
         match entry {
             Ok(message_entry) => {
-                let message_output = MessageOutput::from_entry(message_entry);
+                let message_output = MessageParameter::from_entry(message_entry);
                 if agent_messages_hashmap.contains_key(&message_output.clone().author) {
                     if let Some(vec) = agent_messages_hashmap.get_mut(&message_output.clone().author) {
                         vec.push(message_output.clone());
@@ -203,7 +250,7 @@ pub(crate) fn get_batch_messages_on_conversation(message_range: MessageRange) ->
         .include_entries(true)
     )?;
 
-    let mut message_output_vec: Vec<MessageOutput> = Vec::new();
+    let mut message_output_vec: Vec<MessageParameter> = Vec::new();
     for element in query_result.0 {
         let entry = try_from_element::<MessageEntry>(element);
         match entry {
@@ -212,7 +259,7 @@ pub(crate) fn get_batch_messages_on_conversation(message_range: MessageRange) ->
                 || (message_output_vec.len() <= batch_size && message_range.last_message_timestamp_seconds - message_entry.time_sent.0 < timegap) {
                     if message_entry.author == message_range.author {
                         if message_entry.time_sent.0 <= message_range.last_message_timestamp_seconds {
-                            let message_output = MessageOutput::from_entry(message_entry);
+                            let message_output = MessageParameter::from_entry(message_entry);
                             message_output_vec.push(message_output);
                         }
                     };

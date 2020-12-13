@@ -21,6 +21,11 @@ function receive_message() {
     conductor.call(caller, "p2pmessage", "receive_message", null);
 };
 
+function reply_to_message(reply) {
+  return (conductor, caller) =>
+    conductor.call(caller, "p2pmessage", "reply_to_message", reply);
+};
+
 function get_all_messages() {
   return (conductor, caller) =>
     conductor.call(caller, "p2pmessage", "get_all_messages", null);
@@ -53,37 +58,32 @@ orchestrator.registerScenario("remote call", async (s, t) => {
   const message = {
       receiver: agent_pubkey_bobby,
       payload: "Hello world",
-      message_type: "Text"
+      reply_to: null
   };
 
   const message_2 = {
       receiver: agent_pubkey_alice,
-      payload: "Hello back",
-      message_type: "Text"
+      payload: "Hello back"
   }
 
   const message_3 = {
       receiver: agent_pubkey_alice,
-      payload: "Hello alice",
-      message_type: "Text"
+      payload: "Hello alice"
   }
 
   const message_4 = {
       receiver: agent_pubkey_alice,
-      payload: "I am Carly",
-      message_type: "Text"
+      payload: "I am Carly"
   }
 
   const message_late_1 = {
       receiver: agent_pubkey_alice,
-      payload: "Hello again",
-      message_type: "Text"
+      payload: "Hello again"
   }
 
   const message_late_2 = {
       receiver: agent_pubkey_alice,
-      payload: "Am I bothering you",
-      message_type: "Text"
+      payload: "Am I bothering you"
   }
 
   // alice sends a message to bob
@@ -104,14 +104,20 @@ orchestrator.registerScenario("remote call", async (s, t) => {
   t.deepEqual(send_alice_2.receiver, agent_pubkey_bobby);
   t.deepEqual(send_alice_2.payload, "Hello world");
 
-  // bob sends a message to alice
-  const send_bobby = await send_message(message_2)(conductor, 'bobby');
+  const message_1_reply = {
+    replied_message: send_alice_2,
+    reply: "Hello back reply"
+  }
+
+  // bob replies to alice
+  const send_bobby = await reply_to_message(message_1_reply)(conductor, 'bobby');
   await delay(1000);
-  console.log("bob sends message to alice");
+  console.log("bob replies to a message of alice");
   console.log(send_bobby);
   t.deepEqual(send_bobby.author, agent_pubkey_bobby);
   t.deepEqual(send_bobby.receiver, agent_pubkey_alice);
-  t.deepEqual(send_bobby.payload, "Hello back");
+  t.deepEqual(send_bobby.payload, "Hello back reply");
+  console.log(send_bobby.reply_to);
 
   // alice gets all messages in her source chain
   const all_messages_alice = await get_all_messages()(conductor, 'alice');

@@ -20,47 +20,52 @@ pub struct MessageEntry {
     payload: String,
     time_sent: Timestamp,
     time_received: Option<Timestamp>,
-    status: Status
+    status: Status,
+    reply_to: Option<EntryHash>
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct MessageInput {
     receiver: AgentPubKey, 
-    payload: String
+    payload: String,
+    reply_to: Option<EntryHash>
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub struct MessageOutput {
+pub struct MessageParameter {
     author: AgentPubKey,
     receiver: AgentPubKey,
     payload: String,
     time_sent: Timestamp,
     time_received: Option<Timestamp>,
-    status: Status
+    status: Status,
+    reply_to: Option<EntryHash>
 }
 
 impl MessageEntry {
-    pub fn from_output(message_output: MessageOutput) -> Self {
+    pub fn from_parameter(message_output: MessageParameter) -> Self {
         MessageEntry {
             author: message_output.author,
             receiver: message_output.receiver,
             payload: message_output.payload,
             time_sent: message_output.time_sent,
             time_received: message_output.time_received,
-            status: message_output.status
+            status: message_output.status,
+            reply_to: message_output.reply_to
         }
     }
 }
 
-impl MessageOutput {
+impl MessageParameter {
     pub fn from_entry(message_entry: MessageEntry) -> Self {
-        MessageOutput {
+        MessageParameter {
             author: message_entry.author,
             receiver: message_entry.receiver,
             payload: message_entry.payload,
             time_sent: message_entry.time_sent,
             time_received: message_entry.time_received,
-            status: message_entry.status
+            status: message_entry.status,
+            reply_to: message_entry.reply_to
         }
     }
 }
@@ -68,7 +73,7 @@ impl MessageOutput {
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct MessagesByAgent {
     author: AgentPubKey,
-    messages: Vec<MessageOutput>
+    messages: Vec<MessageParameter>
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
@@ -81,10 +86,10 @@ pub struct MessageRange {
 pub struct BooleanWrapper(bool);
 
 #[derive(From, Into, Serialize, Deserialize, SerializedBytes)]
-pub struct MessageOutputOption(Option<MessageOutput>);
+pub struct MessageParameterOption(Option<MessageParameter>);
 
 #[derive(From, Into, Serialize, Deserialize, SerializedBytes)]
-pub struct MessageListWrapper(Vec<MessageOutput>);
+pub struct MessageListWrapper(Vec<MessageParameter>);
 
 #[derive(From, Into, Serialize, Deserialize, SerializedBytes)]
 pub struct AgentListWrapper(Vec<AgentPubKey>);
@@ -93,4 +98,7 @@ pub struct AgentListWrapper(Vec<AgentPubKey>);
 pub struct MessagesByAgentListWrapper(Vec<MessagesByAgent>);
 
 #[derive(Serialize, Deserialize, SerializedBytes, Debug)]
-pub struct Claims(Vec<CapClaim>);
+pub struct Reply {
+    replied_message: MessageParameter,
+    reply: String
+}
