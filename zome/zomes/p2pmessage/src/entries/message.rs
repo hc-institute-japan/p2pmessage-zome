@@ -2,8 +2,14 @@ use derive_more::{From, Into};
 use hdk3::prelude::{timestamp::Timestamp, *};
 pub mod handlers;
 
-// currently a public entry because of a bug in committing entries
-// privately with call_remote.
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub enum Status {
+    Sent, // the message has been transmitted to the network
+    Delivered, // the message has successfully traversed the network and reached the receiver
+    Read, // the message has been opened by the receiver
+    Failed
+}
+
 #[hdk_entry(id = "message", visibility = "public")]
 pub struct MessageEntry {
     author: AgentPubKey,
@@ -11,6 +17,8 @@ pub struct MessageEntry {
     payload: String,
     time_sent: Timestamp,
     time_received: Option<Timestamp>,
+    status: Status,
+    reply_to: Option<EntryHash>
 }
 
 #[hdk_entry(id = "preference", visibility = "private")]
@@ -46,29 +54,20 @@ pub enum Signal {
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct MessageInput {
-    receiver: AgentPubKey,
+    receiver: AgentPubKey, 
     payload: String,
+    reply_to: Option<EntryHash>
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub struct PreferenceIO {
-    typing_indicator: Option<bool>,
-    read_receipt: Option<bool>,
-}
-
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub struct PerAgentPreferenceIO {
-    typing_indicator: Option<Vec<AgentPubKey>>,
-    read_receipt: Option<Vec<AgentPubKey>>,
-}
-
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub struct MessageOutput {
+pub struct MessageParameter {
     author: AgentPubKey,
     receiver: AgentPubKey,
     payload: String,
     time_sent: Timestamp,
     time_received: Option<Timestamp>,
+    status: Status,
+    reply_to: Option<EntryHash>
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
@@ -78,25 +77,29 @@ pub struct TypingInfo {
 }
 
 impl MessageEntry {
-    pub fn from_output(message_output: MessageOutput) -> Self {
+    pub fn from_parameter(message_output: MessageParameter) -> Self {
         MessageEntry {
             author: message_output.author,
             receiver: message_output.receiver,
             payload: message_output.payload,
             time_sent: message_output.time_sent,
             time_received: message_output.time_received,
+            status: message_output.status,
+            reply_to: message_output.reply_to
         }
     }
 }
 
-impl MessageOutput {
+impl MessageParameter {
     pub fn from_entry(message_entry: MessageEntry) -> Self {
-        MessageOutput {
+        MessageParameter {
             author: message_entry.author,
             receiver: message_entry.receiver,
             payload: message_entry.payload,
             time_sent: message_entry.time_sent,
             time_received: message_entry.time_received,
+            status: message_entry.status,
+            reply_to: message_entry.reply_to
         }
     }
 }
@@ -104,7 +107,7 @@ impl MessageOutput {
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct MessagesByAgent {
     author: AgentPubKey,
-    messages: Vec<MessageOutput>,
+    messages: Vec<MessageParameter>
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
@@ -117,10 +120,10 @@ pub struct MessageRange {
 pub struct BooleanWrapper(bool);
 
 #[derive(From, Into, Serialize, Deserialize, SerializedBytes)]
-pub struct MessageOutputOption(Option<MessageOutput>);
+pub struct MessageParameterOption(Option<MessageParameter>);
 
 #[derive(From, Into, Serialize, Deserialize, SerializedBytes)]
-pub struct MessageListWrapper(Vec<MessageOutput>);
+pub struct MessageListWrapper(Vec<MessageParameter>);
 
 #[derive(From, Into, Serialize, Deserialize, SerializedBytes)]
 pub struct AgentListWrapper(Vec<AgentPubKey>);
@@ -136,3 +139,8 @@ pub struct PerAgentPreferenceWrapper(PerAgentPreferenceIO);
 
 #[derive(Serialize, Deserialize, SerializedBytes, Debug)]
 pub struct Claims(Vec<CapClaim>);
+
+pub struct Reply {
+    replied_message: MessageParameter,
+    reply: String
+}

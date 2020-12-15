@@ -4,7 +4,19 @@ use crate::timestamp::Timestamp;
 use crate::utils::{address_deduper, try_from_element};
 use hdk3::prelude::{create_entry, emit_signal, *};
 
-use super::*;
+use super::{
+    MessageEntry,
+    MessageParameter,
+    MessageInput,
+    MessageParameterOption,
+    MessageListWrapper,
+    MessagesByAgent,
+    MessagesByAgentListWrapper,
+    AgentListWrapper,
+    MessageRange,
+    Status,
+    Reply
+};
 
 /*
  * ZOME FUNCTIONS ARE UNRESTRICTED BY DEFAULT
@@ -48,81 +60,89 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
     Ok(InitCallbackResult::Pass)
 }
 
-pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageOutputOption> {
-    // get claims using request-zome
-
-    let query_result = query!(QueryFilter::new()
-        .entry_type(EntryType::CapClaim)
-        .include_entries(true))?;
-
-    let id = format!(
-        "claim_to_send_message_to_{}",
-        hex::encode(message_input.receiver.get_core_bytes())
-    );
-    let claims: Vec<CapClaim> = query_result
-        .0
-        .into_iter()
-        .filter_map(|e| match e.header() {
-            Header::Create(_create) => {
-                let claim = e
-                    .clone()
-                    .into_inner()
-                    .1
-                    .into_option()
-                    .unwrap()
-                    .as_cap_claim()
-                    .unwrap()
-                    .to_owned();
-                if claim.tag() == id {
-                    Some(claim)
-                } else {
-                    None
-                }
-            }
-            _ => None,
-        })
-        .collect();
-
-    if claims.len() <= 0 {
-        return crate::error(
-            "{\"code\": \"401\", \"message\": \"This agent has no proper claims\"}",
-        );
-    };
-
+pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageParameterOption> {
     // build entry structure to be passed
     let now = sys_time!()?;
-    let message = MessageOutput {
+    let message = MessageParameter {
         author: agent_info!()?.agent_latest_pubkey,
         receiver: message_input.receiver.clone(),
         payload: message_input.payload,
         time_sent: Timestamp(now.as_secs() as i64, now.subsec_nanos()),
         time_received: None,
+        status: Status::Sent,
+        reply_to: None
     };
 
-    let to_emit = message.clone();
     let payload: SerializedBytes = message.try_into()?;
 
     match call_remote!(
         message_input.receiver,
         zome_info!()?.zome_name,
         "receive_message".into(),
-        Some(*claims[0].secret()),
+        None,
         payload
     )? {
         ZomeCallResponse::Ok(output) => {
-            let message_output: MessageOutputOption = output.into_inner().try_into()?;
-            emit_signal!(Signal::Message(MessageSignal {
-                kind: "message_sent".to_owned(),
-                message: to_emit
-            }))?;
+            let message_output: MessageParameterOption = output.into_inner().try_into()?;
             match message_output.0 {
                 Some(message_output) => {
-                    let message_entry = MessageEntry::from_output(message_output.clone());
+                    let message_entry = MessageEntry::from_parameter(message_output.clone());
                     create_entry!(&message_entry)?;
-                    Ok(MessageOutputOption(Some(message_output)))
+                    Ok(MessageParameterOption(Some(message_output)))
+                },
+                None => {
+                    Ok(MessageParameterOption(None))
+                }
+            }
+        },
+        ZomeCallResponse::Unauthorized => {
+            crate::error("{\"code\": \"401\", \"message\": \"This agent has no proper authorization\"}")
+        }
+    }
+}
+
+pub(crate) fn reply_to_message(reply_input: Reply) -> ExternResult<MessageParameterOption> {
+    // construct entry hash
+    let message_entry = MessageEntry::from_parameter(reply_input.replied_message.clone());
+    let message_entry_hash = hash_entry!(&message_entry)?;
+
+    // build entry structure to be passed
+    let now = sys_time!()?;
+    let reply_message_payload = MessageParameter {
+        author: agent_info!()?.agent_latest_pubkey,
+        receiver: reply_input.replied_message.author.clone(),
+        payload: reply_input.reply,
+        time_sent: Timestamp(now.as_secs() as i64, now.subsec_nanos()),
+        time_received: None,
+        status: Status::Sent,
+        reply_to: Some(message_entry_hash)
+    };
+
+    let payload: SerializedBytes = reply_message_payload.try_into()?;
+
+    match call_remote!(
+        reply_input.replied_message.author,
+        zome_info!()?.zome_name,
+        "receive_message".into(),
+        None,
+        payload
+    )? {
+        ZomeCallResponse::Ok(output) => {
+            let message_output: MessageParameterOption = output.into_inner().try_into()?;
+            match message_output.0 {
+                Some(message_output) => {
+                    let message_entry = MessageEntry::from_parameter(message_output.clone());
+                    create_entry!(&message_entry)?;
+                    Ok(MessageParameterOption(Some(message_output)))
+                },
+                None => {
+                    Ok(MessageParameterOption(None))
                 }
                 None => Ok(MessageOutputOption(None)),
             }
+        },
+        ZomeCallResponse::Unauthorized => {
+            crate::error("{\"code\": \"401\", \"message\": \"This agent has no proper authorization\"}")
         }
         ZomeCallResponse::Unauthorized => crate::error(
             "{\"code\": \"401\", \"message\": \"This agent has no proper authorization\"}",
@@ -130,15 +150,20 @@ pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageO
     }
 }
 
-pub(crate) fn receive_message(message_input: MessageOutput) -> ExternResult<MessageOutputOption> {
-    let mut message_entry = MessageEntry::from_output(message_input.clone());
+pub(crate) fn receive_message(message_input: MessageParameter) -> ExternResult<MessageParameterOption> {
+    
+    let mut message_entry = MessageEntry::from_parameter(message_input.clone());
     let now = sys_time!()?;
     message_entry.time_received = Some(Timestamp(now.as_secs() as i64, now.subsec_nanos()));
+    message_entry.status = Status::Delivered;
 
     match create_entry!(&message_entry) {
         Ok(_header) => {
-            let message_output = MessageOutput::from_entry(message_entry);
-            Ok(MessageOutputOption(Some(message_output)))
+            let message_output = MessageParameter::from_entry(message_entry);
+            Ok(MessageParameterOption(Some(message_output)))
+        },
+        _ => {
+            Ok(MessageParameterOption(None))
         }
         _ => Ok(MessageOutputOption(None)),
     }
@@ -153,14 +178,13 @@ pub(crate) fn get_all_messages() -> ExternResult<MessageListWrapper> {
         )))
         .include_entries(true))?;
 
-    let message_vec: Vec<MessageOutput> = query_result
-        .0
+    let message_vec: Vec<MessageParameter> = query_result.0
         .into_iter()
         .filter_map(|el| {
             let entry = try_from_element(el);
             match entry {
                 Ok(message_entry) => {
-                    let message_output = MessageOutput::from_entry(message_entry);
+                    let message_output = MessageParameter::from_entry(message_entry);
                     Some(message_output)
                 }
                 _ => None,
@@ -186,25 +210,24 @@ pub(crate) fn get_all_messages_from_addresses(
 
     let mut agent_messages_hashmap = std::collections::HashMap::new();
     for agent in deduped_agents {
-        let message_list: Vec<MessageOutput> = Vec::new();
-        agent_messages_hashmap.insert(agent, message_list);
-    }
+        let message_list: Vec<MessageParameter> = Vec::new();
+        agent_messages_hashmap.insert(agent, message_list);                                                                                                                                                                               
+    };
 
-    let _map_result = query_result.0.into_iter().map(|el| {
-        let entry = try_from_element(el);
+    for element in query_result.0.into_iter() {
+        let entry = try_from_element(element);
         match entry {
             Ok(message_entry) => {
-                let message_output = MessageOutput::from_entry(message_entry);
-                if agent_messages_hashmap.contains_key(&message_output.author) {
-                    if let Some(vec) = agent_messages_hashmap.get_mut(&message_output.author) {
-                        &vec.push(message_output.clone());
-                    };
-                }
-                Some(message_output)
-            }
-            _ => None,
-        }
-    });
+                let message_output = MessageParameter::from_entry(message_entry);
+                if agent_messages_hashmap.contains_key(&message_output.clone().author) {
+                    if let Some(vec) = agent_messages_hashmap.get_mut(&message_output.clone().author) {
+                        vec.push(message_output.clone());
+                    } else { () }
+                } else { () }
+            },
+            _ => ()
+        };
+    };
 
     let mut agent_messages_vec: Vec<MessagesByAgent> = Vec::new();
     for (agent, list) in agent_messages_hashmap.iter() {
@@ -232,7 +255,7 @@ pub(crate) fn get_batch_messages_on_conversation(
         )))
         .include_entries(true))?;
 
-    let mut message_output_vec: Vec<MessageOutput> = Vec::new();
+    let mut message_output_vec: Vec<MessageParameter> = Vec::new();
     for element in query_result.0 {
         let entry = try_from_element::<MessageEntry>(element);
         match entry {
@@ -243,9 +266,8 @@ pub(crate) fn get_batch_messages_on_conversation(
                             < timegap)
                 {
                     if message_entry.author == message_range.author {
-                        if message_entry.time_sent.0 <= message_range.last_message_timestamp_seconds
-                        {
-                            let message_output = MessageOutput::from_entry(message_entry);
+                        if message_entry.time_sent.0 <= message_range.last_message_timestamp_seconds {
+                            let message_output = MessageParameter::from_entry(message_entry);
                             message_output_vec.push(message_output);
                         }
                     };
