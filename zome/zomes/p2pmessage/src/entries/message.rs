@@ -4,10 +4,10 @@ pub mod handlers;
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub enum Status {
-    Sent, // the message has been transmitted to the network
+    Sent,      // the message has been transmitted to the network
     Delivered, // the message has successfully traversed the network and reached the receiver
-    Read, // the message has been opened by the receiver
-    Failed
+    Read,      // the message has been opened by the receiver
+    Failed,
 }
 
 #[hdk_entry(id = "message", visibility = "public")]
@@ -18,45 +18,14 @@ pub struct MessageEntry {
     time_sent: Timestamp,
     time_received: Option<Timestamp>,
     status: Status,
-    reply_to: Option<EntryHash>
-}
-
-#[hdk_entry(id = "preference", visibility = "private")]
-pub struct Preference {
-    typing_indicator: bool,
-    read_receipt: bool,
-}
-
-#[hdk_entry(id = "per_agent_preference", visibility = "private")]
-pub struct PerAgentPreference {
-    typing_indicator: Vec<AgentPubKey>,
-    read_receipt: Vec<AgentPubKey>,
-}
-
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub struct TypingSignal {
-    kind: String,
-    agent: AgentPubKey,
-    is_typing: bool,
-}
-
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub struct MessageSignal {
-    kind: String,
-    message: MessageOutput,
-}
-
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub enum Signal {
-    Message(MessageSignal),
-    Typing(TypingSignal),
+    reply_to: Option<EntryHash>,
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct MessageInput {
-    receiver: AgentPubKey, 
+    receiver: AgentPubKey,
     payload: String,
-    reply_to: Option<EntryHash>
+    reply_to: Option<EntryHash>,
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
@@ -67,13 +36,7 @@ pub struct MessageParameter {
     time_sent: Timestamp,
     time_received: Option<Timestamp>,
     status: Status,
-    reply_to: Option<EntryHash>
-}
-
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub struct TypingInfo {
-    agent: AgentPubKey,
-    is_typing: bool,
+    reply_to: Option<EntryHash>,
 }
 
 impl MessageEntry {
@@ -85,7 +48,7 @@ impl MessageEntry {
             time_sent: message_output.time_sent,
             time_received: message_output.time_received,
             status: message_output.status,
-            reply_to: message_output.reply_to
+            reply_to: message_output.reply_to,
         }
     }
 }
@@ -99,7 +62,7 @@ impl MessageParameter {
             time_sent: message_entry.time_sent,
             time_received: message_entry.time_received,
             status: message_entry.status,
-            reply_to: message_entry.reply_to
+            reply_to: message_entry.reply_to,
         }
     }
 }
@@ -107,7 +70,7 @@ impl MessageParameter {
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct MessagesByAgent {
     author: AgentPubKey,
-    messages: Vec<MessageParameter>
+    messages: Vec<MessageParameter>,
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
@@ -131,16 +94,65 @@ pub struct AgentListWrapper(Vec<AgentPubKey>);
 #[derive(From, Into, Serialize, Deserialize, SerializedBytes)]
 pub struct MessagesByAgentListWrapper(Vec<MessagesByAgent>);
 
+#[derive(Serialize, Deserialize, SerializedBytes, Debug)]
+pub struct Claims(Vec<CapClaim>);
+
+#[hdk_entry(id = "preference", visibility = "private")]
+pub struct Preference {
+    typing_indicator: bool,
+    read_receipt: bool,
+}
+
+#[hdk_entry(id = "per_agent_preference", visibility = "private")]
+pub struct PerAgentPreference {
+    typing_indicator: Vec<AgentPubKey>,
+    read_receipt: Vec<AgentPubKey>,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct TypingSignal {
+    kind: String,
+    agent: AgentPubKey,
+    is_typing: bool,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct MessageSignal {
+    kind: String,
+    message: MessageParameter,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub enum Signal {
+    Message(MessageSignal),
+    Typing(TypingSignal),
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct PreferenceIO {
+    typing_indicator: Option<bool>,
+    read_receipt: Option<bool>,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct PerAgentPreferenceIO {
+    typing_indicator: Option<Vec<AgentPubKey>>,
+    read_receipt: Option<Vec<AgentPubKey>>,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct TypingInfo {
+    agent: AgentPubKey,
+    is_typing: bool,
+}
 #[derive(From, Into, Serialize, Deserialize, SerializedBytes)]
 pub struct PreferenceWrapper(PreferenceIO);
 
 #[derive(From, Into, Serialize, Deserialize, SerializedBytes)]
 pub struct PerAgentPreferenceWrapper(PerAgentPreferenceIO);
 
-#[derive(Serialize, Deserialize, SerializedBytes, Debug)]
-pub struct Claims(Vec<CapClaim>);
-
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct Reply {
     replied_message: MessageParameter,
-    reply: String
+    reply: String,
 }

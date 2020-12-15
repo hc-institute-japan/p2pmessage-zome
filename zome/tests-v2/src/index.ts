@@ -8,9 +8,6 @@ const config = Config.gen({
     charlie: Config.dna('../p2pmessage.dna.gz', null),
     diego: Config.dna('../p2pmessage.dna.gz', null),
     ethan: Config.dna('../p2pmessage.dna.gz', null),
-
-
-
 })
 
 const createPreference = (typingIndicator, readReceipt) => ({
