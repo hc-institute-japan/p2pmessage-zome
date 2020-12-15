@@ -384,7 +384,7 @@ fn fetch_per_agent_preference() -> ExternResult<(element::SignedHeaderHashed, Pe
                 _ => crate::error("Something went wrong"),
             }
         }
-        None => crate::error("Sadbois"),
+        None => crate::error("Something went wrong"),
     }
 }
 
@@ -427,6 +427,78 @@ pub(crate) fn set_per_agent_preference(
                                 .into_iter()
                                 .chain(agents)
                                 .collect::<Vec<AgentPubKey>>()
+                        }
+                        _ => unwrapped_preference.1.read_receipt.clone(),
+                    },
+                }
+            )?;
+            Ok(())
+        }
+        _ => crate::error("Something went wrong"),
+    }
+}
+
+fn fetch_per_group_preference() -> ExternResult<(element::SignedHeaderHashed, PerGroupPreference)> {
+    let query_result = query!(QueryFilter::new()
+        .entry_type(EntryType::App(AppEntryType::new(
+            EntryDefIndex::from(3),
+            zome_info!()?.zome_id,
+            EntryVisibility::Private
+        )))
+        .include_entries(true))?;
+    match query_result.0.get(0) {
+        Some(el) => {
+            let element = el.clone().into_inner();
+            let maybe_preference: Option<PerGroupPreference> = element.1.to_app_option()?;
+
+            match maybe_preference {
+                Some(preference) => Ok((element.0, preference)),
+                _ => crate::error("Something went wrong"),
+            }
+        }
+        None => crate::error("Something went wrong"),
+    }
+}
+
+pub(crate) fn get_per_group_preference() -> ExternResult<PerGroupPreferenceWrapper> {
+    match fetch_per_group_preference() {
+        Ok(unwrapped_preference) => Ok(PerGroupPreferenceWrapper(PerGroupPreferenceIO {
+            typing_indicator: Some(unwrapped_preference.1.typing_indicator),
+            read_receipt: Some(unwrapped_preference.1.read_receipt),
+        })),
+        _ => crate::error("Something went wrong"),
+    }
+}
+
+pub(crate) fn set_per_group_preference(
+    per_group_preference: PerGroupPreferenceIO,
+) -> ExternResult<()> {
+    match fetch_per_group_preference() {
+        Ok(unwrapped_preference) => {
+            update_entry!(
+                unwrapped_preference.0.into_inner().1,
+                PerGroupPreference {
+                    typing_indicator: match per_group_preference.clone().typing_indicator {
+                        Some(agents) => {
+                            unwrapped_preference
+                                .1
+                                .typing_indicator
+                                .clone()
+                                .into_iter()
+                                .chain(agents)
+                                .collect::<Vec<String>>()
+                        }
+                        _ => unwrapped_preference.1.typing_indicator.clone(),
+                    },
+                    read_receipt: match per_group_preference.clone().read_receipt {
+                        Some(agents) => {
+                            unwrapped_preference
+                                .1
+                                .read_receipt
+                                .clone()
+                                .into_iter()
+                                .chain(agents)
+                                .collect::<Vec<String>>()
                         }
                         _ => unwrapped_preference.1.read_receipt.clone(),
                     },

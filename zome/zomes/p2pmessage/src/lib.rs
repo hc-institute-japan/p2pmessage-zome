@@ -8,7 +8,8 @@ use message::*;
 entry_defs![
     MessageEntry::entry_def(),
     Preference::entry_def(),
-    PerAgentPreference::entry_def()
+    PerAgentPreference::entry_def(),
+    PerGroupPreference::entry_def()
 ];
 
 pub fn error<T>(reason: &str) -> ExternResult<T> {

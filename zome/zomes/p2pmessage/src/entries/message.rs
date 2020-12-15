@@ -97,6 +97,12 @@ pub struct MessagesByAgentListWrapper(Vec<MessagesByAgent>);
 #[derive(Serialize, Deserialize, SerializedBytes, Debug)]
 pub struct Claims(Vec<CapClaim>);
 
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct Reply {
+    replied_message: MessageParameter,
+    reply: String,
+}
+
 #[hdk_entry(id = "preference", visibility = "private")]
 pub struct Preference {
     typing_indicator: bool,
@@ -107,6 +113,45 @@ pub struct Preference {
 pub struct PerAgentPreference {
     typing_indicator: Vec<AgentPubKey>,
     read_receipt: Vec<AgentPubKey>,
+}
+
+#[hdk_entry(id = "per_group_preference", visibility = "private")]
+pub struct PerGroupPreference {
+    typing_indicator: Vec<String>,
+    read_receipt: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct PreferenceIO {
+    typing_indicator: Option<bool>,
+    read_receipt: Option<bool>,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct PerAgentPreferenceIO {
+    typing_indicator: Option<Vec<AgentPubKey>>,
+    read_receipt: Option<Vec<AgentPubKey>>,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct PerGroupPreferenceIO {
+    typing_indicator: Option<Vec<String>>,
+    read_receipt: Option<Vec<String>>,
+}
+
+#[derive(From, Into, Serialize, Deserialize, SerializedBytes)]
+pub struct PreferenceWrapper(PreferenceIO);
+
+#[derive(From, Into, Serialize, Deserialize, SerializedBytes)]
+pub struct PerAgentPreferenceWrapper(PerAgentPreferenceIO);
+
+#[derive(From, Into, Serialize, Deserialize, SerializedBytes)]
+pub struct PerGroupPreferenceWrapper(PerGroupPreferenceIO);
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct TypingInfo {
+    agent: AgentPubKey,
+    is_typing: bool,
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
@@ -126,33 +171,4 @@ pub struct MessageSignal {
 pub enum Signal {
     Message(MessageSignal),
     Typing(TypingSignal),
-}
-
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub struct PreferenceIO {
-    typing_indicator: Option<bool>,
-    read_receipt: Option<bool>,
-}
-
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub struct PerAgentPreferenceIO {
-    typing_indicator: Option<Vec<AgentPubKey>>,
-    read_receipt: Option<Vec<AgentPubKey>>,
-}
-
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub struct TypingInfo {
-    agent: AgentPubKey,
-    is_typing: bool,
-}
-#[derive(From, Into, Serialize, Deserialize, SerializedBytes)]
-pub struct PreferenceWrapper(PreferenceIO);
-
-#[derive(From, Into, Serialize, Deserialize, SerializedBytes)]
-pub struct PerAgentPreferenceWrapper(PerAgentPreferenceIO);
-
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub struct Reply {
-    replied_message: MessageParameter,
-    reply: String,
 }
