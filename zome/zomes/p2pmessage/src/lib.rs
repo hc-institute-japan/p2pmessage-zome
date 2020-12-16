@@ -5,12 +5,7 @@ use entries::message;
 
 use message::*;
 
-entry_defs![
-    MessageEntry::entry_def(),
-    Preference::entry_def(),
-    PerAgentPreference::entry_def(),
-    PerGroupPreference::entry_def()
-];
+entry_defs![MessageEntry::entry_def()];
 
 pub fn error<T>(reason: &str) -> ExternResult<T> {
     Err(HdkError::Wasm(WasmError::Zome(String::from(reason))))
@@ -60,24 +55,4 @@ fn reply_to_message(reply_input: Reply) -> ExternResult<MessageParameterOption> 
 #[hdk_extern]
 fn typing(typing_info: TypingInfo) -> ExternResult<()> {
     message::handlers::typing(typing_info)
-}
-
-#[hdk_extern]
-fn get_preference(_: ()) -> ExternResult<PreferenceWrapper> {
-    handlers::get_preference()
-}
-
-#[hdk_extern]
-fn set_preference(preference: PreferenceIO) -> ExternResult<()> {
-    handlers::set_preference(preference)
-}
-
-#[hdk_extern]
-fn set_per_agent_preference(preference: PerAgentPreferenceIO) -> ExternResult<()> {
-    handlers::set_per_agent_preference(preference)
-}
-
-#[hdk_extern]
-fn get_per_agent_preference(_: ()) -> ExternResult<PerAgentPreferenceWrapper> {
-    handlers::get_per_agent_preference()
 }

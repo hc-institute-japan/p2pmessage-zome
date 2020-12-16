@@ -11,19 +11,6 @@ pub fn _try_get_and_convert<T: TryFrom<SerializedBytes>>(
     }
 }
 
-// pub fn _try_get_and_convert<T: TryFrom<SerializedBytes>>(
-//     entry_hash: EntryHash,
-// ) -> ExternResult<(EntryHash, T)> {
-//     match get!(entry_hash.clone())? {
-//         Some(element) => Ok((entry_hash, try_from_element(element)?)),
-//         None => crate::error("Entry not found"),
-//     }
-// }
-
-// Err(HdkError::Wasm(WasmError::Zome(
-//     "{\"code\": \"000\", \"message\": \"[Unauthorized] Accept Request\"}".to_owned(),
-// )))
-
 pub fn try_from_element<T: TryFrom<SerializedBytes>>(element: Element) -> ExternResult<T> {
     match element.entry() {
         element::ElementEntry::Present(entry) => try_from_entry::<T>(entry.clone()),
