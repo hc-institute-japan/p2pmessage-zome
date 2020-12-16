@@ -16,6 +16,13 @@ pub fn error<T>(reason: &str) -> ExternResult<T> {
     Err(HdkError::Wasm(WasmError::Zome(String::from(reason))))
 }
 
+pub fn err<T>(code: &str, message: &str) -> ExternResult<T> {
+    Err(HdkError::Wasm(WasmError::Zome(format!(
+        "{{\"code\": \"{}\", \"message\": \"{}\"}}",
+        code, message
+    ))))
+}
+
 #[hdk_extern]
 fn send_message(message_input: MessageInput) -> ExternResult<MessageParameterOption> {
     message::handlers::send_message(message_input)
