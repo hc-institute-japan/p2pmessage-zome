@@ -1,7 +1,11 @@
-use hdk3::prelude::*;
+use hdk3::prelude::{
+    GetOptions,
+    *,
+};
 
 pub fn _try_get_and_convert<T: TryFrom<SerializedBytes>>(entry_hash: EntryHash) -> ExternResult<(EntryHash, T)> {
-    match get!(entry_hash.clone())? {
+    let option = GetOptions::latest();
+    match get(entry_hash.clone(), option)? {
         Some(element) => Ok((entry_hash, try_from_element(element)?)),
         None => crate::error("Entry not found"),
     }

@@ -31,8 +31,8 @@ use super::{
 #[hdk_extern]
 fn init(_: ()) -> ExternResult<InitCallbackResult> {
     let mut functions: GrantedFunctions = HashSet::new();
-    functions.insert((zome_info!()?.zome_name, "receive_message".into()));
-    create_cap_grant!(
+    functions.insert((zome_info()?.zome_name, "receive_message".into()));
+    create_cap_grant(
         CapGrantEntry {
             tag: "receive".into(),
             access: ().into(),
@@ -44,9 +44,9 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
 
 pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageOutputOption> {
     // build entry structure to be passed
-    let now = sys_time!()?;
+    let now = sys_time()?;
     let message = MessageOutput {
-        author: agent_info!()?.agent_latest_pubkey,
+        author: agent_info()?.agent_latest_pubkey,
         receiver: message_input.receiver.clone(),
         payload: message_input.payload,
         time_sent: Timestamp(now.as_secs() as i64, now.subsec_nanos()),
@@ -56,9 +56,9 @@ pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageO
 
     let payload: SerializedBytes = message.try_into()?;
 
-    match call_remote!(
+    match call_remote(
         message_input.receiver,
-        zome_info!()?.zome_name,
+        zome_info()?.zome_name,
         "receive_message".into(),
         None,
         payload
@@ -68,7 +68,7 @@ pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageO
             match message_output.0 {
                 Some(message_output) => {
                     let message_entry = MessageEntry::from_output(message_output.clone());
-                    create_entry!(&message_entry)?;
+                    create_entry(&message_entry)?;
                     Ok(MessageOutputOption(Some(message_output)))
                 },
                 None => {
@@ -78,18 +78,19 @@ pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageO
         },
         ZomeCallResponse::Unauthorized => {
             crate::error("{\"code\": \"401\", \"message\": \"This agent has no proper authorization\"}")
-        }
+        },
+        ZomeCallResponse::NetworkError(e) => Err(HdkError::ZomeCallNetworkError(e))
     }
 }
 
 pub(crate) fn receive_message(message_input: MessageOutput) -> ExternResult<MessageOutputOption> {
     
     let mut message_entry = MessageEntry::from_output(message_input.clone());
-    let now = sys_time!()?;
+    let now = sys_time()?;
     message_entry.time_received = Some(Timestamp(now.as_secs() as i64, now.subsec_nanos()));
     message_entry.status = Status::Delivered;
 
-    match create_entry!(&message_entry) {
+    match create_entry(&message_entry) {
         Ok(_header) => {
             let message_output = MessageOutput::from_entry(message_entry);
             Ok(MessageOutputOption(Some(message_output)))
@@ -101,13 +102,13 @@ pub(crate) fn receive_message(message_input: MessageOutput) -> ExternResult<Mess
 }
 
 pub(crate) fn get_all_messages() -> ExternResult<MessageListWrapper> {
-    let query_result = query!(
+    let query_result = query(
         QueryFilter::new()
         .entry_type(
             EntryType::App(
                 AppEntryType::new(
                     EntryDefIndex::from(0),
-                    zome_info!()?.zome_id,
+                    zome_info()?.zome_id,
                     EntryVisibility::Public
                 )
             )
@@ -135,13 +136,13 @@ pub(crate) fn get_all_messages() -> ExternResult<MessageListWrapper> {
 pub(crate) fn get_all_messages_from_addresses(agent_list: AgentListWrapper) -> ExternResult<MessagesByAgentListWrapper> {
     let deduped_agents = address_deduper(agent_list.0);
 
-    let query_result = query!(
+    let query_result = query(
         QueryFilter::new()
         .entry_type(
             EntryType::App(
                 AppEntryType::new(
                     EntryDefIndex::from(0),
-                    zome_info!()?.zome_id,
+                    zome_info()?.zome_id,
                     EntryVisibility::Public
                 )
             )
@@ -183,19 +184,19 @@ pub(crate) fn get_all_messages_from_addresses(agent_list: AgentListWrapper) -> E
     Ok(MessagesByAgentListWrapper(agent_messages_vec))
 }
 
-// TODO: change implementation once query! macro accepts timestamp range.
+// TODO: change implementation once query accepts timestamp range.
 pub(crate) fn get_batch_messages_on_conversation(message_range: MessageRange) -> ExternResult<MessageListWrapper> {
 
     let timegap = 10; //in seconds
     let batch_size = 10; // number of messages
 
-    let query_result = query!(
+    let query_result = query(
         QueryFilter::new()
         .entry_type(
             EntryType::App(
                 AppEntryType::new(
                     EntryDefIndex::from(0),
-                    zome_info!()?.zome_id,
+                    zome_info()?.zome_id,
                     EntryVisibility::Public
                 )
             )
