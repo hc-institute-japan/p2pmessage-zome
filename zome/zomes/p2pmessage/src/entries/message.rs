@@ -10,8 +10,8 @@ pub enum Status {
     Failed,
 }
 
-#[hdk_entry(id = "message", visibility = "public")]
-pub struct MessageEntry {
+#[hdk_entry(id = "p2pmessage", visibility = "public")]
+pub struct P2PMessage {
     author: AgentPubKey,
     receiver: AgentPubKey,
     payload: String,
@@ -21,11 +21,43 @@ pub struct MessageEntry {
     reply_to: Option<EntryHash>,
 }
 
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub struct MessageInput {
+impl P2PMessage {
+    pub fn from_parameter(message_output: MessageParameter) -> Self {
+        P2PMessage {
+            author: message_output.author,
+            receiver: message_output.receiver,
+            payload: message_output.payload,
+            time_sent: message_output.time_sent,
+            time_received: message_output.time_received,
+            status: message_output.status,
+            reply_to: message_output.reply_to,
+        }
+    }
+}
+
+#[hdk_entry(id = "p2pmessageasync", visibility = "public")]
+pub struct P2PMessageAsync {
+    author: AgentPubKey,
     receiver: AgentPubKey,
     payload: String,
+    time_sent: Timestamp,
+    time_received: Option<Timestamp>,
     reply_to: Option<EntryHash>,
+    status: Status
+}
+
+impl P2PMessageAsync {
+    pub fn from_parameter(message_parameter: MessageParameter, status: Status) -> Self {
+        P2PMessageAsync {
+            author: message_parameter.author,
+            receiver: message_parameter.receiver,
+            payload: message_parameter.payload,
+            time_sent: message_parameter.time_sent,
+            time_received: message_parameter.time_received,
+            reply_to: message_parameter.reply_to,
+            status: status
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
@@ -39,22 +71,8 @@ pub struct MessageParameter {
     reply_to: Option<EntryHash>,
 }
 
-impl MessageEntry {
-    pub fn from_parameter(message_output: MessageParameter) -> Self {
-        MessageEntry {
-            author: message_output.author,
-            receiver: message_output.receiver,
-            payload: message_output.payload,
-            time_sent: message_output.time_sent,
-            time_received: message_output.time_received,
-            status: message_output.status,
-            reply_to: message_output.reply_to,
-        }
-    }
-}
-
 impl MessageParameter {
-    pub fn from_entry(message_entry: MessageEntry) -> Self {
+    pub fn from_entry(message_entry: P2PMessage) -> Self {
         MessageParameter {
             author: message_entry.author,
             receiver: message_entry.receiver,
@@ -65,6 +83,40 @@ impl MessageParameter {
             reply_to: message_entry.reply_to,
         }
     }
+
+    pub fn from_async_entry(message_entry: P2PMessageAsync, status: Status) -> Self {
+        MessageParameter {
+            author: message_entry.author,
+            receiver: message_entry.receiver,
+            payload: message_entry.payload,
+            time_sent: message_entry.time_sent,
+            time_received: message_entry.time_received,
+            reply_to: message_entry.reply_to,
+            status: status
+        }
+    }
+}
+
+#[hdk_entry(id = "inbox", visibility = "public")]
+pub struct Inbox {
+    owner: AgentPubKey,
+    tag: String
+}
+
+impl Inbox {
+    pub fn new(agent_pubkey: AgentPubKey) -> Self {
+        Inbox {
+            owner: agent_pubkey,
+            tag: "inbox".to_string()
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct MessageInput {
+    receiver: AgentPubKey,
+    payload: String,
+    reply_to: Option<EntryHash>,
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]

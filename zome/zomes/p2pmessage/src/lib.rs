@@ -6,7 +6,8 @@ use entries::message;
 use message::*;
 
 entry_defs![
-    MessageEntry::entry_def(),
+    P2PMessage::entry_def(),
+    P2PMessageAsync::entry_def(),
     Preference::entry_def(),
     PerAgentPreference::entry_def(),
     PerGroupPreference::entry_def()
@@ -22,8 +23,23 @@ fn send_message(message_input: MessageInput) -> ExternResult<MessageParameterOpt
 }
 
 #[hdk_extern]
+fn send_message_async(message_input: MessageInput) -> ExternResult<MessageParameter> {
+    message::handlers::send_message_async(message_input)
+}
+
+#[hdk_extern]
+fn reply_to_message(reply_input: Reply) -> ExternResult<MessageParameterOption> {
+    message::handlers::reply_to_message(reply_input)
+}
+
+#[hdk_extern]
 fn receive_message(message_input: MessageParameter) -> ExternResult<MessageParameterOption> {
     message::handlers::receive_message(message_input)
+}
+
+#[hdk_extern]
+fn notify_delivery(message_entry: MessageParameter) -> ExternResult<BooleanWrapper> {
+    message::handlers::notify_delivery(message_entry)
 }
 
 #[hdk_extern]
@@ -43,11 +59,6 @@ fn get_batch_messages_on_conversation(
     message_range: MessageRange,
 ) -> ExternResult<MessageListWrapper> {
     message::handlers::get_batch_messages_on_conversation(message_range)
-}
-
-#[hdk_extern]
-fn reply_to_message(reply_input: Reply) -> ExternResult<MessageParameterOption> {
-    message::handlers::reply_to_message(reply_input)
 }
 
 #[hdk_extern]

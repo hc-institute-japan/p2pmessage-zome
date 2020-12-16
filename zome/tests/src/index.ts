@@ -41,7 +41,7 @@ function get_batch_messages_on_conversation(messagerange) {
   conductor.call(caller, "p2pmessage", "get_batch_messages_on_conversation", messagerange);
 }
 
-orchestrator.registerScenario("remote call", async (s, t) => {
+orchestrator.registerScenario("p2p messaging", async (s, t) => {
   const { conductor } = await s.players({ conductor: config });
   await conductor.spawn();
 
@@ -57,8 +57,7 @@ orchestrator.registerScenario("remote call", async (s, t) => {
 
   const message = {
       receiver: agent_pubkey_bobby,
-      payload: "Hello world",
-      reply_to: null
+      payload: "Hello world"
   };
 
   const message_2 = {
@@ -200,4 +199,3 @@ orchestrator.registerScenario("remote call", async (s, t) => {
 
 
 orchestrator.run()
-
