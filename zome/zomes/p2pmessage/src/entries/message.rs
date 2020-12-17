@@ -94,3 +94,34 @@ pub struct MessagesByAgentListWrapper(Vec<MessagesByAgent>);
 
 #[derive(Serialize, Deserialize, SerializedBytes, Debug)]
 pub struct Claims(Vec<CapClaim>);
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct Reply {
+    replied_message: MessageParameter,
+    reply: String,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct TypingInfo {
+    agent: AgentPubKey,
+    is_typing: bool,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct TypingSignal {
+    kind: String,
+    agent: AgentPubKey,
+    is_typing: bool,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct MessageSignal {
+    kind: String,
+    message: MessageParameter,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub enum Signal {
+    Message(MessageSignal),
+    Typing(TypingSignal),
+}

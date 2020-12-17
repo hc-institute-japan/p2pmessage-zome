@@ -30,28 +30,37 @@ use super::{
  */
 #[hdk_extern]
 fn init(_: ()) -> ExternResult<InitCallbackResult> {
-    let mut functions: GrantedFunctions = HashSet::new();
-    functions.insert((zome_info()?.zome_name, "receive_message".into()));
-    create_cap_grant(
-        CapGrantEntry {
-            tag: "receive".into(),
-            access: ().into(),
-            functions,
-        }
-    )?;
+    let mut receive_functions: GrantedFunctions = HashSet::new();
+    receive_functions.insert((zome_info!()?.zome_name, "receive_message".into()));
+    let mut emit_functions: GrantedFunctions = HashSet::new();
+    emit_functions.insert((zome_info!()?.zome_name, "emit_typing".into()));
+
+    create_cap_grant!(CapGrantEntry {
+        tag: "receive".into(),
+        access: ().into(),
+        functions: receive_functions,
+    })?;
+
+    create_cap_grant!(CapGrantEntry {
+        tag: "".into(),
+        access: ().into(),
+        functions: emit_functions
+    })?;
+
     Ok(InitCallbackResult::Pass)
 }
 
-pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageOutputOption> {
+pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageParameterOption> {
     // build entry structure to be passed
-    let now = sys_time()?;
-    let message = MessageOutput {
-        author: agent_info()?.agent_latest_pubkey,
+    let now = sys_time!()?;
+    let message = MessageParameter {
+        author: agent_info!()?.agent_latest_pubkey,
         receiver: message_input.receiver.clone(),
         payload: message_input.payload,
         time_sent: Timestamp(now.as_secs() as i64, now.subsec_nanos()),
         time_received: None,
-        status: Status::Sent
+        status: Status::Sent,
+        reply_to: None,
     };
 
     let payload: SerializedBytes = message.try_into()?;
@@ -77,16 +86,60 @@ pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageO
             }
         },
         ZomeCallResponse::Unauthorized => {
-            crate::error("{\"code\": \"401\", \"message\": \"This agent has no proper authorization\"}")
+            crate::err("401", "This agent has no proper authorization")
         },
         ZomeCallResponse::NetworkError(e) => Err(HdkError::ZomeCallNetworkError(e))
     }
 }
 
-pub(crate) fn receive_message(message_input: MessageOutput) -> ExternResult<MessageOutputOption> {
-    
-    let mut message_entry = MessageEntry::from_output(message_input.clone());
-    let now = sys_time()?;
+pub(crate) fn reply_to_message(reply_input: Reply) -> ExternResult<MessageParameterOption> {
+    // construct entry hash
+    let message_entry = MessageEntry::from_parameter(reply_input.replied_message.clone());
+    let message_entry_hash = hash_entry!(&message_entry)?;
+
+    // build entry structure to be passed
+    let now = sys_time!()?;
+    let reply_message_payload = MessageParameter {
+        author: agent_info!()?.agent_latest_pubkey,
+        receiver: reply_input.replied_message.author.clone(),
+        payload: reply_input.reply,
+        time_sent: Timestamp(now.as_secs() as i64, now.subsec_nanos()),
+        time_received: None,
+        status: Status::Sent,
+        reply_to: Some(message_entry_hash),
+    };
+
+    let payload: SerializedBytes = reply_message_payload.try_into()?;
+
+    match call_remote!(
+        reply_input.replied_message.author,
+        zome_info!()?.zome_name,
+        "receive_message".into(),
+        None,
+        payload
+    )? {
+        ZomeCallResponse::Ok(output) => {
+            let message_output: MessageParameterOption = output.into_inner().try_into()?;
+            match message_output.0 {
+                Some(message_output) => {
+                    let message_entry = MessageEntry::from_parameter(message_output.clone());
+                    create_entry!(&message_entry)?;
+                    Ok(MessageParameterOption(Some(message_output)))
+                }
+                None => Ok(MessageParameterOption(None)),
+            }
+        }
+        ZomeCallResponse::Unauthorized => {
+            crate::err("401", "This agent has no proper authorization")
+        }
+    }
+}
+
+pub(crate) fn receive_message(
+    message_input: MessageParameter,
+) -> ExternResult<MessageParameterOption> {
+    let mut message_entry = MessageEntry::from_parameter(message_input.clone());
+    let now = sys_time!()?;
     message_entry.time_received = Some(Timestamp(now.as_secs() as i64, now.subsec_nanos()));
     message_entry.status = Status::Delivered;
 
@@ -226,4 +279,28 @@ pub(crate) fn get_batch_messages_on_conversation(message_range: MessageRange) ->
     };
 
     Ok(MessageListWrapper(message_output_vec))
+}
+
+fn emit_typing(typing_info: TypingInfo) -> ExternResult<()> {
+    emit_signal!(Signal::Typing(TypingSignal {
+        kind: "message_sent".to_owned(),
+        agent: typing_info.agent.to_owned(),
+        is_typing: typing_info.is_typing
+    }))?;
+    Ok(())
+}
+
+pub(crate) fn typing(typing_info: TypingInfo) -> ExternResult<()> {
+    call_remote!(
+        typing_info.agent,
+        zome_info!()?.zome_name,
+        "emit_typing".to_string().into(),
+        None,
+        TypingInfo {
+            agent: agent_info!()?.agent_latest_pubkey,
+            is_typing: typing_info.is_typing
+        }
+        .try_into()?
+    )?;
+    Ok(())
 }
