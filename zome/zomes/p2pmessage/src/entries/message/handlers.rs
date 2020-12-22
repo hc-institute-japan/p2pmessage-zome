@@ -45,6 +45,9 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
         functions: receive_functions,
     })?;
 
+    let agent_inbox = Inbox::new(agent_info()?.agent_latest_pubkey);
+    create_entry(&agent_inbox)?;
+
     create_cap_grant(CapGrantEntry {
         tag: "".into(),
         access: ().into(),
@@ -55,7 +58,6 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
 }
 
 pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageParameterOption> {
-
     let now = sys_time()?;
     let message = MessageParameter {
         author: agent_info()?.agent_latest_pubkey,
@@ -79,11 +81,10 @@ pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageP
     )? {
         ZomeCallResponse::Ok(output) => {
             let message_output = MessageParameterOption::try_from(output.into_inner())?;
-            debug!("nicko remote ok returned");
             // let message_output: MessageParameterOption = output.into_inner().try_into()?;
             match message_output.0 {
                 Some(message_output) => {
-                    let message_entry = MessageEntry::from_parameter(message_output.clone());
+                    let message_entry = P2PMessage::from_parameter(message_output.clone());
                     create_entry(&message_entry)?;
                     Ok(MessageParameterOption(Some(message_output)))
                 },
@@ -105,12 +106,41 @@ pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageP
     }
 }
 
+pub(crate) fn send_message_async(message_input: MessageInput) -> ExternResult<MessageParameter> {
+
+    if let true = is_user_blocked(message_input.receiver.clone())? {
+        return crate::error("You cannot send a message to a contact you have blocked.")
+    };
+
+    let now = sys_time()?;
+    let message = P2PMessageAsync {
+        author: agent_info()?.agent_latest_pubkey,
+        receiver: message_input.receiver.clone(),
+        payload: message_input.payload,
+        time_sent: Timestamp(now.as_secs() as i64, now.subsec_nanos()),
+        time_received: None,
+        reply_to: None,
+        status: Status::Sent
+    };
+
+    create_entry(&message)?;
+    let receiver_inbox = Inbox::new(message_input.receiver.clone());
+    
+    create_link(
+        hash_entry(&receiver_inbox)?,
+        hash_entry(&message)?,
+        LinkTag::new(agent_info()?.agent_latest_pubkey.to_string())
+    )?;
+
+    let message_output = MessageParameter::from_async_entry(message, Status::Sent);
+
+    Ok(message_output)
+}
+
 pub(crate) fn reply_to_message(reply_input: Reply) -> ExternResult<MessageParameterOption> {
-    // construct entry hash
-    let message_entry = MessageEntry::from_parameter(reply_input.replied_message.clone());
+    let message_entry = P2PMessage::from_parameter(reply_input.replied_message.clone());
     let message_entry_hash = hash_entry(&message_entry)?;
 
-    // build entry structure to be passed
     let now = sys_time()?;
     let reply_message_payload = MessageParameter {
         author: agent_info()?.agent_latest_pubkey,
@@ -135,7 +165,7 @@ pub(crate) fn reply_to_message(reply_input: Reply) -> ExternResult<MessageParame
             let message_output: MessageParameterOption = output.into_inner().try_into()?;
             match message_output.0 {
                 Some(message_output) => {
-                    let message_entry = MessageEntry::from_parameter(message_output.clone());
+                    let message_entry = P2PMessage::from_parameter(message_output.clone());
                     create_entry(&message_entry)?;
                     Ok(MessageParameterOption(Some(message_output)))
                 }
@@ -150,11 +180,9 @@ pub(crate) fn reply_to_message(reply_input: Reply) -> ExternResult<MessageParame
     }
 }
 
-pub(crate) fn receive_message(
-    message_input: MessageParameter,
-) -> ExternResult<MessageParameterOption> {
+pub(crate) fn receive_message(message_input: MessageParameter) -> ExternResult<MessageParameterOption> {
+    let mut message_entry = P2PMessage::from_parameter(message_input.clone());
     debug!("nicko received reached");
-    let mut message_entry = MessageEntry::from_parameter(message_input.clone());
     let now = sys_time()?;
     message_entry.time_received = Some(Timestamp(now.as_secs() as i64, now.subsec_nanos()));
     message_entry.status = Status::Delivered;
@@ -172,6 +200,34 @@ pub(crate) fn receive_message(
             debug!("nicko in receive error create");
             Ok(MessageParameterOption(None))
         }
+    }
+}
+
+pub(crate) fn notify_delivery(message_entry: MessageParameter) -> ExternResult<BooleanWrapper> {
+    let original_message = P2PMessageAsync {
+        author: message_entry.author.clone(),
+        receiver: message_entry.receiver.clone(),
+        payload: message_entry.payload.clone(),
+        time_sent: message_entry.time_sent.clone(),
+        time_received: None,
+        reply_to: message_entry.reply_to.clone(),
+        status: Status::Delivered,
+    };
+    
+    let original_hash = hash_entry(&original_message)?;
+    let original_entry = get(original_hash)?;
+    match original_entry {
+        Some(element) => {
+            update_entry(
+                element.header_address().to_owned(), 
+                P2PMessageAsync::from_parameter(
+                    message_entry.clone(), 
+                    Status::Sent
+                )
+            )?;
+            Ok(BooleanWrapper(true))
+        },
+        _ => Ok(BooleanWrapper(false))
     }
 }
 
@@ -280,7 +336,7 @@ pub(crate) fn get_batch_messages_on_conversation(message_range: MessageRange) ->
 
     let mut message_output_vec: Vec<MessageParameter> = Vec::new();
     for element in query_result.0 {
-        let entry = try_from_element::<MessageEntry>(element);
+        let entry = try_from_element::<P2PMessage>(element);
         match entry {
             Ok(message_entry) => {
                 if message_output_vec.len() <= 0 
@@ -302,8 +358,117 @@ pub(crate) fn get_batch_messages_on_conversation(message_range: MessageRange) ->
     Ok(MessageListWrapper(message_output_vec))
 }
 
-fn _emit_typing(typing_info: TypingInfo) -> ExternResult<()> {
-    emit_signal(&Signal::Typing(TypingSignal {
+pub(crate) fn fetch_inbox() -> ExternResult<MessageListWrapper> {
+    let agent_inbox_hash = hash_entry(Inbox::new(agent_info()?.agent_latest_pubkey))?;
+
+    let links = get_links(agent_inbox_hash)?;
+
+    let mut message_list: Vec<MessageParameter> = Vec::new();
+    for link in links.into_inner().into_iter() {
+        match get(link.target)? {
+            Some(element) => {
+                let _header_hash = element.clone().header_address().to_owned();
+                let header = element.clone().header().to_owned();
+                let author = header.author();
+
+                if let true = is_user_blocked(author.clone())? {
+                    continue
+                };
+
+                match try_from_element(element) {
+                    Ok(message_entry) => {
+                        let mut message_parameter = MessageParameter::from_async_entry(message_entry, Status::Delivered);
+
+                        // check message status 
+                        match message_parameter.status.clone() {
+                            // message bound to author when author is offline when receiver tried to call remote
+                            // confirming receipt of receiver
+                            // update message in source chain
+                            Status::Sent => {
+                                let original_message = P2PMessageAsync {
+                                    author: message_parameter.author.clone(),
+                                    receiver: message_parameter.receiver.clone(),
+                                    payload: message_parameter.payload.clone(),
+                                    time_sent: message_parameter.time_sent.clone(),
+                                    time_received: None,
+                                    reply_to: message_parameter.reply_to.clone(),
+                                    status: Status::Delivered,
+                                };
+                                
+                                let original_hash = hash_entry(&original_message)?;
+                                let original_entry = get(original_hash)?;
+                                match original_entry {
+                                    Some(element) => {
+                                        update_entry(
+                                            element.header_address().to_owned(), 
+                                            P2PMessageAsync::from_parameter(
+                                                message_parameter.clone(), 
+                                                Status::Sent
+                                            )
+                                        )?;
+                                        ()
+                                    },
+                                    _ => return crate::error("{\"code\": \"401\", \"message\": \"The original message cannot be found\"}")
+                                }
+
+                            },
+                            // message bound to receiver
+                            // unreceived message while offline
+                            // receive message, update status and timestamps, commit to source chain, unlink from inbox, link to author's inbox
+                            Status::Delivered => {
+                                let now = sys_time()?;
+                                message_parameter.time_received = Some(Timestamp(now.as_secs() as i64, now.subsec_nanos()));
+
+                                let payload: SerializedBytes = message_parameter.clone().try_into()?;
+                                match call_remote(
+                                    message_parameter.clone().author,
+                                    zome_info()?.zome_name,
+                                    "notify_delivery".into(),
+                                    None,
+                                    payload
+                                )? {
+                                    ZomeCallResponse::Ok(_output) => {
+                                        // message has been updated on the sender's side
+                                        ()
+                                    },
+                                    ZomeCallResponse::Unauthorized => {
+                                        // crate::error("{\"code\": \"401\", \"message\": \"This agent has no proper authorization\"}"
+                                        // updating failed
+                                        // cases: suddenly blocked, recipient is offline
+                                        ()
+                                    }
+                                }
+                                message_list.push(message_parameter)
+                            },
+                            _ =>  return crate::error("Could not convert entry")
+                        }
+                        
+                    },
+                    _ => return crate::error("Could not convert entry")
+                }
+            }, 
+            _ => return crate::error("Could not get link target")
+        }   
+    }
+    
+    Ok(MessageListWrapper(message_list))
+}
+
+fn is_user_blocked(agent_pubkey: AgentPubKey) -> ExternResult<bool> {
+    match call::<AgentPubKey, BooleanWrapper>(
+        None,
+        "contacts".into(),
+        "in_blocked".into(),
+        None,
+        agent_pubkey.clone()
+    ) {
+        Ok(output) => Ok(output.0),
+        _ => return crate::error("{\"code\": \"401\", \"message\": \"This agent has no proper authorization\"}")
+    }
+}
+
+fn emit_typing(typing_info: TypingInfo) -> ExternResult<()> {
+    emit_signal(Signal::Typing(TypingSignal {
         kind: "message_sent".to_owned(),
         agent: typing_info.agent.to_owned(),
         is_typing: typing_info.is_typing
