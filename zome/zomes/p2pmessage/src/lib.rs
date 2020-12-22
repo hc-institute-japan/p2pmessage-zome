@@ -6,12 +6,14 @@ use entries::message;
 use message::{
     MessageEntry,
     MessageInput,
-    MessageOutput,
-    MessageOutputOption,
+    MessageParameter,
+    MessageParameterOption,
     MessageListWrapper,
     AgentListWrapper,
     MessagesByAgentListWrapper,
-    MessageRange
+    MessageRange,
+    Reply,
+    TypingInfo
 };
 
 entry_defs![MessageEntry::entry_def()];
@@ -28,12 +30,12 @@ pub fn err<T>(code: &str, message: &str) -> ExternResult<T> {
 }
 
 #[hdk_extern]
-fn send_message(message_input: MessageInput) -> ExternResult<MessageOutputOption> {
+fn send_message(message_input: MessageInput) -> ExternResult<MessageParameterOption> {
     message::handlers::send_message(message_input)
 }
 
 #[hdk_extern]
-fn receive_message(message_input: MessageOutput) -> ExternResult<MessageOutputOption> {
+fn receive_message(message_input: MessageParameter) -> ExternResult<MessageParameterOption> {
     message::handlers::receive_message(message_input)
 }
 

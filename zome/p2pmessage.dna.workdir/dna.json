@@ -4,7 +4,7 @@
     "properties": null,
     "zomes": {
       "p2pmessage": {
-        "wasm_path": "../target/wasm32-unknown-unknown/release/p2pmessage.wasm"
+        "wasm_path": "../../../holochain/target/wasm32-unknown-unknown/release/p2pmessage.wasm"
       }
     }
   }
