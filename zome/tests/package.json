@@ -4,21 +4,24 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "RUST_LOG=debug TRYORAMA_LOG_LEVEL=error RUST_BACKTRACE=1 TRYORAMA_HOLOCHAIN_PATH=\"holochain\" ts-node src/index.ts",
+    "test": "RUST_LOG=error TRYORAMA_LOG_LEVEL=debug RUST_BACKTRACE=1 TRYORAMA_HOLOCHAIN_PATH=\"holochain\" ts-node src/index.ts",
     "build": "concurrently \"cd .. && cargo build --release --target wasm32-unknown-unknown\" \"cd .. && dna-util -c ./p2pmessage.dna.workdir\""
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@holochain/conductor-api": "git+https://github.com/holochain/holochain-conductor-api.git",
-    "@holochain/tryorama": "guillemcordoba/tryorama#rsm",
+    "@holochain-open-dev/common": "git+https://github.com/holochain-open-dev/common.git#ui-build",
+    "@holochain/tryorama": "0.4.0-dev.1",
+    "concurrently": "^5.3.0",
+    "node-fetch": ">=2.6.1",
     "@types/lodash": "^4.14.158",
     "@types/node": "^14.0.14",
-    "concurrently": "^5.3.0",
     "lodash": "^4.17.19",
     "tape": "^5.0.1",
     "ts-node": "^8.10.2",
-    "typescript": "^3.9.6",
-    "node-fetch": ">=2.6.1"
+    "typescript": "^3.9.6"
+  },
+  "devDependencies": {
+    "js-base64": "^3.6.0"
   }
 }
