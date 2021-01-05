@@ -1,25 +1,14 @@
-import { Orchestrator, Config, InstallAgentsHapps } from '@holochain/tryorama'
+import { Orchestrator, Config, InstallAgentsHapps, Player } from '@holochain/tryorama'
 import { TransportConfigType, ProxyAcceptConfig, ProxyConfigType } from '@holochain/tryorama'
 import path from 'path'
-import { createNoSubstitutionTemplateLiteral } from 'typescript'
+import { Base64 } from "js-base64";
 
 const network = {
   transport_pool: [{
-    type: TransportConfigType.Proxy,
-    sub_transport: {type: TransportConfigType.Quic},
-    proxy_config: {
-      type: ProxyConfigType.LocalProxyServer,
-      proxy_accept_config: ProxyAcceptConfig.AcceptAll
-    }
+    type: TransportConfigType.Quic,
   }],
   bootstrap_service: "https://bootstrap.holo.host"
 }
-
-// const config = Config.gen({
-//   alice: Config.dna('../p2pmessage.dna.gz', null),
-//   bobby: Config.dna('../p2pmessage.dna.gz', null),
-//   carly: Config.dna('../p2pmessage.dna.gz', null)
-// })
 const conductorConfig = Config.gen({network})
 
 const p2pmessagedna = path.join(__dirname, '../../p2pmessage.dna.gz')
@@ -31,26 +20,6 @@ const orchestrator = new Orchestrator()
 
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// function send_message(message) {
-//     return (conductor, caller) =>
-//       conductor.call(caller, "p2pmessage", "send_message", message);
-// };
-  
-function receive_message() {
-  return (conductor, caller) =>
-    conductor.call(caller, "p2pmessage", "receive_message", null);
-};
-
-function get_all_messages() {
-  return (conductor, caller) =>
-    conductor.call(caller, "p2pmessage", "get_all_messages", null);
-}
-
-function get_all_messages_from_addresses(agentlist) {
-  return (conductor, caller) =>
-    conductor.call(caller, "p2pmessage", "get_all_messages_from_addresses", agentlist);
-}
-
 function get_batch_messages_on_conversation(messagerange) {
   return (conductor, caller) => 
   conductor.call(caller, "p2pmessage", "get_batch_messages_on_conversation", messagerange);
@@ -61,175 +30,238 @@ function send_message(message) {
     cell.call('p2pmessage', 'send_message', message)
 }
 
+export function serializeHash(hash) {
+  return `u${Base64.fromUint8Array(hash, true)}`;
+}
+
 orchestrator.registerScenario("remote call", async (s, t) => {
-  // const { conductor } = await s.players({ conductor: config });
-  const [alice, bobby] = await s.players([conductorConfig, conductorConfig])
-  
-  const [[p2pmessagehapp_alice]] = await alice.installAgentsHapps(installation)
-  const [[p2pmessagehapp_bobby]] = await bobby.installAgentsHapps(installation)
-  // await s.shareAllNodes([alice, bobby])
+    
+    const [alice, bobby, carly] = await s.players([conductorConfig, conductorConfig, conductorConfig]);
+    const [[alice_happ]] = await alice.installAgentsHapps(installation);
+    const [[bobby_happ]] = await bobby.installAgentsHapps(installation);
+    const [[carly_happ]] = await carly.installAgentsHapps(installation);
+    // await s.shareAllNodes([alice, bobby, carly]);
 
-  // await conductor.spawn();
+  // const [player]: Player[] = await s.players([conductorConfig]);
 
-  // const [dna_hash_1, agent_pubkey_alice] = conductor.cellId('alice');
-  // const [dna_hash_2, agent_pubkey_bobby] = conductor.cellId('bobby');
-  // const [dna_hash_3, agent_pubkey_carly] = conductor.cellId('carly');
+  // const aliceKey = await player.adminWs().generateAgentPubKey();
 
-  const [alice_cell] = p2pmessagehapp_alice.cells
-  const [bobby_cell] = p2pmessagehapp_bobby.cells
-  
-  // console.log("alice address");
-  // console.log(agent_pubkey_alice);
-  // console.log("bobby address");
-  // console.log(agent_pubkey_bobby);
-  // console.log("carly address");
-  // console.log(agent_pubkey_carly);
+  // const dnas = [
+  //   {
+  //     path: p2pmessagedna,
+  //     nick: `my_cell_nick`,
+  //     properties: { progenitors: [serializeHash(aliceKey)] },
+  //     membrane_proof: undefined,
+  //   },
+  // ];
 
-  const agent_pubkey_alice = p2pmessagehapp_alice.agent
-  const agent_pubkey_bobby = p2pmessagehapp_bobby.agent
+  // const alice_happ = await player._installHapp({
+  //   installed_app_id: `my_app:12345`, // my_app with some unique installed id value
+  //   agent_key: aliceKey,
+  //   dnas,
+  // });
+  // const bobby_happ = await player._installHapp({
+  //   installed_app_id: `my_app:1234`, // my_app with some unique installed id value
+  //   agent_key: await player.adminWs().generateAgentPubKey(),
+  //   dnas,
+  // });
+  // const carly_happ = await player._installHapp({
+  //   installed_app_id: `my_app:123`, // my_app with some unique installed id value
+  //   agent_key: await player.adminWs().generateAgentPubKey(),
+  //   dnas,
+  // });
+
+  const alice_cell = alice_happ.cells[0];
+  const bobby_cell = bobby_happ.cells[0];
+  const carly_cell = carly_happ.cells[0];
+
+  const agent_pubkey_alice = alice_happ.agent
+  const agent_pubkey_bobby = bobby_happ.agent
+  const agent_pubkey_carly = carly_happ.agent
 
   console.log(agent_pubkey_alice)
   console.log(agent_pubkey_bobby)
+  console.log(agent_pubkey_carly)
 
   const message = {
       receiver: agent_pubkey_bobby,
       payload: "Hello world",
+      reply_to: null
   };
   
-  // const message_2 = {
-  //     receiver: agent_pubkey_alice,
-  //     payload: "Hello back"
-  // }
+  const message_2 = {
+      receiver: agent_pubkey_bobby,
+      payload: "Hello world 2",
+      reply_to: null
+  }
 
-  // const message_3 = {
-  //     receiver: agent_pubkey_alice,
-  //     payload: "Hello alice"
-  // }
+  const message_3 = {
+      receiver: agent_pubkey_alice,
+      payload: "Hello alice",
+      reply_to: null
+  }
 
-  // const message_4 = {
-  //     receiver: agent_pubkey_alice,
-  //     payload: "I am Carly"
-  // }
+  const message_4 = {
+      receiver: agent_pubkey_alice,
+      payload: "I am Carly",
+      reply_to: null
+  }
 
-  // const message_late_1 = {
-  //     receiver: agent_pubkey_alice,
-  //     payload: "Hello again"
-  // }
+  const message_late_1 = {
+      receiver: agent_pubkey_alice,
+      payload: "Hello again",
+      reply_to: null
+  }
 
-  // const message_late_2 = {
-  //     receiver: agent_pubkey_alice,
-  //     payload: "Am I bothering you"
-  // }
+  const message_late_2 = {
+      receiver: agent_pubkey_alice,
+      payload: "Am I bothering you",
+      reply_to: null
+  }
 
-  const all_alice = await alice_cell.call('p2pmessage', 'get_all_messages', null)
-  console.log(all_alice)
-  
+  const message_async = {
+    receiver: agent_pubkey_bobby,
+    payload: "Read this when you get back online",
+    reply_to: null
+}
+
   // alice sends a message to bob
-  // const send_alice = await send_message(message)(conductor, 'alice');
-  // const send_alice = await send_message(message)(alice_cell)
   const send_alice = await alice_cell.call('p2pmessage', 'send_message', message)
-  // await delay(1000);
-  // console.log("alice sends a message to bob");
-  // console.log(send_alice);
-  // t.deepEqual(send_alice.author, agent_pubkey_alice);
-  // t.deepEqual(send_alice.receiver, agent_pubkey_bobby);
-  // t.deepEqual(send_alice.payload, "Hello world");
+  await delay(1000);
+  console.log("alice sends a message to bob");
+  console.log(send_alice);
+  t.deepEqual(send_alice.author, agent_pubkey_alice);
+  t.deepEqual(send_alice.receiver, agent_pubkey_bobby);
+  t.deepEqual(send_alice.payload, "Hello world");
+  t.deepEqual(send_alice.status, { Delivered: null});
 
-//   // alice sends another message to bob
-//   const send_alice_2 = await send_message(message)(conductor, 'alice');
-//   await delay(1000);
-//   console.log("alice sends a message to bob");
-//   console.log(send_alice_2);
-//   t.deepEqual(send_alice_2.author, agent_pubkey_alice);
-//   t.deepEqual(send_alice_2.receiver, agent_pubkey_bobby);
-//   t.deepEqual(send_alice_2.payload, "Hello world");
+  // alice sends another message to bob
+  const send_alice_2 = await alice_cell.call('p2pmessage', 'send_message', message_2)
+  await delay(1000);
+  console.log("alice sends a message to bob");
+  console.log(send_alice_2);
+  t.deepEqual(send_alice_2.author, agent_pubkey_alice);
+  t.deepEqual(send_alice_2.receiver, agent_pubkey_bobby);
+  t.deepEqual(send_alice_2.payload, "Hello world 2");
+  t.deepEqual(send_alice_2.status, { Delivered: null});
 
-//   // bob sends a message to alice
-//   const send_bobby = await send_message(message_2)(conductor, 'bobby');
-//   await delay(1000);
-//   console.log("bob sends message to alice");
-//   console.log(send_bobby);
-//   t.deepEqual(send_bobby.author, agent_pubkey_bobby);
-//   t.deepEqual(send_bobby.receiver, agent_pubkey_alice);
-//   t.deepEqual(send_bobby.payload, "Hello back");
+  // bob replies to a message of alice
+  const replied_message = send_alice_2;
+  const reply = {
+    receiver: agent_pubkey_alice,
+    payload: "Hello back",
+    reply_to: replied_message
+  }
+  
+  const reply_bobby = await bobby_cell.call('p2pmessage', 'send_message', reply);
+  await delay(1000);
+  console.log("bob replies to a message of alice");
+  console.log(reply_bobby);
+  t.deepEqual(reply_bobby.author, agent_pubkey_bobby);
+  t.deepEqual(reply_bobby.receiver, agent_pubkey_alice);
+  t.deepEqual(reply_bobby.payload, "Hello back");
+  t.deepEqual(reply_bobby.status, { Delivered: null});
 
-//   // alice gets all messages in her source chain
-//   const all_messages_alice = await get_all_messages()(conductor, 'alice');
-//   await delay(1000);
-//   console.log("alice gets all messages in her source chain");
-//   console.log(all_messages_alice);
-//   t.deepEqual(all_messages_alice.length, 3);
+  // alice gets all messages in her source chain
+  const all_messages_alice = await alice_cell.call('p2pmessage', 'get_all_messages', null);
+  await delay(1000);
+  console.log("alice gets all messages in her source chain");
+  console.log(all_messages_alice);
+  t.deepEqual(all_messages_alice.length, 3);
 
-//   // bob gets all messages in his source chain
-//   const all_messages_bobby = await get_all_messages()(conductor, 'bobby');
-//   await delay(1000);
-//   console.log("bob gets all messages in his source chain");
-//   console.log(all_messages_bobby);
-//   t.deepEqual(all_messages_bobby.length, 3);
+  // bob gets all messages in his source chain
+  const all_messages_bobby = await bobby_cell.call('p2pmessage', 'get_all_messages', null);
+  await delay(1000);
+  console.log("bob gets all messages in his source chain");
+  console.log(all_messages_bobby);
+  t.deepEqual(all_messages_bobby.length, 3);
 
-//   // carly sends a message to alice
-//   const send_carly = await send_message(message_3)(conductor, 'carly');
-//   await delay(1000);
-//   console.log("carly sends a message to alice");
-//   console.log(send_carly);
-//   t.deepEqual(send_carly.author, agent_pubkey_carly);
-//   t.deepEqual(send_carly.receiver, agent_pubkey_alice);
-//   t.deepEqual(send_carly.payload, "Hello alice");
+  // carly sends a message to alice
+  const send_carly = await carly_cell.call('p2pmessage', 'send_message', message_3);
+  await delay(1000);
+  console.log("carly sends a message to alice");
+  console.log(send_carly);
+  t.deepEqual(send_carly.author, agent_pubkey_carly);
+  t.deepEqual(send_carly.receiver, agent_pubkey_alice);
+  t.deepEqual(send_carly.payload, "Hello alice");
+  t.deepEqual(send_carly.status, { Delivered: null});
 
-//   // carly sends another message to alice
-//   const send_carly_2 = await send_message(message_4)(conductor, 'carly');
-//   await delay(1000);
-//   console.log("carly sends message to alice again");
-//   console.log(send_carly_2);
-//   t.deepEqual(send_carly_2.author, agent_pubkey_carly);
-//   t.deepEqual(send_carly_2.receiver, agent_pubkey_alice);
-//   t.deepEqual(send_carly_2.payload, "I am Carly");
+  // carly sends another message to alice
+  const send_carly_2 = await carly_cell.call('p2pmessage', 'send_message', message_4);
+  await delay(1000);
+  console.log("carly sends message to alice again");
+  console.log(send_carly_2);
+  t.deepEqual(send_carly_2.author, agent_pubkey_carly);
+  t.deepEqual(send_carly_2.receiver, agent_pubkey_alice);
+  t.deepEqual(send_carly_2.payload, "I am Carly");
+  t.deepEqual(send_carly_2.status, { Delivered: null});
 
-//   // alice has messages from bobby and carly in her source chain
-//   const messages_in_alice_from_both = await get_all_messages_from_addresses([agent_pubkey_bobby, agent_pubkey_carly])(conductor, 'alice');
-//   await delay(1000);
-//   console.log("alice gets her messages from bobby and carly");
-//   console.log(messages_in_alice_from_both);
-//   t.deepEqual(messages_in_alice_from_both.length, 2);
-//   t.deepEqual(messages_in_alice_from_both[0].messages.length + messages_in_alice_from_both[1].messages.length, 3);
+  // alice has messages from bobby and carly in her source chain
+  const messages_in_alice_from_both = await alice_cell.call('p2pmessage', 'get_all_messages_from_addresses', [agent_pubkey_bobby, agent_pubkey_carly])
+  await delay(1000);
+  console.log("alice gets her messages from bobby and carly");
+  console.log(messages_in_alice_from_both);
+  t.deepEqual(messages_in_alice_from_both.length, 2);
+  t.deepEqual(messages_in_alice_from_both[0].messages.length + messages_in_alice_from_both[1].messages.length, 3);
 
-//   // author order may be arbitrary so the following assertions can fail
-//   // t.deepEqual(messages_in_alice_from_both[0].messages.length, 2);
-//   // t.deepEqual(messages_in_alice_from_both[1].messages.length, 1);
+  // author order may be arbitrary so the following assertions can fail
+  // t.deepEqual(messages_in_alice_from_both[0].messages.length, 2);
+  // t.deepEqual(messages_in_alice_from_both[1].messages.length, 1);
 
-//   // message order is still arbitrary
-//   // t.deepEqual(messages_in_alice_from_both[0].messages[0].payload, "Hello back");
-//   // t.deepEqual(messages_in_alice_from_both[1].messages[0].payload, "Hello alice");
-//   // t.deepEqual(messages_in_alice_from_both[1].messages[1].payload, "I am Carly");
+  // message order is still arbitrary
+  // t.deepEqual(messages_in_alice_from_both[0].messages[0].payload, "Hello back");
+  // t.deepEqual(messages_in_alice_from_both[1].messages[0].payload, "Hello alice");
+  // t.deepEqual(messages_in_alice_from_both[1].messages[1].payload, "I am Carly");
 
-//   const send_carly_3 = await send_message(message_late_1)(conductor, 'carly');
-//   await delay(1000);
-//   console.log("carly sends message to alice again");
-//   console.log(send_carly_3);
-//   t.deepEqual(send_carly_3.author, agent_pubkey_carly);
-//   t.deepEqual(send_carly_3.receiver, agent_pubkey_alice);
-//   t.deepEqual(send_carly_3.payload, "Hello again");
+  const send_carly_3 = await carly_cell.call('p2pmessage', 'send_message', message_late_1);
+  await delay(1000);
+  console.log("carly sends message to alice again");
+  console.log(send_carly_3);
+  t.deepEqual(send_carly_3.author, agent_pubkey_carly);
+  t.deepEqual(send_carly_3.receiver, agent_pubkey_alice);
+  t.deepEqual(send_carly_3.payload, "Hello again");
+  t.deepEqual(send_carly_3.status, { Delivered: null});
 
-//   await delay(10000);
+  await delay(10000);
 
-//   const send_carly_4 = await send_message(message_late_2)(conductor, 'carly');
-//   await delay(1000);
-//   console.log("carly sends message to alice again");
-//   console.log(send_carly_4);
-//   t.deepEqual(send_carly_4.author, agent_pubkey_carly);
-//   t.deepEqual(send_carly_4.receiver, agent_pubkey_alice);
-//   t.deepEqual(send_carly_4.payload, "Am I bothering you");
+  const send_carly_4 = await carly_cell.call('p2pmessage', 'send_message', message_late_2);
+  await delay(1000);
+  console.log("carly sends message to alice again");
+  console.log(send_carly_4);
+  t.deepEqual(send_carly_4.author, agent_pubkey_carly);
+  t.deepEqual(send_carly_4.receiver, agent_pubkey_alice);
+  t.deepEqual(send_carly_4.payload, "Am I bothering you");
+  t.deepEqual(send_carly_4.status, { Delivered: null});
 
-//   const last_message = {
-//       author: agent_pubkey_carly,
-//       last_message_timestamp_seconds: send_carly_4.time_sent[0]+2
-//   };
+  const last_message = {
+      author: agent_pubkey_carly,
+      last_message_timestamp_seconds: send_carly_4.time_sent[0]+2
+  };
 
-//   const batch_messages = await get_batch_messages_on_conversation(last_message)(conductor, 'alice');
-//   await delay(1000);
-//   console.log("alice batch fetches her messages");
-//   console.log(batch_messages);
-//   t.deepEqual(batch_messages.length, 1);
+  const batch_messages = await alice_cell.call('p2pmessage', 'get_batch_messages_on_conversation', last_message);
+  await delay(1000);
+  console.log("alice batch fetches her messages");
+  console.log(batch_messages);
+  t.deepEqual(batch_messages.length, 1);
+
+  //bobby goes offline
+  await bobby.shutdown();
+
+  const send_async_alice = await alice_cell.call('p2pmessage', 'send_message', message_async)
+  await delay(1000);
+  console.log("alice sends a message to offline bob");
+  console.log(send_async_alice);
+  t.deepEqual(send_async_alice.author, agent_pubkey_alice);
+  t.deepEqual(send_async_alice.receiver, agent_pubkey_bobby);
+  t.deepEqual(send_async_alice.payload, "Read this when you get back online");
+  t.deepEqual(send_async_alice.status, { Sent: null} );
+
+  // bobby comes back online
+  await bobby.startup();
+
+  // const async_messages_bobby = await bobby_cell.call('p2pmessage', 'fetch_async_messages', null);
+  // console.log(async_messages_bobby)
+
 });
 
 orchestrator.run();

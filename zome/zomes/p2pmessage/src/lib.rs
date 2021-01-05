@@ -3,25 +3,11 @@ mod entries;
 mod utils;
 use entries::message;
 
-use message::{
-    MessageEntry,
-    MessageInput,
-    MessageParameter,
-    MessageParameterOption,
-    MessageListWrapper,
-    AgentListWrapper,
-    MessagesByAgentListWrapper,
-    MessageRange,
-    Reply,
-    TypingInfo
-};
+use message::*;
 
 entry_defs![
     P2PMessage::entry_def(),
-    P2PMessageAsync::entry_def(),
-    Preference::entry_def(),
-    PerAgentPreference::entry_def(),
-    PerGroupPreference::entry_def()
+    P2PMessageAsync::entry_def()
 ];
 
 pub fn error<T>(reason: &str) -> ExternResult<T> {
@@ -41,13 +27,8 @@ fn send_message(message_input: MessageInput) -> ExternResult<MessageParameterOpt
 }
 
 #[hdk_extern]
-fn send_message_async(message_input: MessageInput) -> ExternResult<MessageParameter> {
+fn send_message_async(message_input: MessageInput) -> ExternResult<MessageParameterOption> {
     message::handlers::send_message_async(message_input)
-}
-
-#[hdk_extern]
-fn reply_to_message(reply_input: Reply) -> ExternResult<MessageParameterOption> {
-    message::handlers::reply_to_message(reply_input)
 }
 
 #[hdk_extern]
@@ -73,6 +54,11 @@ fn get_all_messages_from_addresses(agent_list: AgentListWrapper) -> ExternResult
 #[hdk_extern]
 fn get_batch_messages_on_conversation(message_range: MessageRange) -> ExternResult<MessageListWrapper> {
     message::handlers::get_batch_messages_on_conversation(message_range)
+}
+
+#[hdk_extern]
+fn fetch_async_messages(_: ()) -> ExternResult<MessageListWrapper> {
+    message::handlers::fetch_async_messages()
 }
 
 #[hdk_extern]
