@@ -21,8 +21,8 @@ use super::*;
 fn init(_: ()) -> ExternResult<InitCallbackResult> {
     let mut receive_functions: GrantedFunctions = HashSet::new();
     receive_functions.insert((zome_info()?.zome_name, "receive_message".into()));
-    let mut emit_functions: GrantedFunctions = HashSet::new();
-    emit_functions.insert((zome_info()?.zome_name, "emit_typing".into()));
+
+    
 
     create_cap_grant(CapGrantEntry {
         tag: "empty".into(),
@@ -30,11 +30,24 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
         functions: receive_functions,
     })?;
 
+    let mut emit_functions: GrantedFunctions = HashSet::new();
+    emit_functions.insert((zome_info()?.zome_name, "is_typing".into()));
+
     create_cap_grant(CapGrantEntry {
-        tag: "".into(),
+        tag: "typing".into(),
         access: ().into(),
         functions: emit_functions
     })?;
+
+    let mut notify_delivery: GrantedFunctions = HashSet::new();
+    notify_delivery.insert((zome_info()?.zome_name, "notify_delivery".into()));
+
+    create_cap_grant(CapGrantEntry {
+        tag: "".into(),
+        access: ().into(),
+        functions: notify_delivery
+    })?;
+
 
     Ok(InitCallbackResult::Pass)
 }
@@ -155,6 +168,10 @@ pub(crate) fn receive_message(message_input: MessageParameter) -> ExternResult<M
     match create_entry(&message_entry) {
         Ok(_header) => {
             let message_output = MessageParameter::from_entry(message_entry);
+            emit_signal(&MessageSignal {
+                kind: "message_signal".into(),
+                message: message_output.clone()
+            })?;
             Ok(MessageParameterOption(Some(message_output)))
         },
         _ => {
@@ -185,6 +202,10 @@ pub(crate) fn notify_delivery(message_entry: MessageParameter) -> ExternResult<B
                     Status::Sent
                 )
             )?;
+            emit_signal(&MessageSignal {
+                kind: "message_signal".into(),
+                message: message_entry.clone()
+            })?;
             Ok(BooleanWrapper(true))
         },
         _ => Ok(BooleanWrapper(false))
@@ -379,28 +400,29 @@ pub(crate) fn fetch_async_messages() -> ExternResult<MessageListWrapper> {
                                 message_parameter.time_received = Some(Timestamp(now.as_secs() as i64, now.subsec_nanos()));
 
                                 let _payload: SerializedBytes = message_parameter.clone().try_into()?;
-                                match call_remote(
+                                call_remote(
                                     message_parameter.clone().author,
                                     zome_info()?.zome_name,
                                     "notify_delivery".into(),
                                     None,
                                     &message_parameter
-                                )? {
-                                    ZomeCallResponse::Ok(_output) => {
-                                        // message has been updated on the sender's side
-                                        ()
-                                    },
-                                    ZomeCallResponse::Unauthorized(_c,_z,_f,_p) => {
-                                        // crate::error("{\"code\": \"401\", \"message\": \"This agent has no proper authorization\"}"
-                                        // updating failed
-                                        // cases: suddenly blocked, recipient is offline
-                                        ()
-                                    },
-                                    ZomeCallResponse::NetworkError(_e) => {
-                                        // Err(HdkError::ZomeCallNetworkError(e))
-                                        ()
-                                    }
-                                }
+                                )?;
+                                // {
+                                //     ZomeCallResponse::Ok(_output) => {
+                                //         // message has been updated on the sender's side
+                                //         ()
+                                //     },
+                                //     ZomeCallResponse::Unauthorized(_c,_z,_f,_p) => {
+                                //         // crate::error("{\"code\": \"401\", \"message\": \"This agent has no proper authorization\"}"
+                                //         // updating failed
+                                //         // cases: suddenly blocked, recipient is offline
+                                //         ()
+                                //     },
+                                //     ZomeCallResponse::NetworkError(_e) => {
+                                //         // Err(HdkError::ZomeCallNetworkError(e))
+                                //         ()
+                                //     }
+                                // }
                                 message_list.push(message_parameter)
                             },
                             _ =>  return crate::error("Could not convert entry")
@@ -430,12 +452,14 @@ fn _is_user_blocked(agent_pubkey: AgentPubKey) -> ExternResult<bool> {
     }
 }
 
-fn _emit_typing(typing_info: TypingInfo) -> ExternResult<()> {
-    emit_signal(&Signal::Typing(TypingSignal {
-        kind: "message_sent".to_owned(),
+
+// #[allow(dead_code)]
+pub(crate) fn is_typing(typing_info: TypingInfo) -> ExternResult<()> {
+    emit_signal(&TypingSignal {
+        kind: "typing".to_owned(),
         agent: typing_info.agent.to_owned(),
         is_typing: typing_info.is_typing
-    }))?;
+    })?;
     Ok(())
 }
 
@@ -445,12 +469,16 @@ pub(crate) fn typing(typing_info: TypingInfo) -> ExternResult<()> {
         is_typing: typing_info.is_typing
     };
 
-    call_remote(
+    debug!("value blyat: {:?}", typing_info);
+
+
+   call_remote(
         typing_info.agent,
         zome_info()?.zome_name,
-        "emit_typing".to_string().into(),
+        "is_typing".into(),
         None,
         &payload
     )?;
+
     Ok(())
 }

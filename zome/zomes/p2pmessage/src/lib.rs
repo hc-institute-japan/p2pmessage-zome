@@ -65,3 +65,8 @@ fn fetch_async_messages(_: ()) -> ExternResult<MessageListWrapper> {
 fn typing(typing_info: TypingInfo) -> ExternResult<()> {
     message::handlers::typing(typing_info)
 }
+
+#[hdk_extern]
+fn is_typing(typing_info: TypingInfo) -> ExternResult<()> {
+    message::handlers::is_typing(typing_info)
+}
