@@ -47,14 +47,14 @@ pub struct P2PMessageAsync {
 }
 
 impl P2PMessageAsync {
-    pub fn from_parameter(message_parameter: MessageParameter, status: Status) -> Self {
+    pub fn from_parameter(message_parameter: MessageParameter) -> Self {
         P2PMessageAsync {
             author: message_parameter.author,
             receiver: message_parameter.receiver,
             payload: message_parameter.payload,
             time_sent: message_parameter.time_sent,
             time_received: message_parameter.time_received,
-            status: status,
+            status: message_parameter.status,
             reply_to: message_parameter.reply_to
         }
     }
@@ -84,30 +84,27 @@ impl MessageParameter {
         }
     }
 
-    pub fn from_async_entry(message_entry: P2PMessageAsync, status: Status) -> Self {
+    pub fn from_async_entry(message_entry: P2PMessageAsync) -> Self {
         MessageParameter {
             author: message_entry.author,
             receiver: message_entry.receiver,
             payload: message_entry.payload,
             time_sent: message_entry.time_sent,
             time_received: message_entry.time_received,
-            status: status,
+            status: message_entry.status,
             reply_to: message_entry.reply_to
         }
     }
-}
 
-#[hdk_entry(id = "inbox", visibility = "public")]
-pub struct Inbox {
-    owner: AgentPubKey,
-    tag: String
-}
-
-impl Inbox {
-    pub fn new(agent_pubkey: AgentPubKey) -> Self {
-        Inbox {
-            owner: agent_pubkey,
-            tag: "inbox".to_string()
+    pub fn from_async_entry_2(message_entry: &P2PMessageAsync) -> Self {
+        MessageParameter {
+            author: message_entry.author.clone(),
+            receiver: message_entry.receiver.clone(),
+            payload: message_entry.payload.clone(),
+            time_sent: message_entry.time_sent.clone(),
+            time_received: message_entry.time_received.clone(),
+            status: message_entry.status.clone(),
+            reply_to: message_entry.reply_to.clone()
         }
     }
 }
@@ -134,9 +131,6 @@ pub struct MessageRange {
 #[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes)]
 pub struct BooleanWrapper(bool);
 
-#[derive(From, Into, Serialize, Deserialize, SerializedBytes, Debug, Clone)]
-pub struct MessageParameterOption(Option<MessageParameter>);
-
 #[derive(From, Into, Serialize, Deserialize, SerializedBytes)]
 pub struct MessageListWrapper(Vec<MessageParameter>);
 
@@ -146,14 +140,8 @@ pub struct AgentListWrapper(Vec<AgentPubKey>);
 #[derive(From, Into, Serialize, Deserialize, SerializedBytes)]
 pub struct MessagesByAgentListWrapper(Vec<MessagesByAgent>);
 
-#[derive(Serialize, Deserialize, SerializedBytes, Debug)]
-pub struct Claims(Vec<CapClaim>);
-
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub struct Reply {
-    replied_message: MessageParameter,
-    reply: String
-}
+#[derive(From, Into, Serialize, Deserialize, SerializedBytes)]
+pub struct NotifyAsyncInput(MessageParameter, Element);
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct TypingInfo {

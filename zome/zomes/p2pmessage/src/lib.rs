@@ -22,23 +22,28 @@ pub fn err<T>(code: &str, message: &str) -> ExternResult<T> {
 }
 
 #[hdk_extern]
-fn send_message(message_input: MessageInput) -> ExternResult<MessageParameterOption> {
+fn send_message(message_input: MessageInput) -> ExternResult<MessageParameter> {
     message::handlers::send_message(message_input)
 }
 
 #[hdk_extern]
-fn send_message_async(message_input: MessageInput) -> ExternResult<MessageParameterOption> {
+fn send_message_async(message_input: MessageInput) -> ExternResult<MessageParameter> {
     message::handlers::send_message_async(message_input)
 }
 
 #[hdk_extern]
-fn receive_message(message_input: MessageParameter) -> ExternResult<MessageParameterOption> {
+fn receive_message(message_input: MessageParameter) -> ExternResult<MessageParameter> {
     message::handlers::receive_message(message_input)
 }
 
 #[hdk_extern]
-fn notify_delivery(message_entry: MessageParameter) -> ExternResult<BooleanWrapper> {
-    message::handlers::notify_delivery(message_entry)
+fn notify_delivery(message_parameter: MessageParameter) -> ExternResult<BooleanWrapper> {
+    message::handlers::notify_delivery(message_parameter)
+}
+
+#[hdk_extern]
+fn notify_delivery_async(input: NotifyAsyncInput) -> ExternResult<BooleanWrapper> {
+    message::handlers::notify_delivery_async(input)
 }
 
 #[hdk_extern]
