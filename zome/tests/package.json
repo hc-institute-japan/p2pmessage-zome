@@ -10,18 +10,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@holochain-open-dev/common": "git+https://github.com/holochain-open-dev/common.git#ui-build",
-    "@holochain/tryorama": "0.4.0-dev.1",
     "concurrently": "^5.3.0",
-    "node-fetch": ">=2.6.1",
+    "@holochain/conductor-api": "git+https://github.com/holochain/holochain-conductor-api.git",
+    "@holochain/tryorama": "^0.4.0-dev.1",
     "@types/lodash": "^4.14.158",
     "@types/node": "^14.0.14",
     "lodash": "^4.17.19",
     "tape": "^5.0.1",
     "ts-node": "^8.10.2",
-    "typescript": "^3.9.6"
-  },
-  "devDependencies": {
+    "typescript": "^3.9.6",
     "js-base64": "^3.6.0"
   }
 }
