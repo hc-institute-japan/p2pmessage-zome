@@ -1,3 +1,5 @@
+
+
 use hdk3::prelude::*;
 use crate::{timestamp::Timestamp};
 use crate::utils::{
@@ -30,6 +32,7 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
     notify_functions.insert((zome_info()?.zome_name, "notify_delivery".into()));
     let mut emit_functions: GrantedFunctions = HashSet::new();
     emit_functions.insert((zome_info()?.zome_name, "emit_typing".into()));
+ 
 
     create_cap_grant(CapGrantEntry {
         tag: "receive".into(),
@@ -48,6 +51,28 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
         access: ().into(),
         functions: emit_functions
     })?;
+
+
+    // 
+    let mut fuctions = HashSet::new();
+
+    // TODO: name may be changed to better suit the context of cap grant.s
+    let tag: String = "create_group_cap_grant".into(); 
+    let access: CapAccess = CapAccess::Unrestricted;
+    
+    let zome_name:ZomeName = zome_info()?.zome_name;
+    let function_name:FunctionName = FunctionName("recv_remote_signal".into());
+    
+    fuctions.insert((zome_name, function_name));
+
+    let cap_grant_entry:CapGrantEntry = CapGrantEntry::new(
+        tag, // A string by which to later query for saved grants.
+        access, // Unrestricted access means any external agent can call the extern
+        fuctions,
+    );
+
+    create_cap_grant(cap_grant_entry)?;
+
 
     Ok(InitCallbackResult::Pass)
 }
@@ -398,73 +423,72 @@ pub(crate) fn get_batch_messages_on_conversation(message_range: MessageRange) ->
 
 
 
-fn is_user_blocked(agent_pubkey: AgentPubKey) -> ExternResult<bool> {
-    match call::<AgentPubKey, BooleanWrapper>(
-        None,
-        "contacts".into(),
-        "in_blocked".into(),
-        None,
-        &agent_pubkey.clone()
-    ) {
-        Ok(output) => Ok(output.0),
-        _ => return crate::error("{\"code\": \"401\", \"message\": \"This agent has no proper authorization\"}")
-    }
+// fn is_user_blocked(agent_pubkey: AgentPubKey) -> ExternResult<bool> {
+//     match call::<AgentPubKey, BooleanWrapper>(
+//         None,
+//         "contacts".into(),
+//         "in_blocked".into(),
+//         None,
+//         &agent_pubkey.clone()
+//     ) {
+//         Ok(output) => Ok(output.0),
+//         _ => return crate::error("{\"code\": \"401\", \"message\": \"This agent has no proper authorization\"}")
+//     }
 
-    let block_result: Result<BooleanWrapper, HdkError> = call_remote(
-        message_input.clone().receiver,
-        "contacts".into(),
-        "in_blocked".into(),
-        None,
-        &agent_pubkey
-    );
+//     let block_result: Result<BooleanWrapper, HdkError> = call_remote(
+//         message_input.clone().receiver,
+//         "contacts".into(),
+//         "in_blocked".into(),
+//         None,
+//         &agent_pubkey
+//     );
 
-    match block_result {
-        Ok(receive_output) => {
-            let message_entry = P2PMessage::from_parameter(receive_output.clone());
-            create_entry(&message_entry)?;
-            Ok(receive_output)
-        },
-        Err(kind) => {
-            match kind {
-                // TIMEOUT; RECIPIENT IS OFFLINE; MESSAGE NEEDS TO BE SENT ASYNC
-                HdkError::ZomeCallNetworkError(_err) => {
-                    match send_message_async(message_input) {
-                        Ok(async_result) => {
-                            let message_entry = P2PMessage::from_parameter(async_result.clone());
-                            create_entry(&message_entry)?;
-                            Ok(async_result)
-                        },
-                        _ => crate::err("TODO: 000", "This agent has no proper authorization")
-                    }
-                },
-                HdkError::UnauthorizedZomeCall(_c,_z,_f,_p) => crate::err("TODO: 000:", "This case shouldn't happen because of unrestricted access to receive message"),
-                _ => crate::err("TODO: 000", "Unknown other error")
-            }
-        }
-    }
-}
+//     match block_result {
+//         Ok(receive_output) => {
+//             let message_entry = P2PMessage::from_parameter(receive_output.clone());
+//             create_entry(&message_entry)?;
+//             Ok(receive_output)
+//         },
+//         Err(kind) => {
+//             match kind {
+//                 // TIMEOUT; RECIPIENT IS OFFLINE; MESSAGE NEEDS TO BE SENT ASYNC
+//                 HdkError::ZomeCallNetworkError(_err) => {
+//                     match send_message_async(message_input) {
+//                         Ok(async_result) => {
+//                             let message_entry = P2PMessage::from_parameter(async_result.clone());
+//                             create_entry(&message_entry)?;
+//                             Ok(async_result)
+//                         },
+//                         _ => crate::err("TODO: 000", "This agent has no proper authorization")
+//                     }
+//                 },
+//                 HdkError::UnauthorizedZomeCall(_c,_z,_f,_p) => crate::err("TODO: 000:", "This case shouldn't happen because of unrestricted access to receive message"),
+//                 _ => crate::err("TODO: 000", "Unknown other error")
+//             }
+//         }
+//     }
+// }
 
-fn _emit_typing(typing_info: TypingInfo) -> ExternResult<()> {
-    emit_signal(&Signal::Typing(TypingSignal {
-        kind: "message_sent".to_owned(),
-        agent: typing_info.agent.to_owned(),
-        is_typing: typing_info.is_typing
-    }))?;
+
+pub(crate) fn typing(typing_info: P2PTypingDetailIO) -> ExternResult<()> { 
+    let payload = Signal::P2PTypingDetailSignal(TypingSignal {
+        agent: agent_info()?.agent_latest_pubkey,
+        is_typing: typing_info.is_typing,
+        kind: SignalTypes::P2P_TYPING_SIGNAL.to_owned()
+    });
+
+    let mut agents = Vec::new();
+
+    agents.push(typing_info.agent);
+    agents.push(agent_info()?.agent_latest_pubkey);
+
+    remote_signal(
+        &payload,
+        agents
+    )?;
     Ok(())
 }
 
-pub(crate) fn typing(typing_info: TypingInfo) -> ExternResult<()> { 
-    let payload = TypingInfo {
-        agent: agent_info()?.agent_latest_pubkey,
-        is_typing: typing_info.is_typing
-    };
-
-    call_remote(
-        typing_info.agent,
-        zome_info()?.zome_name,
-        "emit_typing".to_string().into(),
-        None,
-        &payload
-    )?;
+pub(crate) fn read_message(receipt: P2PMessageReceipt) -> ExternResult<()> {
     Ok(())
 }

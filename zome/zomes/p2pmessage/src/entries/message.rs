@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use derive_more::{From, Into};
 use hdk3::prelude::{timestamp::Timestamp, *};
 pub mod handlers;
@@ -144,7 +146,7 @@ pub struct MessagesByAgentListWrapper(Vec<MessagesByAgent>);
 pub struct NotifyAsyncInput(MessageParameter, Element);
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub struct TypingInfo {
+pub struct P2PTypingDetailIO {
     agent: AgentPubKey,
     is_typing: bool
 }
@@ -165,5 +167,20 @@ pub struct MessageSignal {
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub enum Signal {
     Message(MessageSignal),
-    Typing(TypingSignal)
+    P2PTypingDetailSignal(TypingSignal)
+}
+
+
+pub struct SignalTypes;
+impl SignalTypes {
+    pub const P2P_TYPING_SIGNAL: &'static str = "P2P_TYPING_SIGNAL";
+}
+
+//EntryHash of receipt
+pub struct ReceiptContents(HashMap<EntryHash , P2PMessageReceipt>);
+#[hdk_entry(id="p2pmessagereceipt", visibility="private")]
+pub struct P2PMessageReceipt {
+    id: Vec<EntryHash>,
+    time_received: Option<Timestamp>,
+    status: Status
 }

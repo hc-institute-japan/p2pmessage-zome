@@ -7,7 +7,8 @@ use message::*;
 
 entry_defs![
     P2PMessage::entry_def(),
-    P2PMessageAsync::entry_def()
+    P2PMessageAsync::entry_def(),
+    P2PMessageReceipt::entry_def()
 ];
 
 pub fn error<T>(reason: &str) -> ExternResult<T> {
@@ -67,6 +68,13 @@ fn fetch_async_messages(_: ()) -> ExternResult<MessageListWrapper> {
 }
 
 #[hdk_extern]
-fn typing(typing_info: TypingInfo) -> ExternResult<()> {
+fn typing(typing_info: P2PTypingDetailIO) -> ExternResult<()> {
     message::handlers::typing(typing_info)
+}
+
+
+#[hdk_extern]
+fn recv_remote_signal(signal: SerializedBytes) -> ExternResult<()> {
+    emit_signal(&signal)?;
+    Ok(())
 }
