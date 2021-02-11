@@ -5,10 +5,7 @@ use entries::message;
 
 use message::*;
 
-entry_defs![
-    P2PMessage::entry_def(),
-    P2PMessageReceipt::entry_def()
-];
+entry_defs![P2PMessage::entry_def(), P2PMessageReceipt::entry_def()];
 
 pub fn error<T>(reason: &str) -> ExternResult<T> {
     Err(HdkError::Wasm(WasmError::Zome(String::from(reason))))
@@ -32,16 +29,6 @@ fn receive_message(message: P2PMessage) -> ExternResult<P2PMessageReceipt> {
 }
 
 #[hdk_extern]
-fn get_all_messages(_: ()) -> ExternResult<P2PMessageHashTables> {
-    message::handlers::get_all_messages()
-}
-
-#[hdk_extern]
-fn get_messages_by_agent_by_timestamp(filter: P2PMessageFilterAgentTimestamp) -> ExternResult<P2PMessageHashTables> {
-    message::handlers::get_messages_by_agent_by_timestamp(filter)
-}
-
-#[hdk_extern]
 fn get_latest_messages(batch_size: BatchSize) -> ExternResult<P2PMessageHashTables> {
     message::handlers::get_latest_messages(batch_size)
 }
@@ -49,6 +36,13 @@ fn get_latest_messages(batch_size: BatchSize) -> ExternResult<P2PMessageHashTabl
 #[hdk_extern]
 fn get_next_batch_messages(filter: P2PMessageFilterBatch) -> ExternResult<P2PMessageHashTables> {
     message::handlers::get_next_batch_messages(filter)
+}
+
+#[hdk_extern]
+fn get_messages_by_agent_by_timestamp(
+    filter: P2PMessageFilterAgentTimestamp,
+) -> ExternResult<P2PMessageHashTables> {
+    message::handlers::get_messages_by_agent_by_timestamp(filter)
 }
 
 // #[hdk_extern]

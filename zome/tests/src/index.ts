@@ -93,6 +93,18 @@ orchestrator.registerScenario("p2pmessage", async (s, t) => {
   const agent_pubkey_bobby = bobby_happ.agent;
   const agent_pubkey_carly = carly_happ.agent;
 
+  var agent_pubkey_alice_string = "u" + agent_pubkey_alice.toString('base64')
+  agent_pubkey_alice_string = agent_pubkey_alice_string.replace(/\//g, "_");
+  agent_pubkey_alice_string = agent_pubkey_alice_string.replace(/\+/g, "-");
+
+  var agent_pubkey_bobby_string = "u" + agent_pubkey_bobby.toString('base64')
+  agent_pubkey_bobby_string = agent_pubkey_bobby_string.replace(/\//g, "_");
+  agent_pubkey_bobby_string = agent_pubkey_bobby_string.replace(/\+/g, "-");
+
+  var agent_pubkey_carly_string = "u" + agent_pubkey_carly.toString('base64')
+  agent_pubkey_carly_string = agent_pubkey_carly_string.replace(/\//g, "_");
+  agent_pubkey_carly_string = agent_pubkey_carly_string.replace(/\+/g, "-");
+
   console.log(agent_pubkey_alice)
   console.log(agent_pubkey_bobby)
   console.log(agent_pubkey_carly)
@@ -229,141 +241,163 @@ orchestrator.registerScenario("p2pmessage", async (s, t) => {
   t.deepEqual(send_alice_4[0].receiver, agent_pubkey_bobby);
   t.deepEqual(send_alice_4[0].payload, "Great! I'll see you later!");
 
-  // bobby gets all messages from his source chain
-  const all_messages_bobby = await bobby_cell.call('p2pmessage', 'get_all_messages', null);
+  // alice gets her latest messages
+  const alice_latest_messages_1 = await alice_cell.call('p2pmessage', 'get_latest_messages', 1);
   await delay(1000);
-  console.log("bobby gets all messages from his source chain");
-  console.log(all_messages_bobby);
+  console.log("alice gets 1 latest message");
+  for (var agent_key in alice_latest_messages_1[0]) {
+    t.deepEqual(agent_key, agent_pubkey_bobby_string);
+    t.deepEqual(alice_latest_messages_1[0][agent_key].length, 1);
+    console.log("the messages with this agent are:")
+    console.log(alice_latest_messages_1[0][agent_key])
+    for (var message_key in alice_latest_messages_1[1]) {
+      console.log("the message contents and receipts for this message hash are:")
+      console.log(alice_latest_messages_1[1][message_key])
+      for (var receipt_key in alice_latest_messages_1[2]) {
+        console.log("the receipts for this message are:")
+        console.log(alice_latest_messages_1[2][receipt_key])
+      }
+    }
+  }
 
-  // const filter = {
-  //   conversant: agent_pubkey_alice,
-  //   date: send_bobby[0].time_sent
-  // }
-  // const all_messages_alice = await alice_cell.call('p2pmessage', 'get_messages_by_agent_by_timestamp', filter);
-  // await delay(1000);
-  // console.log("alice gets messages were alice is a part");
-  // console.log(all_messages_alice);
+  const alice_latest_messages_2 = await alice_cell.call('p2pmessage', 'get_latest_messages', 2);
+  await delay(1000);
+  console.log("alice gets 2 latest message");
+  for (var agent_key in alice_latest_messages_2[0]) {
+    t.deepEqual(agent_key, agent_pubkey_bobby_string);
+    t.deepEqual(alice_latest_messages_2[0][agent_key].length, 2);
+    console.log("the messages with this agent are:")
+    console.log(alice_latest_messages_2[0][agent_key])
+    for (var message_key in alice_latest_messages_2[1]) {
+      console.log("the message contents and receipts for this message hash are:")
+      console.log(alice_latest_messages_2[1][message_key])
+      for (var receipt_key in alice_latest_messages_2[2]) {
+        console.log("the receipts for this message are:")
+        console.log(alice_latest_messages_2[2][receipt_key])
+      }
+    }
+  }
 
-  // const latest_messages = await alice_cell.call('p2pmessage', 'get_latest_messages', 3);
-  // await delay(1000);
-  // console.log("alice gets her latest messages");
-  // console.log(latest_messages);
+  // bobby gets his latest message
+  console.log("Bobby gets his latest messaages (size 3)")
+  const bobby_latest_messages_1 = await bobby_cell.call('p2pmessage', 'get_latest_messages', 1);
+  await delay(1000);
 
-  // const batch_1_filter = {
-  //   conversant: agent_pubkey_bobby,
-  //   batch_size: 1,
-  //   last_fetched_timestamp: send_bobby[0].time_sent,
-  //   last_fetched_message_id: send_bobby[1][0]
-  // }
+  // bobby gets the next batch of messages from alice
+  console.log("Bobby gets the next batch (size 1) of messages from Alice")
+  const last_message_alice_hash_string = bobby_latest_messages_1[0][agent_pubkey_alice_string];
+  const last_message_alice = bobby_latest_messages_1[1][last_message_alice_hash_string];
+  const last_message_alice_receipt_hash_string = last_message_alice[1][0];
+  const last_message_alice_receipt_id = bobby_latest_messages_1[2][last_message_alice_receipt_hash_string].id
+  
+  const batch_filter_alice = {
+    conversant: agent_pubkey_alice,
+    batch_size: 3,
+    last_fetched_timestamp: last_message_alice[0].time_sent,
+    last_fetched_message_id: last_message_alice_receipt_id
+  }
 
-  // const batch_message = await alice_cell.call('p2pmessage', 'get_next_batch_messages', batch_1_filter);
-  // await delay(1000);
-  // console.log("alice gets the next batch of messages");
-  // console.log(batch_message);
+  const bobby_next_batch_1 = await bobby_cell.call('p2pmessage', 'get_next_batch_messages', batch_filter_alice);
+  await delay(1000);
 
-  // console.log("details");
-  // var conversant = '';
-  // var last_message_string_id;
-  // var last_message_hash;
-  // var last_message;
+  for (var agent_key in bobby_next_batch_1[0]) {
+    t.deepEqual(agent_key, agent_pubkey_alice_string);
+    t.deepEqual(bobby_next_batch_1[0][agent_key].length, 3);
+    console.log("the messages with this agent are:")
+    console.log(bobby_next_batch_1[0][agent_key])
+    for (var message_key in bobby_next_batch_1[1]) {
+      console.log("the message contents and receipts for this message hash are:")
+      console.log(bobby_next_batch_1[1][message_key])
+      for (var receipt_key in bobby_next_batch_1[2]) {
+        console.log("the receipts for this message are:")
+        console.log(bobby_next_batch_1[2][receipt_key])
+      }
+    }
+  }
 
-  // for (var key in batch_message[0]) {
-  //   conversant = key;
-  //   last_message_hash = batch_message[0][key];
-  // }
+  // bobby gets the next batch of messages from carly
+  console.log("Bobby gets the next batch (size 2) of messages from Carly")
+  const last_message_carly_hash_string = bobby_latest_messages_1[0][agent_pubkey_carly_string];
+  const last_message_carly = bobby_latest_messages_1[1][last_message_carly_hash_string];
+  const last_message_carly_receipt_hash_string = last_message_carly[1][0];
+  const last_message_carly_receipt_id = bobby_latest_messages_1[2][last_message_carly_receipt_hash_string].id
+  
+  const batch_filter_carly = {
+    conversant: agent_pubkey_carly,
+    batch_size: 2,
+    last_fetched_timestamp: last_message_carly[0].time_sent,
+    last_fetched_message_id: last_message_carly_receipt_id
+  }
 
-  // for (var key in batch_message[1]) {
-  //   last_message_string_id = key;
-  // }
+  const bobby_next_batch_2 = await bobby_cell.call('p2pmessage', 'get_next_batch_messages', batch_filter_carly);
+  await delay(1000);
 
-  // last_message = batch_message[1][last_message_string_id][0]
+  for (var agent_key in bobby_next_batch_2[0]) {
+    t.deepEqual(agent_key, agent_pubkey_carly_string);
+    t.deepEqual(bobby_next_batch_2[0][agent_key].length, 2);
+    console.log("the messages with this agent are:")
+    console.log(bobby_next_batch_2[0][agent_key])
+    for (var message_key in bobby_next_batch_2[1]) {
+      console.log("the message contents and receipts for this message hash are:")
+      console.log(bobby_next_batch_2[1][message_key])
+      for (var receipt_key in bobby_next_batch_2[2]) {
+        console.log("the receipts for this message are:")
+        console.log(bobby_next_batch_2[2][receipt_key])
+      }
+    }
+  }
 
-  // const batch_2_filter = {
-  //   conversant: agent_pubkey_bobby,
-  //   batch_size: 2,
-  //   last_fetched_timestamp: last_message.time_sent,
-  //   last_fetched_message_id: last_message_hash[0]
-  // }
+  // carly gets her messages with alice for today
+  const today = [ Math.floor(Date.now() / 1000), 0 ]
 
-  // const batch_message_2 = await alice_cell.call('p2pmessage', 'get_next_batch_messages', batch_2_filter);
-  // await delay(1000);
-  // console.log("alice gets the next batch of messages");
-  // console.log(batch_message_2);
+  console.log("Carly gets her messages with Alice for today");
+  const timestamp_filter_alice = {
+    conversant: agent_pubkey_alice,
+    date: today
+  }
 
-  // // bob gets all messages in his source chain
-  // const all_messages_bobby = await bobby_cell.call('p2pmessage', 'get_all_messages', null);
-  // await delay(1000);
-  // console.log("bob gets all messages in his source chain");
-  // console.log(all_messages_bobby);
-  // t.deepEqual(all_messages_bobby.length, 3);
+  const alice_today = await carly_cell.call('p2pmessage', 'get_messages_by_agent_by_timestamp', timestamp_filter_alice);
+  await delay(1000);
+  
+  for (var agent_key in alice_today[0]) {
+    t.deepEqual(agent_key, agent_pubkey_alice_string);
+    t.deepEqual(alice_today[0][agent_key].length, 0);
+    console.log("the messages with this agent are:")
+    console.log(alice_today[0][agent_key])
+    for (var message_key in alice_today[1]) {
+      console.log("the message contents and receipts for this message hash are:")
+      console.log(alice_today[1][message_key])
+      for (var receipt_key in alice_today[2]) {
+        console.log("the receipts for this message are:")
+        console.log(alice_today[2][receipt_key])
+      }
+    }
+  }
 
-  // // carly sends a message to alice
-  // const send_carly = await carly_cell.call('p2pmessage', 'send_message', message_3);
-  // await delay(1000);
-  // console.log("carly sends a message to alice");
-  // console.log(send_carly);
-  // t.deepEqual(send_carly.author, agent_pubkey_carly);
-  // t.deepEqual(send_carly.receiver, agent_pubkey_alice);
-  // t.deepEqual(send_carly.payload, "Hello alice");
-  // t.deepEqual(send_carly.status, { Delivered: null});
+  // carly gets her messages with bobby for today
+  console.log("Carly gets her messages with Bobby for today");
+  const timestamp_filter_bobby = {
+    conversant: agent_pubkey_bobby,
+    date: today
+  }
 
-  // // carly sends another message to alice
-  // const send_carly_2 = await carly_cell.call('p2pmessage', 'send_message', message_4);
-  // await delay(1000);
-  // console.log("carly sends message to alice again");
-  // console.log(send_carly_2);
-  // t.deepEqual(send_carly_2.author, agent_pubkey_carly);
-  // t.deepEqual(send_carly_2.receiver, agent_pubkey_alice);
-  // t.deepEqual(send_carly_2.payload, "I am Carly");
-  // t.deepEqual(send_carly_2.status, { Delivered: null});
+  const bobby_today = await carly_cell.call('p2pmessage', 'get_messages_by_agent_by_timestamp', timestamp_filter_bobby);
+  await delay(1000);
 
-  // // alice has messages from bobby and carly in her source chain
-  // const messages_in_alice_from_both = await alice_cell.call('p2pmessage', 'get_all_messages_from_addresses', [agent_pubkey_bobby, agent_pubkey_carly])
-  // await delay(1000);
-  // console.log("alice gets her messages from bobby and carly");
-  // console.log(messages_in_alice_from_both);
-  // t.deepEqual(messages_in_alice_from_both.length, 2);
-  // t.deepEqual(messages_in_alice_from_both[0].messages.length + messages_in_alice_from_both[1].messages.length, 3);
-
-  // author order may be arbitrary so the following assertions can fail
-  // t.deepEqual(messages_in_alice_from_both[0].messages.length, 2);
-  // t.deepEqual(messages_in_alice_from_both[1].messages.length, 1);
-
-  // message order is still arbitrary
-  // t.deepEqual(messages_in_alice_from_both[0].messages[0].payload, "Hello back");
-  // t.deepEqual(messages_in_alice_from_both[1].messages[0].payload, "Hello alice");
-  // t.deepEqual(messages_in_alice_from_both[1].messages[1].payload, "I am Carly");
-
-  // const send_carly_3 = await carly_cell.call('p2pmessage', 'send_message', message_late_1);
-  // await delay(1000);
-  // console.log("carly sends message to alice again");
-  // console.log(send_carly_3);
-  // t.deepEqual(send_carly_3.author, agent_pubkey_carly);
-  // t.deepEqual(send_carly_3.receiver, agent_pubkey_alice);
-  // t.deepEqual(send_carly_3.payload, "Hello again");
-  // t.deepEqual(send_carly_3.status, { Delivered: null});
-
-  // await delay(10000);
-
-  // const send_carly_4 = await carly_cell.call('p2pmessage', 'send_message', message_late_2);
-  // await delay(1000);
-  // console.log("carly sends message to alice again");
-  // console.log(send_carly_4);
-  // t.deepEqual(send_carly_4.author, agent_pubkey_carly);
-  // t.deepEqual(send_carly_4.receiver, agent_pubkey_alice);
-  // t.deepEqual(send_carly_4.payload, "Am I bothering you");
-  // t.deepEqual(send_carly_4.status, { Delivered: null});
-
-  // const last_message = {
-  //     author: agent_pubkey_carly,
-  //     last_message_timestamp_seconds: send_carly_4.time_sent[0]+2
-  // };
-
-  // const batch_messages = await alice_cell.call('p2pmessage', 'get_batch_messages_on_conversation', last_message);
-  // await delay(1000);
-  // console.log("alice batch fetches her messages");
-  // console.log(batch_messages);
-  // t.deepEqual(batch_messages.length, 1);
+  for (var agent_key in bobby_today[0]) {
+    t.deepEqual(agent_key, agent_pubkey_bobby_string);
+    t.deepEqual(bobby_today[0][agent_key].length, 3);
+    console.log("the messages with this agent are:")
+    console.log(bobby_today[0][agent_key])
+    for (var message_key in bobby_today[1]) {
+      console.log("the message contents and receipts for this message hash are:")
+      console.log(bobby_today[1][message_key])
+      for (var receipt_key in bobby_today[2]) {
+        console.log("the receipts for this message are:")
+        console.log(bobby_today[2][receipt_key])
+      }
+    }
+  }
 
 });
 
