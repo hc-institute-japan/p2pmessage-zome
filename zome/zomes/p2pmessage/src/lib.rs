@@ -7,7 +7,8 @@ use message::*;
 
 entry_defs![
     P2PMessage::entry_def(),
-    P2PMessageAsync::entry_def()
+    P2PMessageAsync::entry_def(),
+    P2PMessageReceipt::entry_def()
 ];
 
 pub fn error<T>(reason: &str) -> ExternResult<T> {
@@ -22,23 +23,28 @@ pub fn err<T>(code: &str, message: &str) -> ExternResult<T> {
 }
 
 #[hdk_extern]
-fn send_message(message_input: MessageInput) -> ExternResult<MessageParameterOption> {
+fn send_message(message_input: MessageInput) -> ExternResult<MessageParameter> {
     message::handlers::send_message(message_input)
 }
 
 #[hdk_extern]
-fn send_message_async(message_input: MessageInput) -> ExternResult<MessageParameterOption> {
+fn send_message_async(message_input: MessageInput) -> ExternResult<MessageParameter> {
     message::handlers::send_message_async(message_input)
 }
 
 #[hdk_extern]
-fn receive_message(message_input: MessageParameter) -> ExternResult<MessageParameterOption> {
+fn receive_message(message_input: MessageParameter) -> ExternResult<MessageParameter> {
     message::handlers::receive_message(message_input)
 }
 
 #[hdk_extern]
-fn notify_delivery(message_entry: MessageParameter) -> ExternResult<BooleanWrapper> {
-    message::handlers::notify_delivery(message_entry)
+fn notify_delivery(message_parameter: MessageParameter) -> ExternResult<BooleanWrapper> {
+    message::handlers::notify_delivery(message_parameter)
+}
+
+#[hdk_extern]
+fn notify_delivery_async(input: NotifyAsyncInput) -> ExternResult<BooleanWrapper> {
+    message::handlers::notify_delivery_async(input)
 }
 
 #[hdk_extern]
@@ -62,11 +68,13 @@ fn fetch_async_messages(_: ()) -> ExternResult<MessageListWrapper> {
 }
 
 #[hdk_extern]
-fn typing(typing_info: TypingInfo) -> ExternResult<()> {
+fn typing(typing_info: P2PTypingDetailIO) -> ExternResult<()> {
     message::handlers::typing(typing_info)
 }
 
+
 #[hdk_extern]
-fn is_typing(typing_info: TypingInfo) -> ExternResult<()> {
-    message::handlers::is_typing(typing_info)
+fn recv_remote_signal(signal: SerializedBytes) -> ExternResult<()> {
+    emit_signal(&signal)?;
+    Ok(())
 }
