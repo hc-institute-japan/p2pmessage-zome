@@ -52,14 +52,21 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
 pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageAndReceipt> {
     // TODO: check if receiver is blocked
 
-    let message = P2PMessage::from_input(message_input)?;
+    let message = P2PMessage::from_input(message_input.clone())?;
+
+    let file = match message_input.payload {
+        PayloadInput::File { .. } => Some(P2PFileBytes::from_input(message_input)?),
+        _ => None,
+    };
+
+    let receive_input = ReceiveMessageInput(message.clone(), file.clone());
 
     let receive_call_result: Result<P2PMessageReceipt, HdkError> = call_remote(
         message.receiver.clone(),
         zome_info()?.zome_name,
         "receive_message".into(),
         None,
-        &message,
+        &receive_input,
     );
 
     match receive_call_result {
@@ -67,6 +74,9 @@ pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageA
             let receipt = receive_output;
             create_entry(&message)?;
             create_entry(&receipt)?;
+            if let Some(file) = file {
+                create_entry(&file)?;
+            };
             // TODO: CREATE AND RETURN ELEMENT HERE
             Ok(MessageAndReceipt(message, receipt))
         }
@@ -87,10 +97,13 @@ pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageA
     }
 }
 
-pub(crate) fn receive_message(message: P2PMessage) -> ExternResult<P2PMessageReceipt> {
-    let receipt = P2PMessageReceipt::from_message(message.clone())?;
-    create_entry(&message)?;
+pub(crate) fn receive_message(input: ReceiveMessageInput) -> ExternResult<P2PMessageReceipt> {
+    let receipt = P2PMessageReceipt::from_message(input.0.clone())?;
+    create_entry(&input.0)?;
     create_entry(&receipt)?;
+    if let Some(file) = input.1 {
+        create_entry(&file)?;
+    };
     Ok(receipt)
 }
 
@@ -113,41 +126,54 @@ pub(crate) fn get_latest_messages(batch_size: BatchSize) -> ExternResult<P2PMess
         let message_entry: P2PMessage = try_from_element(message)?;
         let message_hash = hash_entry(&message_entry)?;
         if message_entry.author.clone() == agent_info()?.agent_latest_pubkey {
-            // add this message to receiver's array in hashmap
-            if let Some(messages) = agent_messages.get_mut(&message_entry.receiver.to_string()) {
-                if messages.len() >= batch_size.0.into() {
-                    continue;
-                } else {
-                    messages.push(message_hash.clone().to_string())
+            match agent_messages.get(&format!("{:?}", message_entry.receiver.clone())) {
+                Some(messages) if messages.len() >= batch_size.0.into() => continue,
+                Some(messages) if messages.len() < batch_size.0.into() => {
+                    insert_message(
+                        &mut agent_messages,
+                        &mut message_contents,
+                        message_entry.clone(),
+                        message_hash,
+                        message_entry.receiver.clone(),
+                    )?;
                 }
-            } else {
-                agent_messages.insert(
-                    message_entry.receiver.to_string(),
-                    vec![message_hash.clone().to_string()],
-                );
+                _ => {
+                    insert_message(
+                        &mut agent_messages,
+                        &mut message_contents,
+                        message_entry.clone(),
+                        message_hash,
+                        message_entry.receiver.clone(),
+                    )?;
+                }
             }
         } else {
             // add this message to author's array in hashmap
-            if let Some(messages) = agent_messages.get_mut(&message_entry.author.to_string()) {
-                if messages.len() >= batch_size.0.into() {
-                    continue;
-                } else {
-                    messages.push(message_hash.clone().to_string())
+            match agent_messages.get(&format!("{:?}", message_entry.author.clone())) {
+                Some(messages) if messages.len() >= batch_size.0.into() => continue,
+                Some(messages) if messages.len() < batch_size.0.into() => {
+                    insert_message(
+                        &mut agent_messages,
+                        &mut message_contents,
+                        message_entry.clone(),
+                        message_hash,
+                        message_entry.author.clone(),
+                    )?;
                 }
-            } else {
-                agent_messages.insert(
-                    message_entry.author.to_string(),
-                    vec![message_hash.clone().to_string()],
-                );
+                _ => {
+                    insert_message(
+                        &mut agent_messages,
+                        &mut message_contents,
+                        message_entry.clone(),
+                        message_hash,
+                        message_entry.author.clone(),
+                    )?;
+                }
             }
-        };
-        message_contents.insert(
-            message_hash.clone().to_string(),
-            MessageBundle(message_entry, Vec::new()),
-        );
+        }
     }
 
-    get_corresponding_receipts(&mut message_contents, &mut receipt_contents)?;
+    get_receipts(&mut message_contents, &mut receipt_contents)?;
 
     Ok(P2PMessageHashTables(
         AgentMessages(agent_messages),
@@ -170,36 +196,68 @@ pub(crate) fn get_next_batch_messages(
     )?;
 
     let mut agent_messages: HashMap<String, Vec<String>> = HashMap::new();
-    agent_messages.insert(filter.conversant.clone().to_string(), Vec::new());
+    agent_messages.insert(format!("{:?}", filter.conversant.clone()), Vec::new());
     let mut message_contents: HashMap<String, MessageBundle> = HashMap::new();
     let mut receipt_contents: HashMap<String, P2PMessageReceipt> = HashMap::new();
+
+    let filter_timestamp = match filter.last_fetched_timestamp {
+        Some(timestamp) => timestamp,
+        None => {
+            let now = sys_time()?;
+            Timestamp(now.as_secs() as i64 / 84600, 0)
+        }
+    };
 
     for message in queried_messages.0.into_iter() {
         let message_entry: P2PMessage = try_from_element(message)?;
         let message_hash = hash_entry(&message_entry)?;
 
-        if message_entry.time_sent.0 <= filter.last_fetched_timestamp.0
-            && message_hash != filter.last_fetched_message_id
+        if message_entry.time_sent.0 <= filter_timestamp.0
+            && (match filter.last_fetched_message_id {
+                Some(ref id) if *id == message_hash => false,
+                Some(ref id) if *id != message_hash => true,
+                _ => false,
+            })
+            || filter.last_fetched_message_id == None
+                && (message_entry.author == filter.conversant
+                    || message_entry.receiver == filter.conversant)
         {
-            if message_entry.author == filter.conversant
-                || message_entry.receiver == filter.conversant
-            {
-                if let Some(messages) = agent_messages.get_mut(&filter.conversant.to_string()) {
-                    if messages.len() >= filter.batch_size.into() {
-                        break;
-                    } else {
-                        messages.push(message_hash.clone().to_string());
-                        message_contents.insert(
-                            message_hash.clone().to_string(),
-                            MessageBundle(message_entry, Vec::new()),
-                        );
+            match message_entry.payload {
+                Payload::Text { .. } => {
+                    if filter.payload_type == "Text" || filter.payload_type == "All" {
+                        let current_batch_size = insert_message(
+                            &mut agent_messages,
+                            &mut message_contents,
+                            message_entry,
+                            message_hash,
+                            filter.conversant.clone(),
+                        )?;
+
+                        if current_batch_size >= filter.batch_size.into() {
+                            break;
+                        }
+                    }
+                }
+                Payload::File { .. } => {
+                    if filter.payload_type == "File" || filter.payload_type == "All" {
+                        let current_batch_size = insert_message(
+                            &mut agent_messages,
+                            &mut message_contents,
+                            message_entry,
+                            message_hash,
+                            filter.conversant.clone(),
+                        )?;
+
+                        if current_batch_size >= filter.batch_size.into() {
+                            break;
+                        }
                     }
                 }
             }
         }
     }
 
-    get_corresponding_receipts(&mut message_contents, &mut receipt_contents)?;
+    get_receipts(&mut message_contents, &mut receipt_contents)?;
 
     Ok(P2PMessageHashTables(
         AgentMessages(agent_messages),
@@ -222,7 +280,7 @@ pub(crate) fn get_messages_by_agent_by_timestamp(
     )?;
 
     let mut agent_messages: HashMap<String, Vec<String>> = HashMap::new();
-    agent_messages.insert(filter.conversant.clone().to_string(), Vec::new());
+    agent_messages.insert(format!("{:?}", filter.conversant.clone()), Vec::new());
     let mut message_contents: HashMap<String, MessageBundle> = HashMap::new();
     let mut receipt_contents: HashMap<String, P2PMessageReceipt> = HashMap::new();
 
@@ -232,23 +290,41 @@ pub(crate) fn get_messages_by_agent_by_timestamp(
     for message in queried_messages.0.into_iter() {
         let message_entry: P2PMessage = try_from_element(message)?;
         let message_hash = hash_entry(&message_entry)?;
-        if message_entry.author == filter.conversant || message_entry.receiver == filter.conversant
+
+        // TODO: use header timestamp for message_time
+        if message_entry.time_sent.0 >= day_start
+            && message_entry.time_sent.0 <= day_end
+            && (message_entry.author == filter.conversant
+                || message_entry.receiver == filter.conversant)
         {
-            // TODO: use header timestamp for message_time
-            let message_time = message_entry.time_sent.0;
-            if message_time >= day_start && message_time <= day_end {
-                match agent_messages.get_mut(&filter.conversant.to_string()) {
-                    Some(messages) => messages.push(message_hash.clone().to_string()),
-                    None => (),
-                };
-                let receipt_hashes = Vec::new();
-                let bundle = MessageBundle(message_entry, receipt_hashes);
-                message_contents.insert(message_hash.clone().to_string(), bundle);
+            match message_entry.payload {
+                Payload::Text { .. } => {
+                    if filter.payload_type == "Text" || filter.payload_type == "All" {
+                        insert_message(
+                            &mut agent_messages,
+                            &mut message_contents,
+                            message_entry,
+                            message_hash,
+                            filter.conversant.clone(),
+                        )?;
+                    }
+                }
+                Payload::File { .. } => {
+                    if filter.payload_type == "File" || filter.payload_type == "All" {
+                        insert_message(
+                            &mut agent_messages,
+                            &mut message_contents,
+                            message_entry,
+                            message_hash,
+                            filter.conversant.clone(),
+                        )?;
+                    }
+                }
             }
         }
     }
 
-    get_corresponding_receipts(&mut message_contents, &mut receipt_contents)?;
+    get_receipts(&mut message_contents, &mut receipt_contents)?;
 
     Ok(P2PMessageHashTables(
         AgentMessages(agent_messages),
@@ -257,7 +333,7 @@ pub(crate) fn get_messages_by_agent_by_timestamp(
     ))
 }
 
-fn get_corresponding_receipts(
+fn get_receipts(
     message_contents: &mut HashMap<String, MessageBundle>,
     receipt_contents: &mut HashMap<String, P2PMessageReceipt>,
 ) -> ExternResult<()> {
@@ -274,15 +350,45 @@ fn get_corresponding_receipts(
     for receipt in queried_receipts.clone().0.into_iter() {
         let receipt_entry: P2PMessageReceipt = try_from_element(receipt)?;
         let receipt_hash = hash_entry(&receipt_entry)?;
-        if message_contents.contains_key(&receipt_entry.id.to_string()) {
-            receipt_contents.insert(receipt_hash.clone().to_string(), receipt_entry.clone());
-            if let Some(message_bundle) = message_contents.get_mut(&receipt_entry.id.to_string()) {
-                message_bundle.1.push(receipt_hash.to_string())
+        if message_contents.contains_key(&format!("{:?}", &receipt_entry.id)) {
+            receipt_contents.insert(format!("{:?}", receipt_hash.clone()), receipt_entry.clone());
+            if let Some(message_bundle) =
+                message_contents.get_mut(&format!("{:?}", &receipt_entry.id))
+            {
+                message_bundle.1.push(format!("{:?}", receipt_hash))
             };
         }
     }
 
     Ok(())
+}
+
+fn insert_message(
+    agent_messages: &mut HashMap<String, Vec<String>>,
+    message_contents: &mut HashMap<String, MessageBundle>,
+    message_entry: P2PMessage,
+    message_hash: EntryHash,
+    key: AgentPubKey,
+) -> ExternResult<usize> {
+    let mut message_array_length = 0;
+    match agent_messages.get_mut(&format!("{:?}", key)) {
+        Some(messages) => {
+            messages.push(format!("{:?}", message_hash.clone()));
+            message_array_length = messages.len();
+        }
+        None => {
+            agent_messages.insert(
+                format!("{:?}", key),
+                vec![format!("{:?}", message_hash.clone())],
+            );
+        }
+    };
+    message_contents.insert(
+        format!("{:?}", message_hash),
+        MessageBundle(message_entry, Vec::new()),
+    );
+
+    Ok(message_array_length)
 }
 
 // fn _is_user_blocked(agent_pubkey: AgentPubKey) -> ExternResult<bool> {

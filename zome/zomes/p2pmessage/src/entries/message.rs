@@ -4,18 +4,10 @@ pub mod handlers;
 use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub enum Status {
-    Sent,      // the message has been transmitted to the network
-    Delivered, // the message has successfully traversed the network and reached the receiver
-    Read,      // the message has been opened by the receiver
-    Failed,
-}
-
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct P2PMessage {
     author: AgentPubKey,
     receiver: AgentPubKey,
-    payload: String,
+    payload: Payload,
     time_sent: Timestamp,
     reply_to: Option<EntryHash>,
 }
@@ -23,12 +15,14 @@ pub struct P2PMessage {
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct P2PMessageReceipt {
     id: EntryHash,
-    time_received: Timestamp,
     status: Status,
 }
 
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct P2PFileBytes(SerializedBytes);
+
 entry_def!(P2PMessage
-    EntryDef{
+    EntryDef {
         id: "p2pmessage".into(),
         visibility: EntryVisibility::Private,
         crdt_type: CrdtType,
@@ -38,8 +32,18 @@ entry_def!(P2PMessage
 );
 
 entry_def!(P2PMessageReceipt
-    EntryDef{
+    EntryDef {
         id: "p2pmessagereceipt".into(),
+        visibility: EntryVisibility::Private,
+        crdt_type: CrdtType,
+        required_validations: RequiredValidations::default(),
+        required_validation_type: RequiredValidationType::Element
+    }
+);
+
+entry_def!(P2PFileBytes
+    EntryDef {
+        id: "p2pfilebytes".into(),
         visibility: EntryVisibility::Private,
         crdt_type: CrdtType,
         required_validations: RequiredValidations::default(),
@@ -50,10 +54,28 @@ entry_def!(P2PMessageReceipt
 impl P2PMessage {
     pub fn from_input(input: MessageInput) -> ExternResult<Self> {
         let now = sys_time()?;
+
         let message = P2PMessage {
             author: agent_info()?.agent_latest_pubkey,
             receiver: input.receiver,
-            payload: input.payload,
+            payload: match input.payload {
+                PayloadInput::Text { payload } => Payload::Text { payload },
+                PayloadInput::File {
+                    file_name,
+                    file_size,
+                    file_type,
+                    file_hash,
+                    ..
+                } => Payload::File {
+                    metadata: FileMetadata {
+                        file_name: file_name,
+                        file_size: file_size,
+                        file_type: file_type.clone(),
+                        file_hash: file_hash,
+                    },
+                    file_type: file_type,
+                },
+            },
             time_sent: Timestamp(now.as_secs() as i64, now.subsec_nanos()),
             reply_to: input.reply_to,
         };
@@ -66,18 +88,78 @@ impl P2PMessageReceipt {
         let now = sys_time()?;
         let receipt = P2PMessageReceipt {
             id: hash_entry(&message)?,
-            time_received: Timestamp(now.as_secs() as i64, now.subsec_nanos()),
-            status: Status::Delivered,
+            status: Status::Delivered {
+                timestamp: Timestamp(now.as_secs() as i64, now.subsec_nanos()),
+            },
         };
         Ok(receipt)
+    }
+}
+
+impl P2PFileBytes {
+    pub fn from_input(input: MessageInput) -> ExternResult<Self> {
+        match input.payload {
+            PayloadInput::Text { .. } => crate::err("TODO: 000", "no file bytes in input"),
+            PayloadInput::File { bytes, .. } => Ok(P2PFileBytes(bytes)),
+        }
     }
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct MessageInput {
     receiver: AgentPubKey,
-    payload: String,
+    payload: PayloadInput,
     reply_to: Option<EntryHash>,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub enum PayloadInput {
+    Text {
+        payload: String,
+    },
+    File {
+        file_name: String,
+        file_size: u8,
+        file_type: FileType,
+        file_hash: String,
+        bytes: SerializedBytes,
+    },
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct ReceiveMessageInput(P2PMessage, Option<P2PFileBytes>);
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct FileMetadata {
+    file_name: String,
+    file_size: u8,
+    file_type: FileType,
+    file_hash: String,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub enum FileType {
+    Image { thumbnail: SerializedBytes },
+    Video { thumbnail: SerializedBytes },
+    Others,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub enum Payload {
+    Text {
+        payload: String,
+    },
+    File {
+        metadata: FileMetadata,
+        file_type: FileType,
+    },
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub enum Status {
+    Sent,
+    Delivered { timestamp: Timestamp },
+    Read { timestamp: Timestamp },
 }
 
 #[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes)]
@@ -111,6 +193,7 @@ pub struct P2PMessageHashTables(AgentMessages, MessageContents, ReceiptContents)
 pub struct P2PMessageFilterAgentTimestamp {
     conversant: AgentPubKey,
     date: Timestamp,
+    payload_type: String,
 }
 
 #[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes)]
@@ -120,8 +203,9 @@ pub struct BatchSize(u8);
 pub struct P2PMessageFilterBatch {
     conversant: AgentPubKey,
     batch_size: u8,
-    last_fetched_timestamp: Timestamp, // header timestamp; oldest message in the last fetched message
-    last_fetched_message_id: EntryHash,
+    payload_type: String,
+    last_fetched_timestamp: Option<Timestamp>, // header timestamp; oldest message in the last fetched message
+    last_fetched_message_id: Option<EntryHash>,
 }
 
 // TYPING

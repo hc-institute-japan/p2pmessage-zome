@@ -5,7 +5,11 @@ use entries::message;
 
 use message::*;
 
-entry_defs![P2PMessage::entry_def(), P2PMessageReceipt::entry_def()];
+entry_defs![
+    P2PMessage::entry_def(),
+    P2PMessageReceipt::entry_def(),
+    P2PFileBytes::entry_def()
+];
 
 pub fn error<T>(reason: &str) -> ExternResult<T> {
     Err(HdkError::Wasm(WasmError::Zome(String::from(reason))))
@@ -24,8 +28,8 @@ fn send_message(message_input: MessageInput) -> ExternResult<MessageAndReceipt> 
 }
 
 #[hdk_extern]
-fn receive_message(message: P2PMessage) -> ExternResult<P2PMessageReceipt> {
-    message::handlers::receive_message(message)
+fn receive_message(input: ReceiveMessageInput) -> ExternResult<P2PMessageReceipt> {
+    message::handlers::receive_message(input)
 }
 
 #[hdk_extern]
