@@ -1,13 +1,8 @@
-
-
-use hdk3::prelude::*;
-use crate::{timestamp::Timestamp};
-use crate::utils::{
-    try_from_element,
-    address_deduper
-};
 use super::*;
+use crate::utils::try_from_element;
+// use hdk3::prelude::*;
 
+use std::collections::HashMap;
 
 /* TODO:
  * - proper error codes
@@ -32,7 +27,6 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
     notify_functions.insert((zome_info()?.zome_name, "notify_delivery".into()));
     let mut emit_functions: GrantedFunctions = HashSet::new();
     emit_functions.insert((zome_info()?.zome_name, "emit_typing".into()));
- 
 
     create_cap_grant(CapGrantEntry {
         tag: "receive".into(),
@@ -49,381 +43,395 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
     create_cap_grant(CapGrantEntry {
         tag: "".into(),
         access: ().into(),
-        functions: emit_functions
+        functions: emit_functions,
     })?;
 
-
-    // 
+    //
     let mut fuctions = HashSet::new();
 
     // TODO: name may be changed to better suit the context of cap grant.s
-    let tag: String = "create_group_cap_grant".into(); 
+    let tag: String = "create_group_cap_grant".into();
     let access: CapAccess = CapAccess::Unrestricted;
-    
-    let zome_name:ZomeName = zome_info()?.zome_name;
-    let function_name:FunctionName = FunctionName("recv_remote_signal".into());
-    
+
+    let zome_name: ZomeName = zome_info()?.zome_name;
+    let function_name: FunctionName = FunctionName("recv_remote_signal".into());
+
     fuctions.insert((zome_name, function_name));
 
-    let cap_grant_entry:CapGrantEntry = CapGrantEntry::new(
-        tag, // A string by which to later query for saved grants.
+    let cap_grant_entry: CapGrantEntry = CapGrantEntry::new(
+        tag,    // A string by which to later query for saved grants.
         access, // Unrestricted access means any external agent can call the extern
         fuctions,
     );
 
     create_cap_grant(cap_grant_entry)?;
 
-
     Ok(InitCallbackResult::Pass)
 }
 
-pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageParameter> {
-
+pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageAndReceipt> {
     // TODO: check if receiver is blocked
 
-    let now = sys_time()?;
-    let mut message = MessageParameter {
-        author: agent_info()?.agent_latest_pubkey,
-        receiver: message_input.receiver.clone(),
-        payload: message_input.payload.clone(),
-        time_sent: Timestamp(now.as_secs() as i64, now.subsec_nanos()),
-        time_received: None,
-        status: Status::Sent,
-        reply_to: None
+    let message = P2PMessage::from_input(message_input.clone())?;
+
+    let file = match message_input.payload {
+        PayloadInput::File { .. } => Some(P2PFileBytes::from_input(message_input)?),
+        _ => None,
     };
 
-    if let Some(replied_message) = message_input.reply_to.clone() {
-        let message_entry = P2PMessage::from_parameter(replied_message.clone());
-        let message_entry_hash = hash_entry(&message_entry)?;
-        message.reply_to = Some(message_entry_hash);
-    };
+    let receive_input = ReceiveMessageInput(message.clone(), file.clone());
 
-    let receive_result: Result<MessageParameter, HdkError> = call_remote(
-        message_input.clone().receiver,
+    let receive_call_result: Result<P2PMessageReceipt, HdkError> = call_remote(
+        message.receiver.clone(),
         zome_info()?.zome_name,
         "receive_message".into(),
         None,
-        &message
+        &receive_input,
     );
 
-    match receive_result {
-        // MESSAGE HAS BEEN SENT AND DELIVERED
+    match receive_call_result {
         Ok(receive_output) => {
-            let message_entry = P2PMessage::from_parameter(receive_output.clone());
-            create_entry(&message_entry)?;
-            Ok(receive_output)
-        },
+            let receipt = receive_output;
+            create_entry(&message)?;
+            create_entry(&receipt)?;
+            if let Some(file) = file {
+                create_entry(&file)?;
+            };
+            // TODO: CREATE AND RETURN ELEMENT HERE
+            Ok(MessageAndReceipt(message, receipt))
+        }
         Err(kind) => {
             match kind {
                 // TIMEOUT; RECIPIENT IS OFFLINE; MESSAGE NEEDS TO BE SENT ASYNC
+                // WILL BE IMPLEMENTED ONCE EPHEMERAL STORAGE IS IN PLACE
                 HdkError::ZomeCallNetworkError(_err) => {
-                    match send_message_async(message_input) {
-                        Ok(async_result) => {
-                            let message_entry = P2PMessage::from_parameter(async_result.clone());
-                            create_entry(&message_entry)?;
-                            Ok(async_result)
-                        },
-                        _ => crate::err("TODO: 000", "This agent has no proper authorization")
-                    }
-                },
-                HdkError::UnauthorizedZomeCall(_c,_z,_f,_p) => crate::err("TODO: 000:", "This case shouldn't happen because of unrestricted access to receive message"),
-                _ => crate::err("TODO: 000", "Unknown other error")
-            }
-        }
-    }
-}
-
-pub(crate) fn receive_message(message_input: MessageParameter) -> ExternResult<MessageParameter> {
-    let mut message_entry = P2PMessage::from_parameter(message_input.clone());
-    let now = sys_time()?;
-    message_entry.time_received = Some(Timestamp(now.as_secs() as i64, now.subsec_nanos()));
-    message_entry.status = Status::Delivered;
-    create_entry(&message_entry)?;
-    Ok(MessageParameter::from_entry(message_entry))
-}
-
-pub(crate) fn send_message_async(message_input: MessageInput) -> ExternResult<MessageParameter> {
-    let now = sys_time()?;
-    let message_async = P2PMessageAsync {
-        author: agent_info()?.agent_latest_pubkey,
-        receiver: message_input.receiver.clone(),
-        payload: message_input.payload,
-        time_sent: Timestamp(now.as_secs() as i64, now.subsec_nanos()),
-        time_received: None,
-        status: Status::Sent,
-        reply_to: None
-    };
-
-    create_entry(&message_async)?;
-
-    create_link(
-        message_input.receiver.into(),
-        hash_entry(&message_async)?,
-        LinkTag::new("async_messages")
-    )?;
-
-    Ok(MessageParameter::from_async_entry(message_async))
-}
-
-// TODO: do we need a return value here?
-pub(crate) fn fetch_async_messages() -> ExternResult<MessageListWrapper> {
-
-    let links = get_links(agent_info()?.agent_latest_pubkey.into(), Some(LinkTag::new("async_messages")))?;
-
-    let mut message_list: Vec<MessageParameter> = Vec::new();
-    for link in links.into_inner().into_iter() {
-        debug!(format!("Nicko the link is {:?}", link.clone()));
-
-        // get on an EntryHash
-        // returns the "oldest live" element, i.e. header+entry
-        match get(link.target.clone(), GetOptions::latest())? {
-            Some(element) => {
-
-                // BLOCK CHECK
-                // let author = header.author();
-                // if let true = is_user_blocked(author.clone())? { continue };
-                // let entry_hash =
-
-                let message_async_element: Result<P2PMessageAsync, HdkError> = try_from_element(element.clone());
-                match message_async_element {
-                    Ok(message_async_entry) => {
-                        match message_async_entry.status.clone() {
-                            Status::Sent => {
-                                let mut message_parameter = MessageParameter::from_async_entry(message_async_entry);
-
-                                let now = sys_time()?;
-                                message_parameter.time_received = Some(Timestamp(now.as_secs() as i64, now.subsec_nanos()));
-                                message_parameter.status = Status::Delivered;
-                                let message_entry = P2PMessage::from_parameter(message_parameter.clone());
-                                create_entry(&message_entry)?;
-
-                                let notify_delivery_result: Result<BooleanWrapper, HdkError> = call_remote(
-                                    message_parameter.author.clone(),
-                                    zome_info()?.zome_name,
-                                    "notify_delivery".into(),
-                                    None,
-                                    &message_parameter
-                                );
-                            
-                                match notify_delivery_result {
-                                    Ok(_notify_delivery_output) => {
-                                        message_parameter.status = Status::Sent; // only for the purpose of the return value
-                                        message_list.push(message_parameter.clone());
-                                        Ok(())
-                                    },
-                                    Err(kind) => {
-                                        match kind {
-                                            // TIMEOUT; SENDER TO NOTIFY IS OFFLINE; NOTIFICATION SHOULD BE SENT ASYNC
-                                            HdkError::ZomeCallNetworkError(_err) => {
-                                                let _header = element.header_address().to_owned();
-                                                let author = message_parameter.author.clone();
-                                                let message_async_entry_new = P2PMessageAsync::from_parameter(message_parameter.clone());
-                                                let _header_hash = create_entry(&message_async_entry_new)?;
-                                                // update_entry(header, &message_async_entry_new)?;
-                                                
-                                                debug!(format!("Nicko the original element is {:?}", element.clone()));
-                                                debug!(format!("Nicko the entry is {:?}", message_parameter.clone()));
-                                                debug!(format!("Nicko the hash of the entry is {:?}", hash_entry(&message_async_entry_new)?));
-                                                debug!(format!("Nicko the author is {:?}", author.clone()));
-                                                
-                                                create_link(
-                                                    author.into(),
-                                                    hash_entry(&message_async_entry_new)?,
-                                                    LinkTag::new("async_messages")
-                                                )?;
-                                                // debug!(format!("Nicko the create_link header is {:?}", create_link_header));
-
-                                                message_list.push(message_parameter.clone());
-                                                Ok(())
-
-                                                // match notify_delivery_async(NotifyAsyncInput(message_parameter.clone(), element.clone())) {
-                                                //     Ok(_notify_delivery_async_result) => { 
-                                                //         message_parameter.status = Status::Sent; // only for the purpose of the return value
-                                                //         message_list.push(message_parameter.clone());
-                                                //         Ok(())
-                                                //     },
-                                                //     _ => crate::err("TODO: 000", "Failed to update P2PMessageAsync entry")
-                                                // }
-                                            },
-                                            HdkError::UnauthorizedZomeCall(_c,_z,_f,_p) => crate::err("TODO: 000:", "This case shouldn't happen because of unrestricted access to receive message"),
-                                            _ => crate::err("TODO: 000", "Unknown other error")
-                                        }
-                                    }
-                                }
-                            },
-                            Status::Delivered => {
-                                let message_parameter = MessageParameter::from_async_entry(message_async_entry);
-                                debug!(format!("Nicko the async message is {:?}", message_parameter.clone()));
-                                notify_delivery(message_parameter)?;
-                                Ok(())
-                            },
-                            _ => return crate::err("TODO: 000", "Unimplemented handlers for other status enums")
-                        }?;
-                    },
-                    _ => return crate::err("TODO: 000", "Could not convert element")
+                    crate::err("TODO: 000", "Unknown other error")
                 }
-
-                // delete_link(link.create_link_hash.clone())?;
-            },
-            _ => return crate::err("TODO: 000", "Could not get link target")
+                HdkError::UnauthorizedZomeCall(_c, _z, _f, _p) => crate::err(
+                    "TODO: 000:",
+                    "This case shouldn't happen because of unrestricted access to receive message",
+                ),
+                _ => crate::err("TODO: 000", "Unknown other error"),
+            }
         }
     }
-    
-    Ok(MessageListWrapper(message_list))
 }
 
-pub(crate) fn notify_delivery(message_parameter: MessageParameter) -> ExternResult<BooleanWrapper> {
-    let message_entry_new = P2PMessage::from_parameter(message_parameter);
-    create_entry(&message_entry_new)?;
-    //TODO:  EMIT SIGNAL HERE    
-    Ok(BooleanWrapper(true))
-}
-
-pub(crate) fn notify_delivery_async(input: NotifyAsyncInput) -> ExternResult<BooleanWrapper> {
-    let header = input.1.header_address().to_owned();
-    let author = input.0.author.clone();
-    let message_async_entry_new = P2PMessageAsync::from_parameter(input.0);
-    update_entry(header, &message_async_entry_new)?;
-
-    create_link(
-        author.into(),
-        hash_entry(&message_async_entry_new)?,
-        LinkTag::new("async_messages")
-    )?;
-    
-    Ok(BooleanWrapper(true))
-}
-
-pub(crate) fn get_all_messages() -> ExternResult<MessageListWrapper> {
-    let query_result = query(
-        QueryFilter::new()
-        .entry_type(
-            EntryType::App(
-                AppEntryType::new(
-                    EntryDefIndex::from(0),
-                    zome_info()?.zome_id,
-                    EntryVisibility::Private
-                )
-            )
-        )
-        .include_entries(true)
-    )?;
-
-    let message_vec: Vec<MessageParameter> = query_result.0
-        .into_iter()
-        .filter_map(|el| {
-            let entry = try_from_element(el);
-            match entry {
-                Ok(message_entry) => {
-                    let message_output = MessageParameter::from_entry(message_entry);
-                    Some(message_output)
-                },
-                _ => None
-            }
-        })
-        .collect();
-
-    Ok(MessageListWrapper(message_vec))
-}
-
-pub(crate) fn get_all_messages_from_addresses(agent_list: AgentListWrapper) -> ExternResult<MessagesByAgentListWrapper> {
-    let deduped_agents = address_deduper(agent_list.0);
-
-    let query_result = query(
-        QueryFilter::new()
-        .entry_type(
-            EntryType::App(
-                AppEntryType::new(
-                    EntryDefIndex::from(0),
-                    zome_info()?.zome_id,
-                    EntryVisibility::Private
-                )
-            )
-        )
-        .include_entries(true)
-    )?;
-
-    let mut agent_messages_hashmap = std::collections::HashMap::new();
-    for agent in deduped_agents {
-        let message_list: Vec<MessageParameter> = Vec::new();
-        agent_messages_hashmap.insert(agent, message_list);                                                                                                                                                                               
+pub(crate) fn receive_message(input: ReceiveMessageInput) -> ExternResult<P2PMessageReceipt> {
+    let receipt = P2PMessageReceipt::from_message(input.0.clone())?;
+    create_entry(&input.0)?;
+    create_entry(&receipt)?;
+    if let Some(file) = input.1 {
+        create_entry(&file)?;
     };
+    Ok(receipt)
+}
 
-    for element in query_result.0.into_iter() {
-        let entry = try_from_element(element);
-        match entry {
-            Ok(message_entry) => {
-                let message_output = MessageParameter::from_entry(message_entry);
-                if agent_messages_hashmap.contains_key(&message_output.clone().author) {
-                    if let Some(vec) = agent_messages_hashmap.get_mut(&message_output.clone().author) {
-                        vec.push(message_output.clone());
-                    } else { () }
-                } else { () }
-            },
-            _ => ()
-        };
-    };
+pub(crate) fn get_latest_messages(batch_size: BatchSize) -> ExternResult<P2PMessageHashTables> {
+    let queried_messages = query(
+        QueryFilter::new()
+            .entry_type(EntryType::App(AppEntryType::new(
+                EntryDefIndex::from(0),
+                zome_info()?.zome_id,
+                EntryVisibility::Private,
+            )))
+            .include_entries(true),
+    )?;
 
-    let mut agent_messages_vec: Vec<MessagesByAgent> = Vec::new();
-    for (agent, list) in agent_messages_hashmap.iter() {
-        agent_messages_vec.push(
-            MessagesByAgent {
-                author: agent.to_owned(),
-                messages: list.to_owned()
+    let mut agent_messages: HashMap<String, Vec<String>> = HashMap::new();
+    let mut message_contents: HashMap<String, MessageBundle> = HashMap::new();
+    let mut receipt_contents: HashMap<String, P2PMessageReceipt> = HashMap::new();
+
+    for message in queried_messages.0.into_iter() {
+        let message_entry: P2PMessage = try_from_element(message)?;
+        let message_hash = hash_entry(&message_entry)?;
+        if message_entry.author.clone() == agent_info()?.agent_latest_pubkey {
+            match agent_messages.get(&format!("{:?}", message_entry.receiver.clone())) {
+                Some(messages) if messages.len() >= batch_size.0.into() => continue,
+                Some(messages) if messages.len() < batch_size.0.into() => {
+                    insert_message(
+                        &mut agent_messages,
+                        &mut message_contents,
+                        message_entry.clone(),
+                        message_hash,
+                        message_entry.receiver.clone(),
+                    )?;
+                }
+                _ => {
+                    insert_message(
+                        &mut agent_messages,
+                        &mut message_contents,
+                        message_entry.clone(),
+                        message_hash,
+                        message_entry.receiver.clone(),
+                    )?;
+                }
             }
-        );
+        } else {
+            // add this message to author's array in hashmap
+            match agent_messages.get(&format!("{:?}", message_entry.author.clone())) {
+                Some(messages) if messages.len() >= batch_size.0.into() => continue,
+                Some(messages) if messages.len() < batch_size.0.into() => {
+                    insert_message(
+                        &mut agent_messages,
+                        &mut message_contents,
+                        message_entry.clone(),
+                        message_hash,
+                        message_entry.author.clone(),
+                    )?;
+                }
+                _ => {
+                    insert_message(
+                        &mut agent_messages,
+                        &mut message_contents,
+                        message_entry.clone(),
+                        message_hash,
+                        message_entry.author.clone(),
+                    )?;
+                }
+            }
+        }
     }
 
-    Ok(MessagesByAgentListWrapper(agent_messages_vec))
+    get_receipts(&mut message_contents, &mut receipt_contents)?;
+
+    Ok(P2PMessageHashTables(
+        AgentMessages(agent_messages),
+        MessageContents(message_contents),
+        ReceiptContents(receipt_contents),
+    ))
 }
 
-// TODO: change implementation once query accepts timestamp range.
-pub(crate) fn get_batch_messages_on_conversation(message_range: MessageRange) -> ExternResult<MessageListWrapper> {
-
-    let timegap = 10; //in seconds
-    let batch_size = 10; // number of messages
-
-    let query_result = query(
+pub(crate) fn get_next_batch_messages(
+    filter: P2PMessageFilterBatch,
+) -> ExternResult<P2PMessageHashTables> {
+    let queried_messages = query(
         QueryFilter::new()
-        .entry_type(
-            EntryType::App(
-                AppEntryType::new(
-                    EntryDefIndex::from(0),
-                    zome_info()?.zome_id,
-                    EntryVisibility::Private
-                )
-            )
-        )
-        .include_entries(true)
+            .entry_type(EntryType::App(AppEntryType::new(
+                EntryDefIndex::from(0),
+                zome_info()?.zome_id,
+                EntryVisibility::Private,
+            )))
+            .include_entries(true),
     )?;
 
-    let mut message_output_vec: Vec<MessageParameter> = Vec::new();
-    for element in query_result.0 {
-        let entry = try_from_element::<P2PMessage>(element);
-        match entry {
-            Ok(message_entry) => {
-                if message_output_vec.len() <= 0 
-                || (message_output_vec.len() <= batch_size && message_range.last_message_timestamp_seconds - message_entry.time_sent.0 < timegap) {
-                    if message_entry.author == message_range.author {
-                        if message_entry.time_sent.0 <= message_range.last_message_timestamp_seconds {
-                            let message_output = MessageParameter::from_entry(message_entry);
-                            message_output_vec.push(message_output);
+    let mut agent_messages: HashMap<String, Vec<String>> = HashMap::new();
+    agent_messages.insert(format!("{:?}", filter.conversant.clone()), Vec::new());
+    let mut message_contents: HashMap<String, MessageBundle> = HashMap::new();
+    let mut receipt_contents: HashMap<String, P2PMessageReceipt> = HashMap::new();
+
+    let filter_timestamp = match filter.last_fetched_timestamp {
+        Some(timestamp) => timestamp,
+        None => {
+            let now = sys_time()?;
+            Timestamp(now.as_secs() as i64 / 84600, 0)
+        }
+    };
+
+    for message in queried_messages.0.into_iter() {
+        let message_entry: P2PMessage = try_from_element(message)?;
+        let message_hash = hash_entry(&message_entry)?;
+
+        if message_entry.time_sent.0 <= filter_timestamp.0
+            && (match filter.last_fetched_message_id {
+                Some(ref id) if *id == message_hash => false,
+                Some(ref id) if *id != message_hash => true,
+                _ => false,
+            })
+            || filter.last_fetched_message_id == None
+                && (message_entry.author == filter.conversant
+                    || message_entry.receiver == filter.conversant)
+        {
+            match message_entry.payload {
+                Payload::Text { .. } => {
+                    if filter.payload_type == "Text" || filter.payload_type == "All" {
+                        let current_batch_size = insert_message(
+                            &mut agent_messages,
+                            &mut message_contents,
+                            message_entry,
+                            message_hash,
+                            filter.conversant.clone(),
+                        )?;
+
+                        if current_batch_size >= filter.batch_size.into() {
+                            break;
                         }
-                    };
-                    continue
-                };
-                break
-            },
-            _ => continue
-        }
-    };
+                    }
+                }
+                Payload::File { .. } => {
+                    if filter.payload_type == "File" || filter.payload_type == "All" {
+                        let current_batch_size = insert_message(
+                            &mut agent_messages,
+                            &mut message_contents,
+                            message_entry,
+                            message_hash,
+                            filter.conversant.clone(),
+                        )?;
 
-    Ok(MessageListWrapper(message_output_vec))
+                        if current_batch_size >= filter.batch_size.into() {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    get_receipts(&mut message_contents, &mut receipt_contents)?;
+
+    Ok(P2PMessageHashTables(
+        AgentMessages(agent_messages),
+        MessageContents(message_contents),
+        ReceiptContents(receipt_contents),
+    ))
 }
 
+pub(crate) fn get_messages_by_agent_by_timestamp(
+    filter: P2PMessageFilterAgentTimestamp,
+) -> ExternResult<P2PMessageHashTables> {
+    let queried_messages = query(
+        QueryFilter::new()
+            .entry_type(EntryType::App(AppEntryType::new(
+                EntryDefIndex::from(0),
+                zome_info()?.zome_id,
+                EntryVisibility::Private,
+            )))
+            .include_entries(true),
+    )?;
 
+    let mut agent_messages: HashMap<String, Vec<String>> = HashMap::new();
+    agent_messages.insert(format!("{:?}", filter.conversant.clone()), Vec::new());
+    let mut message_contents: HashMap<String, MessageBundle> = HashMap::new();
+    let mut receipt_contents: HashMap<String, P2PMessageReceipt> = HashMap::new();
 
-// fn is_user_blocked(agent_pubkey: AgentPubKey) -> ExternResult<bool> {
+    let day_start = (filter.date.0 / 86400) * 86400;
+    let day_end = day_start + 86399;
+
+    for message in queried_messages.0.into_iter() {
+        let message_entry: P2PMessage = try_from_element(message)?;
+        let message_hash = hash_entry(&message_entry)?;
+
+        // TODO: use header timestamp for message_time
+        if message_entry.time_sent.0 >= day_start
+            && message_entry.time_sent.0 <= day_end
+            && (message_entry.author == filter.conversant
+                || message_entry.receiver == filter.conversant)
+        {
+            match message_entry.payload {
+                Payload::Text { .. } => {
+                    if filter.payload_type == "Text" || filter.payload_type == "All" {
+                        insert_message(
+                            &mut agent_messages,
+                            &mut message_contents,
+                            message_entry,
+                            message_hash,
+                            filter.conversant.clone(),
+                        )?;
+                    }
+                }
+                Payload::File { .. } => {
+                    if filter.payload_type == "File" || filter.payload_type == "All" {
+                        insert_message(
+                            &mut agent_messages,
+                            &mut message_contents,
+                            message_entry,
+                            message_hash,
+                            filter.conversant.clone(),
+                        )?;
+                    }
+                }
+            }
+        }
+    }
+
+    get_receipts(&mut message_contents, &mut receipt_contents)?;
+
+    Ok(P2PMessageHashTables(
+        AgentMessages(agent_messages),
+        MessageContents(message_contents),
+        ReceiptContents(receipt_contents),
+    ))
+}
+
+fn get_receipts(
+    message_contents: &mut HashMap<String, MessageBundle>,
+    receipt_contents: &mut HashMap<String, P2PMessageReceipt>,
+) -> ExternResult<()> {
+    let queried_receipts = query(
+        QueryFilter::new()
+            .entry_type(EntryType::App(AppEntryType::new(
+                EntryDefIndex::from(1),
+                zome_info()?.zome_id,
+                EntryVisibility::Private,
+            )))
+            .include_entries(true),
+    )?;
+
+    for receipt in queried_receipts.clone().0.into_iter() {
+        let receipt_entry: P2PMessageReceipt = try_from_element(receipt)?;
+        let receipt_hash = hash_entry(&receipt_entry)?;
+        if message_contents.contains_key(&format!("{:?}", &receipt_entry.id)) {
+            receipt_contents.insert(format!("{:?}", receipt_hash.clone()), receipt_entry.clone());
+            if let Some(message_bundle) =
+                message_contents.get_mut(&format!("{:?}", &receipt_entry.id))
+            {
+                message_bundle.1.push(format!("{:?}", receipt_hash))
+            };
+        }
+    }
+
+    Ok(())
+}
+
+pub(crate) fn typing(typing_info: P2PTypingDetailIO) -> ExternResult<()> {
+    let payload = Signal::P2PTypingDetailSignal(TypingSignal {
+        agent: agent_info()?.agent_latest_pubkey,
+        is_typing: typing_info.is_typing,
+        kind: SignalTypes::P2P_TYPING_SIGNAL.to_owned(),
+    });
+
+    let mut agents = Vec::new();
+
+    agents.push(typing_info.agent);
+    agents.push(agent_info()?.agent_latest_pubkey);
+
+    remote_signal(&payload, agents)?;
+    Ok(())
+}
+
+// pub(crate) fn read_message(_receipt: P2PMessageReceipt) -> ExternResult<()> {
+//     Ok(())
+// }
+
+fn insert_message(
+    agent_messages: &mut HashMap<String, Vec<String>>,
+    message_contents: &mut HashMap<String, MessageBundle>,
+    message_entry: P2PMessage,
+    message_hash: EntryHash,
+    key: AgentPubKey,
+) -> ExternResult<usize> {
+    let mut message_array_length = 0;
+    match agent_messages.get_mut(&format!("{:?}", key)) {
+        Some(messages) => {
+            messages.push(format!("{:?}", message_hash.clone()));
+            message_array_length = messages.len();
+        }
+        None => {
+            agent_messages.insert(
+                format!("{:?}", key),
+                vec![format!("{:?}", message_hash.clone())],
+            );
+        }
+    };
+    message_contents.insert(
+        format!("{:?}", message_hash),
+        MessageBundle(message_entry, Vec::new()),
+    );
+
+    Ok(message_array_length)
+}
+
+// fn _is_user_blocked(agent_pubkey: AgentPubKey) -> ExternResult<bool> {
 //     match call::<AgentPubKey, BooleanWrapper>(
 //         None,
 //         "contacts".into(),
@@ -468,27 +476,3 @@ pub(crate) fn get_batch_messages_on_conversation(message_range: MessageRange) ->
 //         }
 //     }
 // }
-
-
-pub(crate) fn typing(typing_info: P2PTypingDetailIO) -> ExternResult<()> { 
-    let payload = Signal::P2PTypingDetailSignal(TypingSignal {
-        agent: agent_info()?.agent_latest_pubkey,
-        is_typing: typing_info.is_typing,
-        kind: SignalTypes::P2P_TYPING_SIGNAL.to_owned()
-    });
-
-    let mut agents = Vec::new();
-
-    agents.push(typing_info.agent);
-    agents.push(agent_info()?.agent_latest_pubkey);
-
-    remote_signal(
-        &payload,
-        agents
-    )?;
-    Ok(())
-}
-
-pub(crate) fn read_message(receipt: P2PMessageReceipt) -> ExternResult<()> {
-    Ok(())
-}
