@@ -4,6 +4,7 @@ pub mod handlers;
 use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct P2PMessage {
     author: AgentPubKey,
     receiver: AgentPubKey,
@@ -24,16 +25,6 @@ pub struct P2PFileBytes(SerializedBytes);
 entry_def!(P2PMessage
     EntryDef {
         id: "p2pmessage".into(),
-        visibility: EntryVisibility::Private,
-        crdt_type: CrdtType,
-        required_validations: RequiredValidations::default(),
-        required_validation_type: RequiredValidationType::Element
-    }
-);
-
-entry_def!(P2PMessageReceipt
-    EntryDef {
-        id: "p2pmessagereceipt".into(),
         visibility: EntryVisibility::Private,
         crdt_type: CrdtType,
         required_validations: RequiredValidations::default(),
@@ -113,6 +104,7 @@ pub struct MessageInput {
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+#[serde(tag = "type", rename_all = "camelCase")]
 pub enum PayloadInput {
     Text {
         payload: String,
@@ -138,6 +130,7 @@ pub struct FileMetadata {
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+#[serde(tag = "type", rename_all = "camelCase")]
 pub enum FileType {
     Image { thumbnail: SerializedBytes },
     Video { thumbnail: SerializedBytes },
@@ -145,6 +138,7 @@ pub enum FileType {
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+#[serde(tag = "type")]
 pub enum Payload {
     Text {
         payload: String,
@@ -156,6 +150,7 @@ pub enum Payload {
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+#[serde(tag = "status", rename_all = "camelCase")]
 pub enum Status {
     Sent,
     Delivered { timestamp: Timestamp },
@@ -184,9 +179,6 @@ pub struct AgentMessages(HashMap<String, Vec<String>>);
 pub struct MessageContents(HashMap<String, MessageBundle>);
 
 #[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes)]
-pub struct ReceiptContents(HashMap<String, P2PMessageReceipt>);
-
-#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes)]
 pub struct P2PMessageHashTables(AgentMessages, MessageContents, ReceiptContents);
 
 #[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes)]
@@ -210,6 +202,7 @@ pub struct P2PMessageFilterBatch {
 
 // TYPING
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct P2PTypingDetailIO {
     agent: AgentPubKey,
     is_typing: bool,
@@ -229,12 +222,26 @@ pub struct MessageSignal {
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+#[serde(tag = "type")]
 pub enum Signal {
     Message(MessageSignal),
-    P2PTypingDetailSignal(TypingSignal),
+    P2PTypingDetailSignal(P2PTypingDetailIO),
+    P2PMessageReceipt(ReceiptContents),
 }
 
-pub struct SignalTypes;
-impl SignalTypes {
-    pub const P2P_TYPING_SIGNAL: &'static str = "P2P_TYPING_SIGNAL";
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct ReadReceiptInput {
+    receipt: P2PMessageReceipt,
+    sender: AgentPubKey,
 }
+
+entry_def!(P2PMessageReceipt EntryDef {
+    id: "p2pmessagereceipt".into(),
+    visibility: EntryVisibility::Private,
+    crdt_type: CrdtType,
+    required_validations: RequiredValidations::default(),
+    required_validation_type: RequiredValidationType::Element
+});
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct ReceiptContents(HashMap<String, P2PMessageReceipt>);
