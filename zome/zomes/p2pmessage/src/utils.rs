@@ -27,7 +27,7 @@ pub fn try_from_entry<T: TryFrom<SerializedBytes>>(entry: Entry) -> ExternResult
     }
 }
 
-pub fn address_deduper(agent_vec: Vec<AgentPubKey>) -> Vec<AgentPubKey> {
+pub fn _address_deduper(agent_vec: Vec<AgentPubKey>) -> Vec<AgentPubKey> {
     let mut ids = agent_vec;
     ids.sort();
     ids.dedup_by(|a, b| a == b);
