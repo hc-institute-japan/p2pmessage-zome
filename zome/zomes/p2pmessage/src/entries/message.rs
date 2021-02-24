@@ -4,6 +4,7 @@ pub mod handlers;
 use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct P2PMessage {
     author: AgentPubKey,
     receiver: AgentPubKey,
@@ -103,6 +104,7 @@ pub struct MessageInput {
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+#[serde(tag = "type", rename_all = "camelCase")]
 pub enum PayloadInput {
     Text {
         payload: String,
@@ -128,6 +130,7 @@ pub struct FileMetadata {
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+#[serde(tag = "type", rename_all = "camelCase")]
 pub enum FileType {
     Image { thumbnail: SerializedBytes },
     Video { thumbnail: SerializedBytes },
@@ -135,6 +138,7 @@ pub enum FileType {
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+#[serde(tag = "type")]
 pub enum Payload {
     Text {
         payload: String,
@@ -146,6 +150,7 @@ pub enum Payload {
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+#[serde(tag = "status", rename_all = "camelCase")]
 pub enum Status {
     Sent,
     Delivered { timestamp: Timestamp },

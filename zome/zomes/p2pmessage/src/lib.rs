@@ -1,7 +1,7 @@
 use hdk3::prelude::*;
 mod entries;
 mod utils;
-use entries::message;
+use entries::message::{self};
 
 use message::*;
 
@@ -80,6 +80,10 @@ fn recv_remote_signal(signal: SerializedBytes) -> ExternResult<()> {
     Ok(())
 }
 
+#[hdk_extern]
+fn receive_read_receipt(receipt: P2PMessageReceipt) -> ExternResult<ReceiptContents> {
+    message::handlers::receive_read_receipt(receipt)
+}
 
 #[hdk_extern]
 fn read_message(read_receipt_input: ReadReceiptInput) -> ExternResult<ReceiptContents> {

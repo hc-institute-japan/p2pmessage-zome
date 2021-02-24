@@ -8,7 +8,11 @@ const handleTypeSignal = (signal: AppSignal) => {
   return () => extractPayloadFromSignal(signal).isTyping;
 };
 
-const signals: FunctionType = (orchestrator, conductorConfig, installation) => {
+const signals: FunctionType = async (
+  orchestrator,
+  conductorConfig,
+  installation
+) => {
   orchestrator.registerScenario("Typing signal test", async (s, t) => {
     const [alice, bob] = await s.players([conductorConfig, conductorConfig]);
 

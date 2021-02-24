@@ -28,8 +28,6 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
     receive_functions.insert((zome_info()?.zome_name, "receive_message".into()));
     let mut notify_functions: GrantedFunctions = HashSet::new();
     notify_functions.insert((zome_info()?.zome_name, "notify_delivery".into()));
-    let mut emit_functions: GrantedFunctions = HashSet::new();
-    emit_functions.insert((zome_info()?.zome_name, "emit_typing".into()));
 
     create_cap_grant(CapGrantEntry {
         tag: "receive".into(),
@@ -71,6 +69,15 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
     );
 
     create_cap_grant(cap_grant_entry)?;
+
+    let mut receive_receipt_function: GrantedFunctions = HashSet::new();
+    receive_receipt_function.insert((zome_info()?.zome_name, "receive_read_receipt".into()));
+
+    create_cap_grant(CapGrantEntry {
+        tag: "receipt".into(),
+        access: ().into(),
+        functions: receive_receipt_function,
+    })?;
 
     Ok(InitCallbackResult::Pass)
 }
@@ -389,10 +396,6 @@ fn get_receipts(
     Ok(())
 }
 
-// pub(crate) fn read_message(_receipt: P2PMessageReceipt) -> ExternResult<()> {
-//     Ok(())
-// }
-
 fn insert_message(
     agent_messages: &mut HashMap<String, Vec<String>>,
     message_contents: &mut HashMap<String, MessageBundle>,
@@ -493,20 +496,18 @@ pub(crate) fn read_message(read_receipt_input: ReadReceiptInput) -> ExternResult
     )
 }
 
-#[cfg(test)]
 pub(crate) fn receive_read_receipt(receipt: P2PMessageReceipt) -> ExternResult<ReceiptContents> {
     let receipts = commit_receipts(vec![receipt])?;
     emit_signal(Signal::P2PMessageReceipt(receipts.clone()))?;
     Ok(receipts)
 }
 
-#[cfg(test)]
-pub(crate) fn commit_receipts(receipts: Vec<P2PMessageReceipt>) -> ExternResult<ReceiptContents> {
+fn commit_receipts(receipts: Vec<P2PMessageReceipt>) -> ExternResult<ReceiptContents> {
     // Query all the receipts
     let query_result = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
-                EntryDefIndex::from(2),
+                EntryDefIndex::from(1),
                 zome_info()?.zome_id,
                 EntryVisibility::Private,
             )))
@@ -531,19 +532,19 @@ pub(crate) fn commit_receipts(receipts: Vec<P2PMessageReceipt>) -> ExternResult<
 
     // Iterate through the receipts in the argument and push them into the hash map
     receipts.clone().into_iter().for_each(|receipt| {
-        if let Ok(entry_hash) = hash_entry(&receipt) {
-            receipts_hash_map.insert(format!("{:?}", entry_hash), receipt);
-        }
+        receipts_hash_map.insert(format!("{:?}", receipt.id), receipt);
     });
 
     // Iterate through the receipts to check if the receipt has been committed, remove them from the hash map if it is
     // used for loops instead of for_each because you cant break iterators
     for i in 0..all_receipts.len() {
         let receipt = all_receipts[i].clone();
-        let hash = format!("{:?}", hash_entry(&receipt)?);
+        let hash = format!("{:?}", receipt.id);
 
         if receipts_hash_map.contains_key(&hash) {
-            receipts_hash_map.remove(&hash);
+            if let Status::Read { timestamp: _ } = receipt.status {
+                receipts_hash_map.remove(&hash);
+            }
         }
 
         if receipts_hash_map.is_empty() {
