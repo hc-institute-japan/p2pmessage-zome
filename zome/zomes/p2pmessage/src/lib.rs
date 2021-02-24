@@ -8,7 +8,7 @@ use message::*;
 entry_defs![
     P2PMessage::entry_def(),
     P2PMessageAsync::entry_def(),
-    P2PMessageReceipt::entry_def()
+    P2PMessage::entry_def()
 ];
 
 pub fn error<T>(reason: &str) -> ExternResult<T> {
@@ -53,12 +53,16 @@ fn get_all_messages(_: ()) -> ExternResult<MessageListWrapper> {
 }
 
 #[hdk_extern]
-fn get_all_messages_from_addresses(agent_list: AgentListWrapper) -> ExternResult<MessagesByAgentListWrapper> {
+fn get_all_messages_from_addresses(
+    agent_list: AgentListWrapper,
+) -> ExternResult<MessagesByAgentListWrapper> {
     message::handlers::get_all_messages_from_addresses(agent_list)
 }
 
 #[hdk_extern]
-fn get_batch_messages_on_conversation(message_range: MessageRange) -> ExternResult<MessageListWrapper> {
+fn get_batch_messages_on_conversation(
+    message_range: MessageRange,
+) -> ExternResult<MessageListWrapper> {
     message::handlers::get_batch_messages_on_conversation(message_range)
 }
 
@@ -72,9 +76,13 @@ fn typing(typing_info: P2PTypingDetailIO) -> ExternResult<()> {
     message::handlers::typing(typing_info)
 }
 
-
 #[hdk_extern]
 fn recv_remote_signal(signal: SerializedBytes) -> ExternResult<()> {
     emit_signal(&signal)?;
     Ok(())
+}
+
+#[hdk_extern]
+fn read_message(read_receipt_input: ReadReceiptInput) -> ExternResult<ReceiptContents> {
+    message::handlers::read_message(read_receipt_input)
 }

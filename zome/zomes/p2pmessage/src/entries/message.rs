@@ -9,7 +9,7 @@ pub enum Status {
     Sent,      // the message has been transmitted to the network
     Delivered, // the message has successfully traversed the network and reached the receiver
     Read,      // the message has been opened by the receiver
-    Failed
+    Failed,
 }
 
 #[hdk_entry(id = "p2pmessage", visibility = "private")]
@@ -20,7 +20,7 @@ pub struct P2PMessage {
     time_sent: Timestamp,
     time_received: Option<Timestamp>,
     status: Status,
-    reply_to: Option<EntryHash>
+    reply_to: Option<EntryHash>,
 }
 
 impl P2PMessage {
@@ -32,7 +32,7 @@ impl P2PMessage {
             time_sent: message_output.time_sent,
             time_received: message_output.time_received,
             status: message_output.status,
-            reply_to: message_output.reply_to
+            reply_to: message_output.reply_to,
         }
     }
 }
@@ -45,7 +45,7 @@ pub struct P2PMessageAsync {
     time_sent: Timestamp,
     time_received: Option<Timestamp>,
     status: Status,
-    reply_to: Option<EntryHash>
+    reply_to: Option<EntryHash>,
 }
 
 impl P2PMessageAsync {
@@ -57,7 +57,7 @@ impl P2PMessageAsync {
             time_sent: message_parameter.time_sent,
             time_received: message_parameter.time_received,
             status: message_parameter.status,
-            reply_to: message_parameter.reply_to
+            reply_to: message_parameter.reply_to,
         }
     }
 }
@@ -70,7 +70,7 @@ pub struct MessageParameter {
     time_sent: Timestamp,
     time_received: Option<Timestamp>,
     status: Status,
-    reply_to: Option<EntryHash>
+    reply_to: Option<EntryHash>,
 }
 
 impl MessageParameter {
@@ -82,7 +82,7 @@ impl MessageParameter {
             time_sent: message_entry.time_sent,
             time_received: message_entry.time_received,
             status: message_entry.status,
-            reply_to: message_entry.reply_to
+            reply_to: message_entry.reply_to,
         }
     }
 
@@ -94,7 +94,7 @@ impl MessageParameter {
             time_sent: message_entry.time_sent,
             time_received: message_entry.time_received,
             status: message_entry.status,
-            reply_to: message_entry.reply_to
+            reply_to: message_entry.reply_to,
         }
     }
 
@@ -106,7 +106,7 @@ impl MessageParameter {
             time_sent: message_entry.time_sent.clone(),
             time_received: message_entry.time_received.clone(),
             status: message_entry.status.clone(),
-            reply_to: message_entry.reply_to.clone()
+            reply_to: message_entry.reply_to.clone(),
         }
     }
 }
@@ -115,19 +115,19 @@ impl MessageParameter {
 pub struct MessageInput {
     receiver: AgentPubKey,
     payload: String,
-    reply_to: Option<MessageParameter>
+    reply_to: Option<MessageParameter>,
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct MessagesByAgent {
     author: AgentPubKey,
-    messages: Vec<MessageParameter>
+    messages: Vec<MessageParameter>,
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct MessageRange {
     author: AgentPubKey,
-    last_message_timestamp_seconds: i64
+    last_message_timestamp_seconds: i64,
 }
 
 #[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes)]
@@ -146,41 +146,46 @@ pub struct MessagesByAgentListWrapper(Vec<MessagesByAgent>);
 pub struct NotifyAsyncInput(MessageParameter, Element);
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct P2PTypingDetailIO {
     agent: AgentPubKey,
-    is_typing: bool
-}
-
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub struct TypingSignal {
-    kind: String,
-    agent: AgentPubKey,
-    is_typing: bool
+    is_typing: bool,
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct MessageSignal {
     kind: String,
-    message: MessageParameter
+    message: MessageParameter,
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+#[serde(tag = "type")]
 pub enum Signal {
     Message(MessageSignal),
-    P2PTypingDetailSignal(TypingSignal)
+    P2PTypingDetailSignal(P2PTypingDetailIO),
+    P2PMessageReceipt(ReceiptContents),
 }
 
-
-pub struct SignalTypes;
-impl SignalTypes {
-    pub const P2P_TYPING_SIGNAL: &'static str = "P2P_TYPING_SIGNAL";
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct ReadReceiptInput {
+    receipt: P2PMessageReceipt,
+    sender: AgentPubKey,
 }
 
-//EntryHash of receipt
-pub struct ReceiptContents(HashMap<EntryHash , P2PMessageReceipt>);
-#[hdk_entry(id="p2pmessagereceipt", visibility="private")]
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct P2PMessageReceipt {
     id: Vec<EntryHash>,
     time_received: Option<Timestamp>,
-    status: Status
+    status: Status,
 }
+
+entry_def!(P2PMessageReceipt EntryDef {
+    id: "p2pmessagereceipt".into(),
+    visibility: EntryVisibility::Private,
+    crdt_type: CrdtType,
+    required_validations: RequiredValidations::default(),
+    required_validation_type: RequiredValidationType::Element
+});
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct ReceiptContents(HashMap<String, P2PMessageReceipt>);

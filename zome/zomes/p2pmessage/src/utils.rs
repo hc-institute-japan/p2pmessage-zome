@@ -1,9 +1,8 @@
-use hdk3::prelude::{
-    GetOptions,
-    *,
-};
+use hdk3::prelude::{GetOptions, *};
 
-pub fn _try_get_and_convert<T: TryFrom<SerializedBytes>>(entry_hash: EntryHash) -> ExternResult<(EntryHash, T)> {
+pub fn _try_get_and_convert<T: TryFrom<SerializedBytes>>(
+    entry_hash: EntryHash,
+) -> ExternResult<(EntryHash, T)> {
     let option = GetOptions::latest();
     match get(entry_hash.clone(), option)? {
         Some(element) => Ok((entry_hash, try_from_element(element)?)),
@@ -31,6 +30,6 @@ pub fn try_from_entry<T: TryFrom<SerializedBytes>>(entry: Entry) -> ExternResult
 pub fn address_deduper(agent_vec: Vec<AgentPubKey>) -> Vec<AgentPubKey> {
     let mut ids = agent_vec;
     ids.sort();
-    ids.dedup_by(|a, b| a==b);
-    return ids
+    ids.dedup_by(|a, b| a == b);
+    return ids;
 }
