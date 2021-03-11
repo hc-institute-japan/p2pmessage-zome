@@ -52,17 +52,17 @@ const messaging: FunctionType = async (
     const agent_pubkey_carly = carly_happ.agent;
 
     var agent_pubkey_alice_string =
-      "AgentPubKey(u" + agent_pubkey_alice.toString("base64") + ")";
+      "u" + agent_pubkey_alice.toString("base64");
     agent_pubkey_alice_string = agent_pubkey_alice_string.replace(/\//g, "_");
     agent_pubkey_alice_string = agent_pubkey_alice_string.replace(/\+/g, "-");
 
     var agent_pubkey_bobby_string =
-      "AgentPubKey(u" + agent_pubkey_bobby.toString("base64") + ")";
+      "u" + agent_pubkey_bobby.toString("base64");
     agent_pubkey_bobby_string = agent_pubkey_bobby_string.replace(/\//g, "_");
     agent_pubkey_bobby_string = agent_pubkey_bobby_string.replace(/\+/g, "-");
 
     var agent_pubkey_carly_string =
-      "AgentPubKey(u" + agent_pubkey_carly.toString("base64") + ")";
+      "u" + agent_pubkey_carly.toString("base64");
     agent_pubkey_carly_string = agent_pubkey_carly_string.replace(/\//g, "_");
     agent_pubkey_carly_string = agent_pubkey_carly_string.replace(/\+/g, "-");
 

@@ -159,7 +159,8 @@ pub(crate) fn get_latest_messages(batch_size: BatchSize) -> ExternResult<P2PMess
         let message_entry: P2PMessage = try_from_element(message)?;
         let message_hash = hash_entry(&message_entry)?;
         if message_entry.author.clone() == agent_info()?.agent_latest_pubkey {
-            match agent_messages.get(&format!("{:?}", message_entry.receiver.clone())) {
+            // match agent_messages.get(&format!("{:?}", message_entry.receiver.clone())) {
+            match agent_messages.get(&message_entry.receiver.clone().to_string()) {
                 Some(messages) if messages.len() >= batch_size.0.into() => continue,
                 Some(messages) if messages.len() < batch_size.0.into() => {
                     insert_message(
@@ -182,7 +183,8 @@ pub(crate) fn get_latest_messages(batch_size: BatchSize) -> ExternResult<P2PMess
             }
         } else {
             // add this message to author's array in hashmap
-            match agent_messages.get(&format!("{:?}", message_entry.author.clone())) {
+            // match agent_messages.get(&format!("{:?}", message_entry.author.clone())) {
+            match agent_messages.get(&message_entry.author.clone().to_string()) {
                 Some(messages) if messages.len() >= batch_size.0.into() => continue,
                 Some(messages) if messages.len() < batch_size.0.into() => {
                     insert_message(
@@ -229,7 +231,8 @@ pub(crate) fn get_next_batch_messages(
     )?;
 
     let mut agent_messages: HashMap<String, Vec<String>> = HashMap::new();
-    agent_messages.insert(format!("{:?}", filter.conversant.clone()), Vec::new());
+    // agent_messages.insert(format!("{:?}", filter.conversant.clone()), Vec::new());
+    agent_messages.insert(filter.conversant.clone().to_string(), Vec::new());
     let mut message_contents: HashMap<String, MessageBundle> = HashMap::new();
     let mut receipt_contents: HashMap<String, P2PMessageReceipt> = HashMap::new();
 
@@ -313,7 +316,7 @@ pub(crate) fn get_messages_by_agent_by_timestamp(
     )?;
 
     let mut agent_messages: HashMap<String, Vec<String>> = HashMap::new();
-    agent_messages.insert(format!("{:?}", filter.conversant.clone()), Vec::new());
+    agent_messages.insert(filter.conversant.clone().to_string(), Vec::new());
     let mut message_contents: HashMap<String, MessageBundle> = HashMap::new();
     let mut receipt_contents: HashMap<String, P2PMessageReceipt> = HashMap::new();
 
@@ -383,12 +386,15 @@ fn get_receipts(
     for receipt in queried_receipts.clone().0.into_iter() {
         let receipt_entry: P2PMessageReceipt = try_from_element(receipt)?;
         let receipt_hash = hash_entry(&receipt_entry)?;
-        if message_contents.contains_key(&format!("{:?}", &receipt_entry.id)) {
-            receipt_contents.insert(format!("{:?}", receipt_hash.clone()), receipt_entry.clone());
+        // if message_contents.contains_key(&format!("{:?}", &receipt_entry.id)) {
+        if message_contents.contains_key(&receipt_entry.id.to_string()) {
+            receipt_contents.insert(receipt_hash.clone().to_string(), receipt_entry.clone());
             if let Some(message_bundle) =
-                message_contents.get_mut(&format!("{:?}", &receipt_entry.id))
+                // message_contents.get_mut(&format!("{:?}", &receipt_entry.id))
+                message_contents.get_mut(&receipt_entry.id.to_string())
             {
-                message_bundle.1.push(format!("{:?}", receipt_hash))
+                // message_bundle.1.push(format!("{:?}", receipt_hash))
+                message_bundle.1.push(receipt_hash.to_string())
             };
         }
     }
@@ -404,20 +410,24 @@ fn insert_message(
     key: AgentPubKey,
 ) -> ExternResult<usize> {
     let mut message_array_length = 0;
-    match agent_messages.get_mut(&format!("{:?}", key)) {
+    // match agent_messages.get_mut(&format!("{:?}", key)) {
+    match agent_messages.get_mut(&key.to_string()) {
         Some(messages) => {
-            messages.push(format!("{:?}", message_hash.clone()));
+            // messages.push(format!("{:?}", message_hash.clone()));
+            messages.push(message_hash.clone().to_string());
             message_array_length = messages.len();
         }
         None => {
             agent_messages.insert(
-                format!("{:?}", key),
-                vec![format!("{:?}", message_hash.clone())],
+                // format!("{:?}", key),
+                key.to_string(),
+                vec![message_hash.clone().to_string()],
             );
         }
     };
     message_contents.insert(
-        format!("{:?}", message_hash),
+        // format!("{:?}", message_hash),
+        message_hash.to_string(),
         MessageBundle(message_entry, Vec::new()),
     );
 
@@ -532,18 +542,20 @@ fn commit_receipts(receipts: Vec<P2PMessageReceipt>) -> ExternResult<ReceiptCont
 
     // Iterate through the receipts in the argument and push them into the hash map
     receipts.clone().into_iter().for_each(|receipt| {
-        receipts_hash_map.insert(format!("{:?}", receipt.id), receipt);
+        // receipts_hash_map.insert(format!("{:?}", receipt.id), receipt);
+        receipts_hash_map.insert(receipt.id.to_string(), receipt);
     });
 
     // Iterate through the receipts to check if the receipt has been committed, remove them from the hash map if it is
     // used for loops instead of for_each because you cant break iterators
     for i in 0..all_receipts.len() {
         let receipt = all_receipts[i].clone();
-        let hash = format!("{:?}", receipt.id);
+        // let hash = format!("{:?}", receipt.id);
+        let hash = receipt.id;
 
-        if receipts_hash_map.contains_key(&hash) {
+        if receipts_hash_map.contains_key(&hash.to_string()) {
             if let Status::Read { timestamp: _ } = receipt.status {
-                receipts_hash_map.remove(&hash);
+                receipts_hash_map.remove(&hash.to_string());
             }
         }
 
