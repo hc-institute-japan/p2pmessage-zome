@@ -1,7 +1,22 @@
 use derive_more::{From, Into};
-use hdk3::prelude::{timestamp::Timestamp, *};
+use hdk::prelude::{timestamp::Timestamp, *};
 pub mod handlers;
 use std::collections::HashMap;
+
+
+
+//this are the files for each method definition 
+pub mod init; 
+pub mod typing;
+pub mod helpers;
+pub mod send_message;
+pub mod read_message;
+pub mod receive_message;
+pub mod receive_read_receipt;
+pub mod get_latest_messages;
+pub mod get_next_batch_messages;
+pub mod get_messages_by_agent_by_timestamp;
+
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -157,41 +172,41 @@ pub enum Status {
     Read { timestamp: Timestamp },
 }
 
-#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes)]
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
 pub struct BooleanWrapper(bool);
 
-#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes)]
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
 pub struct ReceiptHash(EntryHash);
 
-#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes)]
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
 pub struct MessageHash(EntryHash);
 
-#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes)]
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
 pub struct MessageBundle(P2PMessage, Vec<String>);
 
-#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes)]
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
 pub struct MessageAndReceipt(P2PMessage, P2PMessageReceipt);
 
-#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes)]
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
 pub struct AgentMessages(HashMap<String, Vec<String>>);
 
-#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes)]
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
 pub struct MessageContents(HashMap<String, MessageBundle>);
 
-#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes)]
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
 pub struct P2PMessageHashTables(AgentMessages, MessageContents, ReceiptContents);
 
-#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes)]
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
 pub struct P2PMessageFilterAgentTimestamp {
     conversant: AgentPubKey,
     date: Timestamp,
     payload_type: String,
 }
 
-#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes)]
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
 pub struct BatchSize(u8);
 
-#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes)]
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
 pub struct P2PMessageFilterBatch {
     conversant: AgentPubKey,
     batch_size: u8,

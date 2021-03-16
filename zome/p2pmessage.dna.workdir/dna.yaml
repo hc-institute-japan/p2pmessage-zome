@@ -1,0 +1,8 @@
+---
+manifest_version: "1"
+name: p2pmessage
+uuid: 00000000-0000-0000-0000-000000000000
+properties: ~
+zomes: 
+  - name: p2pmessage
+    bundled: ../target/wasm32-unknown-unknown/release/p2pmessage.wasm
