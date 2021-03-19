@@ -20,7 +20,7 @@ use super::{
 };
 
 
-pub fn handler( filter: P2PMessageFilterAgentTimestamp ) -> ExternResult<P2PMessageHashTables> {
+pub fn get_messages_by_agent_by_timestamp_handler( filter: P2PMessageFilterAgentTimestamp ) -> ExternResult<P2PMessageHashTables> {
     
     let queried_messages:Vec<Element> = query(
         QueryFilter::new()

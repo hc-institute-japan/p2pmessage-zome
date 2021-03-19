@@ -17,7 +17,7 @@ use super::{
     ReceiptContents,
 };
 
-pub fn handler(filter: P2PMessageFilterBatch) -> ExternResult<P2PMessageHashTables> {
+pub fn get_next_batch_messages_handler(filter: P2PMessageFilterBatch) -> ExternResult<P2PMessageHashTables> {
     let queried_messages:Vec<Element> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(

@@ -1,58 +1,46 @@
 use hdk::prelude::*;
 
-pub fn handler() -> ExternResult<InitCallbackResult> {
-    let mut receive_functions: GrantedFunctions = HashSet::new();
-    receive_functions.insert((zome_info()?.zome_name, "receive_message".into()));
-    let mut notify_functions: GrantedFunctions = HashSet::new();
-    notify_functions.insert((zome_info()?.zome_name, "notify_delivery".into()));
+/*
+ * ZOME INIT FUNCTION TO SET UNRESTRICTED ACCESS
+ */
 
-    create_cap_grant(CapGrantEntry {
-        tag: "receive".into(),
-        access: ().into(),
-        functions: receive_functions,
-    })?;
-
-    let mut emit_functions: GrantedFunctions = HashSet::new();
-    emit_functions.insert((zome_info()?.zome_name, "is_typing".into()));
-
-    create_cap_grant(CapGrantEntry {
-        tag: "notify".into(),
-        access: ().into(),
-        functions: notify_functions,
-    })?;
-
-    create_cap_grant(CapGrantEntry {
-        tag: "".into(),
-        access: ().into(),
-        functions: emit_functions,
-    })?;
-
-    //
-    let mut fuctions = HashSet::new();
-
-    // TODO: name may be changed to better suit the context of cap grant.s
-    let tag: String = "create_group_cap_grant".into();
-    let access: CapAccess = CapAccess::Unrestricted;
+pub fn init_handler() -> ExternResult<InitCallbackResult> {
 
     let zome_name: ZomeName = zome_info()?.zome_name;
-    let function_name: FunctionName = FunctionName("recv_remote_signal".into());
 
-    fuctions.insert((zome_name, function_name));
+    let mut receive_message_function: GrantedFunctions = HashSet::new();
+    receive_message_function.insert((zome_name.clone(), "receive_message".into()));
 
-    let cap_grant_entry: CapGrantEntry = CapGrantEntry::new(
-        tag,    // A string by which to later query for saved grants.
-        access, // Unrestricted access means any external agent can call the extern
-        fuctions,
-    );
+    let mut typing_function: GrantedFunctions = HashSet::new();
+    typing_function.insert((zome_name.clone(), "typing".into()));
 
-    create_cap_grant(cap_grant_entry)?;
+    let mut recv_remote_signal_function:GrantedFunctions = HashSet::new();
+    recv_remote_signal_function.insert((zome_name.clone(), "recv_remote:signal".into()));
 
-    let mut receive_receipt_function: GrantedFunctions = HashSet::new();
-    receive_receipt_function.insert((zome_info()?.zome_name, "receive_read_receipt".into()));
+    let mut receive_receipt_function:GrantedFunctions  = HashSet::new();
+    receive_receipt_function.insert((zome_name, "receive_read_receipt".into()));
 
     create_cap_grant(CapGrantEntry {
-        tag: "receipt".into(),
-        access: ().into(),
+        tag: "receive_message".into(),
+        access: CapAccess::Unrestricted,
+        functions: receive_message_function,
+    })?;
+    
+    create_cap_grant(CapGrantEntry {
+        tag: "typing".into(),
+        access: CapAccess::Unrestricted,
+        functions: typing_function,
+    })?;
+
+    create_cap_grant(CapGrantEntry {
+        tag: "recv_remote_signal".into(),
+        access: CapAccess::Unrestricted,
+        functions: recv_remote_signal_function,
+    })?;
+
+    create_cap_grant(CapGrantEntry {
+        tag: "receive_read_receipt".into(),
+        access: CapAccess::Unrestricted,
         functions: receive_receipt_function,
     })?;
 

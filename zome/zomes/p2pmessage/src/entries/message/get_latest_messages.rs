@@ -17,7 +17,7 @@ use super::{
 
 };
 
-pub fn handler(batch_size: BatchSize) -> ExternResult<P2PMessageHashTables> {
+pub fn get_latest_messages_handler(batch_size: BatchSize) -> ExternResult<P2PMessageHashTables> {
     let queried_messages: Vec<Element> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(

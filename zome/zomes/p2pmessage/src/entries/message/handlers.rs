@@ -10,9 +10,7 @@
  * TO SET SELECTED ACCESS TO ZOME FUNCTIONS
  */
 
-/*
- * ZOME INIT FUNCTION TO SET UNRESTRICTED ACCESS
- */
+
 
 
 // fn is_user_blocked(agent_pubkey: AgentPubKey) -> ExternResult<bool> {

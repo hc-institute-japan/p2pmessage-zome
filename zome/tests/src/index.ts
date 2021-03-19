@@ -1,15 +1,13 @@
 import {
   Config,
   InstallAgentsHapps,
-  Orchestrator,
-  Player,
   TransportConfigType,
 } from "@holochain/tryorama";
-import { Base64 } from "js-base64";
 import path from "path";
 import messaging from "./messaging";
 import receipts from "./receipts";
-import signals from "./signals";
+import signals from "./signals"
+import { Installables } from "./types";
 
 // PROXY
 // ct network = {
@@ -24,16 +22,6 @@ import signals from "./signals";
 //   bootstrap_service: "https://bootstrap.holo.host"
 // };
 
-// QUIC
-const network = {
-  transport_pool: [
-    {
-      type: TransportConfigType.Quic,
-    },
-  ],
-  bootstrap_service: "https://bootstrap.holo.host",
-};
-
 // MEM
 // const network = {
 //   transport_pool: [{
@@ -41,22 +29,34 @@ const network = {
 //   }]
 // }
 
-const conductorConfig = Config.gen({ network });
 
-const p2pmessagedna = path.join(__dirname, "../../p2pmessage.dna.gz");
-const installation: InstallAgentsHapps = [[[p2pmessagedna]]];
+// QUIC
+const network = {
+  transport_pool: [
+    {
+      type: TransportConfigType.Quic,
+    },
+  ],
+  bootstrap_service: "https://bootstrap-staging.holo.host/",
+};
 
-const orchestrator = new Orchestrator();
 
-export function serializeHash(hash) {
-  return `u${Base64.fromUint8Array(hash, true)}`;
-}
+const conductorConfig = Config.gen({network});
 
-messaging(orchestrator, conductorConfig, installation);
-receipts(orchestrator, conductorConfig, installation);
-signals(orchestrator, conductorConfig, installation);
+const p2pmessagedna = path.join(__dirname, "../../p2pmessage.dna");
+const installAgent: InstallAgentsHapps = [[[p2pmessagedna]]];
 
-orchestrator.run();
+const installables: Installables = {
+  one: installAgent,
+};
+
+messaging(conductorConfig, installables);
+receipts(conductorConfig, installables);
+signals(conductorConfig, installables);
+//--------------------------------------------
+
+
+
 
 // orchestrator.registerScenario("p2pmessage async", async (s, t) => {
 //   const [alice, bobby] = await s.players([conductorConfig, conductorConfig]);

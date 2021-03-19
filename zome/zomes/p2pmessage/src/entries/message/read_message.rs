@@ -6,7 +6,7 @@ use super::{
 
 };
 
-pub fn handler(read_receipt_input: ReadReceiptInput) -> ExternResult<ReceiptContents> {
+pub fn read_message_handler(read_receipt_input: ReadReceiptInput) -> ExternResult<ReceiptContents> {
 
     create_entry(&read_receipt_input.receipt)?;
 

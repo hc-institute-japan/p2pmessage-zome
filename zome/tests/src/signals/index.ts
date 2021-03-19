@@ -1,5 +1,6 @@
 import { AppSignal } from "@holochain/conductor-api";
-import { FunctionType } from "../types";
+import { Orchestrator, Player } from "@holochain/tryorama";
+import { Installables } from "../types";
 import { extractPayloadFromSignal, delay } from "../utils";
 
 let signalVal = [true, true, false];
@@ -8,42 +9,58 @@ const handleTypeSignal = (signal: AppSignal) => {
   return () => extractPayloadFromSignal(signal).isTyping;
 };
 
-const signals: FunctionType = async (
-  orchestrator,
-  conductorConfig,
-  installation
-) => {
+function typing(typing_info){
+  return (conductor)=>
+    conductor.call("p2pmessage","typing",typing_info);
+}
+
+
+const signals = async ( conductorConfig, installation:Installables ) => {
+
+  let orchestrator = new Orchestrator();
+
   orchestrator.registerScenario("Typing signal test", async (s, t) => {
-    const [alice, bob] = await s.players([conductorConfig, conductorConfig]);
+
+    const [alice, bob]:Player[] = await s.players([conductorConfig, conductorConfig]);
+
+    const [[alice_happ]] = await alice.installAgentsHapps(installation.one);
+    const [[bob_happ]] = await bob.installAgentsHapps(installation.one);
+
+    const alice_cell = alice_happ.cells[0];
+    const agent_pubkey_bob = bob_happ.agent;
 
     bob.setSignalHandler((signal) => {
       t.deepEqual(handleTypeSignal(signal)(), signalVal.shift());
     });
 
-    const [[alice_happ]] = await alice.installAgentsHapps(installation);
-    const [[bob_happ]] = await bob.installAgentsHapps(installation);
-
-    const alice_cell = alice_happ.cells[0];
-
-    const agent_pubkey_bob = bob_happ.agent;
-
-    await alice_cell.call("p2pmessage", "typing", {
+    await typing({
       agent: agent_pubkey_bob,
       isTyping: true,
-    });
-    await delay();
+    })(alice_cell);
 
-    await alice_cell.call("p2pmessage", "typing", {
-      agent: agent_pubkey_bob,
-      isTyping: true,
-    });
-    await delay();
-    await alice_cell.call("p2pmessage", "typing", {
+    await delay(1000);
+
+
+    // this statements are repeat it 
+
+    // await typing({
+    //   agent: agent_pubkey_bob,
+    //   isTyping: true,
+    // })(alice_cell);
+
+    // await delay(1000);
+
+    typing({
       agent: agent_pubkey_bob,
       isTyping: false,
-    });
-    await delay();
+    })(alice_cell);
+
+    await delay(1000);
+
   });
+
+  orchestrator.run();
+
 };
 
 export default signals;

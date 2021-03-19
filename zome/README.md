@@ -12,17 +12,19 @@ To change the code, you can work either opening VSCode inside the root folder of
 
 ## Building
 
+for building you have to excute the following commands in order, the firts time will take a long time downloading and compiling the holochain version in your machine then the process will be faster 
 ```bash
+nix-shell 
 CARGO_TARGET=target cargo build --release --target wasm32-unknown-unknown
-dna-util -c p2pmessage.dna.workdir/
-```
+hc dna pack p2pmessage.dna.workdir/
+hc app pack happ/
 
 ## Testing
 
 After having built the DNA:
 
 ```bash
-cd test
+cd tests
 npm install
 npm test
 ```
@@ -32,7 +34,9 @@ npm test
 After having built the DNA:
 
 ```bash
-holochain-run-dna p2pmessage.dna.gz
+   hc sandbox generate happ/ --run=8888
+   or the smaller version:
+   hc s generate happ/ -r=8888 
 ```
 
 Now `holochain` will be listening at port `8888`;

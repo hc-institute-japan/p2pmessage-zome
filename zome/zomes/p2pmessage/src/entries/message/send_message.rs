@@ -12,7 +12,7 @@ use super::{
 
 };
 
-pub fn handler(message_input: MessageInput) -> ExternResult<MessageAndReceipt> {
+pub fn send_message_handler(message_input: MessageInput) -> ExternResult<MessageAndReceipt> { //MessageAndReceipt
     
     // TODO: check if receiver is blocked
 
@@ -33,6 +33,7 @@ pub fn handler(message_input: MessageInput) -> ExternResult<MessageAndReceipt> {
         &receive_input,
     )?;
 
+
     match receive_call_result {
 
         ZomeCallResponse::Ok(extern_io)=>{
@@ -48,7 +49,7 @@ pub fn handler(message_input: MessageInput) -> ExternResult<MessageAndReceipt> {
             return Ok(MessageAndReceipt(message, receipt));
         },
         ZomeCallResponse::Unauthorized(_,_,_,_) =>{ return crate::err("TODO: 000:", "This case shouldn't happen because of unrestricted access to receive message"); },
-        ZomeCallResponse::NetworkError(_) =>{ return crate::err("TODO: 000", "Unknown other error"); },
+        ZomeCallResponse::NetworkError(error) =>{ return crate::err("TODO: 000", error.as_str() ); },
 
     }
 }

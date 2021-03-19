@@ -1,9 +1,8 @@
 use derive_more::{From, Into};
 use hdk::prelude::{timestamp::Timestamp, *};
-pub mod handlers;
 use std::collections::HashMap;
 
-
+//pub mod handlers; MANUEL:this file contains a method never used maybe we want to erase the file 
 
 //this are the files for each method definition 
 pub mod init; 
