@@ -1,5 +1,6 @@
 import {
   Config,
+  NetworkType,
   InstallAgentsHapps,
   TransportConfigType,
 } from "@holochain/tryorama";
@@ -32,14 +33,10 @@ import { Installables } from "./types";
 
 // QUIC
 const network = {
-  transport_pool: [
-    {
-      type: TransportConfigType.Quic,
-    },
-  ],
+  network_type: NetworkType.QuicBootstrap,
+  transport_pool: [{type: TransportConfigType.Quic}],
   bootstrap_service: "https://bootstrap-staging.holo.host/",
 };
-
 
 const conductorConfig = Config.gen({network});
 
