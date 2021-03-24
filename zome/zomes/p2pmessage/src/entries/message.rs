@@ -170,7 +170,7 @@ pub struct MessageHash(EntryHash);
 pub struct MessageBundle(P2PMessage, Vec<String>);
 
 #[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes)]
-pub struct MessageAndReceipt(P2PMessage, P2PMessageReceipt);
+pub struct MessageAndReceipt(P2PMessage, (EntryHash, P2PMessageReceipt));
 
 #[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes)]
 pub struct AgentMessages(HashMap<String, Vec<String>>);

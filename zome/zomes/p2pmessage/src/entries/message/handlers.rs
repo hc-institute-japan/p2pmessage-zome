@@ -150,7 +150,7 @@ pub(crate) fn send_message(message_input: MessageInput) -> ExternResult<MessageA
             create_entry(&receipt)?;
 
             // TODO: CREATE AND RETURN ELEMENT HERE
-            Ok(MessageAndReceipt(message, receipt))
+            Ok(MessageAndReceipt(message, (hash_entry(&receipt)?, receipt)))
         }
         Err(kind) => {
             match kind {
