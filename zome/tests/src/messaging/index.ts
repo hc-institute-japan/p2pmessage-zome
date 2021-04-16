@@ -72,15 +72,18 @@ const messaging: FunctionType = async (
 
     const message_1 = {
       receiver: agent_pubkey_bobby,
-      payload: { type: "text", payload: "Hello, Bobby." },
+      payload: { 
+        type: "TEXT", 
+        payload: { payload: "Hello, Bobby" } 
+      },
       replyTo: null,
     };
 
     const message_2 = {
       receiver: agent_pubkey_bobby,
       payload: {
-        type: "text",
-        payload: "I was wondering if you were free today.",
+        type: "TEXT",
+        payload: { payload: "I was wondering if you were free today." }
       },
       replyTo: null,
     };
@@ -88,15 +91,18 @@ const messaging: FunctionType = async (
     const message_3 = {
       receiver: agent_pubkey_bobby,
       payload: {
-        type: "text",
-        payload: "Would you like to go out for coffee?",
+        type: "TEXT",
+        payload: { payload: "Would you like to go out for coffee?" }
       },
       replyTo: null,
     };
 
     const message_4 = {
       receiver: agent_pubkey_alice,
-      payload: { type: "text", payload: "Hi, Alice!" },
+      payload: { 
+        type: "TEXT", 
+        payload: { payload: "Hi, Alice!" } 
+      },
       replyTo: null,
     };
 
@@ -104,16 +110,18 @@ const messaging: FunctionType = async (
 
     const message_6 = {
       receiver: agent_pubkey_bobby,
-      payload: { type: "text", payload: "Hi, Bobby!" },
+      payload: { 
+        type: "TEXT", 
+        payload: { payload: "Hi, Bobby!" }
+      },
       replyTo: null,
     };
 
     const message_7 = {
       receiver: agent_pubkey_bobby,
       payload: {
-        type: "text",
-        payload:
-          "I have an extra ticket to a movie later. Would you want to come with me?",
+        type: "TEXT",
+        payload: { payload: "I have an extra ticket to a movie later. Would you want to come with me?" }
       },
       replyTo: null,
     };
@@ -121,16 +129,18 @@ const messaging: FunctionType = async (
     const message_8 = {
       receiver: agent_pubkey_carly,
       payload: {
-        type: "text",
-        payload:
-          "Hey, Carly. I'm sorry but I already made plans. maybe some other time?",
+        type: "TEXT",
+        payload: { payload: "Hey, Carly. I'm sorry but I already made plans. maybe some other time?" }
       },
       replyTo: null,
     };
 
     const message_9 = {
       receiver: agent_pubkey_bobby,
-      payload: { type: "text", payload: "Great! I'll see you later!" },
+      payload: { 
+        type: "TEXT", 
+        payload: { payload: "Great! I'll see you later!" }
+      },
       replyTo: null,
     };
 
@@ -145,7 +155,7 @@ const messaging: FunctionType = async (
     console.log(send_alice_1);
     t.deepEqual(send_alice_1[0].author, agent_pubkey_alice);
     t.deepEqual(send_alice_1[0].receiver, agent_pubkey_bobby);
-    t.deepEqual(send_alice_1[0].payload.payload, "Hello, Bobby.");
+    t.deepEqual(send_alice_1[0].payload.payload.payload, "Hello, Bobby" );
 
     const send_alice_2 = await alice_cell.call(
       "p2pmessage",
@@ -157,7 +167,7 @@ const messaging: FunctionType = async (
     t.deepEqual(send_alice_2[0].author, agent_pubkey_alice);
     t.deepEqual(send_alice_2[0].receiver, agent_pubkey_bobby);
     t.deepEqual(
-      send_alice_2[0].payload.payload,
+      send_alice_2[0].payload.payload.payload,
       "I was wondering if you were free today."
     );
 
@@ -171,7 +181,7 @@ const messaging: FunctionType = async (
     t.deepEqual(send_alice_3[0].author, agent_pubkey_alice);
     t.deepEqual(send_alice_3[0].receiver, agent_pubkey_bobby);
     t.deepEqual(
-      send_alice_3[0].payload.payload,
+      send_alice_3[0].payload.payload.payload,
       "Would you like to go out for coffee?"
     );
 
@@ -186,15 +196,15 @@ const messaging: FunctionType = async (
     console.log(send_bobby_1);
     t.deepEqual(send_bobby_1[0].author, agent_pubkey_bobby);
     t.deepEqual(send_bobby_1[0].receiver, agent_pubkey_alice);
-    t.deepEqual(send_bobby_1[0].payload.payload, "Hi, Alice!");
+    t.deepEqual(send_bobby_1[0].payload.payload.payload, "Hi, Alice!");
 
     console.log(send_alice_3[1].id);
     // bobby replies to a message of alice
     const message_5_as_reply = {
       receiver: agent_pubkey_alice,
       payload: {
-        type: "text",
-        payload: "Sure! I would love to go out for coffee with you!",
+        type: "TEXT",
+        payload: { payload: "Sure! I would love to go out for coffee with you!" },
       },
       replyTo: send_alice_3[1].id,
     };
@@ -210,7 +220,7 @@ const messaging: FunctionType = async (
     t.deepEqual(reply_bobby[0].author, agent_pubkey_bobby);
     t.deepEqual(reply_bobby[0].receiver, agent_pubkey_alice);
     t.deepEqual(
-      reply_bobby[0].payload.payload,
+      reply_bobby[0].payload.payload.payload,
       "Sure! I would love to go out for coffee with you!"
     );
 
@@ -225,7 +235,7 @@ const messaging: FunctionType = async (
     console.log(send_carly_1);
     t.deepEqual(send_carly_1[0].author, agent_pubkey_carly);
     t.deepEqual(send_carly_1[0].receiver, agent_pubkey_bobby);
-    t.deepEqual(send_carly_1[0].payload.payload, "Hi, Bobby!");
+    t.deepEqual(send_carly_1[0].payload.payload.payload, "Hi, Bobby!");
 
     const send_carly_2 = await carly_cell.call(
       "p2pmessage",
@@ -237,7 +247,7 @@ const messaging: FunctionType = async (
     t.deepEqual(send_carly_2[0].author, agent_pubkey_carly);
     t.deepEqual(send_carly_2[0].receiver, agent_pubkey_bobby);
     t.deepEqual(
-      send_carly_2[0].payload.payload,
+      send_carly_2[0].payload.payload.payload,
       "I have an extra ticket to a movie later. Would you want to come with me?"
     );
 
@@ -253,7 +263,7 @@ const messaging: FunctionType = async (
     t.deepEqual(send_bobby_3[0].author, agent_pubkey_bobby);
     t.deepEqual(send_bobby_3[0].receiver, agent_pubkey_carly);
     t.deepEqual(
-      send_bobby_3[0].payload.payload,
+      send_bobby_3[0].payload.payload.payload,
       "Hey, Carly. I'm sorry but I already made plans. maybe some other time?"
     );
 
@@ -268,7 +278,7 @@ const messaging: FunctionType = async (
     console.log(send_alice_4);
     t.deepEqual(send_alice_4[0].author, agent_pubkey_alice);
     t.deepEqual(send_alice_4[0].receiver, agent_pubkey_bobby);
-    t.deepEqual(send_alice_4[0].payload.payload, "Great! I'll see you later!");
+    t.deepEqual(send_alice_4[0].payload.payload.payload, "Great! I'll see you later!");
 
     // alice gets her latest messages
     const alice_latest_messages_1 = await alice_cell.call(
@@ -516,13 +526,17 @@ const messaging: FunctionType = async (
 
     const message_10 = {
       receiver: agent_pubkey_bobby,
-      payload: {
-        type: "file",
-        file_name: "test file",
-        file_size: 20,
-        file_type: { type: "others" },
-        file_hash: file_hash_1,
-        bytes: file_text_1.toString(),
+      payload: { 
+        type: "FILE",
+        payload: {
+          metadata: {
+            fileName: "test file",
+            fileSize: 20,
+            fileType: "OTHER",
+          },
+          fileType: { type: "IMAGE", payload: Int8Array.from(file_text_1) },
+          fileBytes: file_text_1.toString(),
+        }
       },
       replyTo: null,
     };
