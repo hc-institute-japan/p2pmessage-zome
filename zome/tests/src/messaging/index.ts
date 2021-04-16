@@ -534,7 +534,7 @@ const messaging: FunctionType = async (
             fileSize: 20,
             fileType: "OTHER",
           },
-          fileType: { type: "OTHER", payload: null },
+          fileType: { type: "IMAGE", payload: Int8Array.from(file_text_1) },
           fileBytes: file_text_1.toString(),
         }
       },
