@@ -7,7 +7,7 @@ import {
 import path from "path";
 import messaging from "./messaging";
 import receipts from "./receipts";
-import signals from "./signals"
+import signals from "./signals";
 import { Installables } from "./types";
 
 // PROXY
@@ -30,17 +30,16 @@ import { Installables } from "./types";
 //   }]
 // }
 
-
 // QUIC
 const network = {
   network_type: NetworkType.QuicBootstrap,
-  transport_pool: [{type: TransportConfigType.Quic}],
+  transport_pool: [{ type: TransportConfigType.Quic }],
   bootstrap_service: "https://bootstrap-staging.holo.host/",
 };
 
-const conductorConfig = Config.gen({network});
+const conductorConfig = Config.gen({ network });
 
-const p2pmessagedna = path.join(__dirname, "../../p2pmessage.dna.workdir/p2pmessage.dna");
+const p2pmessagedna = path.join(__dirname, "../../workdir/dna/p2pmessage.dna");
 const installAgent: InstallAgentsHapps = [[[p2pmessagedna]]];
 
 const installables: Installables = {
@@ -52,8 +51,7 @@ receipts(conductorConfig, installables);
 signals(conductorConfig, installables);
 //--------------------------------------------
 
-
-
+// TATS: should we delete this?
 
 // orchestrator.registerScenario("p2pmessage async", async (s, t) => {
 //   const [alice, bobby] = await s.players([conductorConfig, conductorConfig]);
