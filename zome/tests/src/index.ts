@@ -39,7 +39,10 @@ const network = {
 
 const conductorConfig = Config.gen({ network });
 
-const p2pmessagedna = path.join(__dirname, "../../workdir/dna/p2pmessage.dna");
+const p2pmessagedna = path.join(
+  __dirname,
+  "../../p2pmessage.workdir.dna/p2pmessage.dna"
+);
 const installAgent: InstallAgentsHapps = [[[p2pmessagedna]]];
 
 const installables: Installables = {

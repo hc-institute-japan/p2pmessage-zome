@@ -8,7 +8,7 @@ slots:
       strategy: create
       deferred: false
     dna:
-      bundled: "../dna/p2pmessage.dna"
+      bundled: "../p2pmessage.workdir.dna/p2pmessage.dna"
       properties: ~
       uuid: ~
       version: ~
