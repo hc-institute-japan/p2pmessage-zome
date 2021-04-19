@@ -1,17 +1,5 @@
-/* TODO:
- * - proper error codes
- * - sending messages to self
- */
-
-/*
- * ZOME FUNCTIONS ARE UNRESTRICTED BY DEFAULT
- * USERS OF THIS ZOME COULD IMPLEMENT
- * A WAY TO SET AND GET CAPABILITY GRANTS AND CLAIMS FOR CALL_REMOTE
- * TO SET SELECTED ACCESS TO ZOME FUNCTIONS
- */
-
-
-
+// TODO: discuss whether this is still needed or not
+// both for receiving and sending
 
 // fn is_user_blocked(agent_pubkey: AgentPubKey) -> ExternResult<bool> {
 //     match call::<AgentPubKey, BooleanWrapper>(
@@ -57,5 +45,3 @@
 //         }
 //     }
 // }
-
-
