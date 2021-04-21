@@ -2,20 +2,19 @@ use derive_more::{From, Into};
 use hdk::prelude::{timestamp::Timestamp, *};
 use std::collections::HashMap;
 
-//pub mod handlers; MANUEL:this file contains a method never used maybe we want to erase the file 
+//pub mod handlers; MANUEL:this file contains a method never used maybe we want to erase the file
 
-//this are the files for each method definition 
-pub mod init; 
-pub mod typing;
+//this are the files for each method definition
+pub mod get_latest_messages;
+pub mod get_messages_by_agent_by_timestamp;
+pub mod get_next_batch_messages;
 pub mod helpers;
-pub mod send_message;
+pub mod init;
 pub mod read_message;
 pub mod receive_message;
 pub mod receive_read_receipt;
-pub mod get_latest_messages;
-pub mod get_next_batch_messages;
-pub mod get_messages_by_agent_by_timestamp;
-
+pub mod send_message;
+pub mod typing;
 
 use file_types::{Payload, PayloadInput};
 
@@ -184,8 +183,6 @@ pub struct MessageHash(EntryHash);
 pub struct MessageBundle(P2PMessage, Vec<String>);
 
 #[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
-pub struct MessageAndReceipt(P2PMessage, P2PMessageReceipt);
-#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes)]
 pub struct MessageAndReceipt(P2PMessage, (EntryHash, P2PMessageReceipt));
 
 #[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
