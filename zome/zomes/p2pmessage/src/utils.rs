@@ -1,4 +1,4 @@
-use hdk3::prelude::{GetOptions, *};
+use hdk::prelude::{GetOptions, *};
 
 pub fn _try_get_and_convert<T: TryFrom<SerializedBytes>>(
     entry_hash: EntryHash,

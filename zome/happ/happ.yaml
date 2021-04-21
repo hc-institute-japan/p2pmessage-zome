@@ -1,0 +1,15 @@
+---
+manifest_version: "1"
+name: p2pmessage
+description: ~
+slots:
+  - id: p2pmessage
+    provisioning:
+      strategy: create
+      deferred: false
+    dna:
+      bundled: "../p2pmessage.workdir.dna/p2pmessage.dna"
+      properties: ~
+      uuid: ~
+      version: ~
+      clone_limit: 0

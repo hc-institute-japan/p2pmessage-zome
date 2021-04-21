@@ -1,15 +1,14 @@
 import {
   Config,
+  NetworkType,
   InstallAgentsHapps,
-  Orchestrator,
-  Player,
   TransportConfigType,
 } from "@holochain/tryorama";
-import { Base64 } from "js-base64";
 import path from "path";
 import messaging from "./messaging";
 import receipts from "./receipts";
 import signals from "./signals";
+import { Installables } from "./types";
 
 // PROXY
 // ct network = {
@@ -24,16 +23,6 @@ import signals from "./signals";
 //   bootstrap_service: "https://bootstrap.holo.host"
 // };
 
-// QUIC
-const network = {
-  transport_pool: [
-    {
-      type: TransportConfigType.Quic,
-    },
-  ],
-  bootstrap_service: "https://bootstrap.holo.host",
-};
-
 // MEM
 // const network = {
 //   transport_pool: [{
@@ -41,22 +30,31 @@ const network = {
 //   }]
 // }
 
+// QUIC
+const network = {
+  network_type: NetworkType.QuicBootstrap,
+  transport_pool: [{ type: TransportConfigType.Quic }],
+  bootstrap_service: "https://bootstrap-staging.holo.host/",
+};
+
 const conductorConfig = Config.gen({ network });
 
-const p2pmessagedna = path.join(__dirname, "../../p2pmessage.dna.gz");
-const installation: InstallAgentsHapps = [[[p2pmessagedna]]];
+const p2pmessagedna = path.join(
+  __dirname,
+  "../../p2pmessage.workdir.dna/p2pmessage.dna"
+);
+const installAgent: InstallAgentsHapps = [[[p2pmessagedna]]];
 
-const orchestrator = new Orchestrator();
+const installables: Installables = {
+  one: installAgent,
+};
 
-export function serializeHash(hash) {
-  return `u${Base64.fromUint8Array(hash, true)}`;
-}
+messaging(conductorConfig, installables);
+receipts(conductorConfig, installables);
+signals(conductorConfig, installables);
+//--------------------------------------------
 
-messaging(orchestrator, conductorConfig, installation);
-receipts(orchestrator, conductorConfig, installation);
-signals(orchestrator, conductorConfig, installation);
-
-orchestrator.run();
+// TATS: should we delete this?
 
 // orchestrator.registerScenario("p2pmessage async", async (s, t) => {
 //   const [alice, bobby] = await s.players([conductorConfig, conductorConfig]);
