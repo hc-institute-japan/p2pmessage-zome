@@ -9,19 +9,18 @@ const handleTypeSignal = (signal: AppSignal) => {
   return () => extractPayloadFromSignal(signal).isTyping;
 };
 
-function typing(typing_info){
-  return (conductor)=>
-    conductor.call("p2pmessage","typing",typing_info);
+function typing(typing_info) {
+  return (conductor) => conductor.call("p2pmessage", "typing", typing_info);
 }
 
-
-const signals = async ( conductorConfig, installation:Installables ) => {
-
+const signals = async (conductorConfig, installation: Installables) => {
   let orchestrator = new Orchestrator();
 
   orchestrator.registerScenario("Typing signal test", async (s, t) => {
-
-    const [alice, bob]:Player[] = await s.players([conductorConfig, conductorConfig]);
+    const [alice, bob]: Player[] = await s.players([
+      conductorConfig,
+      conductorConfig,
+    ]);
 
     const [[alice_happ]] = await alice.installAgentsHapps(installation.one);
     const [[bob_happ]] = await bob.installAgentsHapps(installation.one);
@@ -40,16 +39,6 @@ const signals = async ( conductorConfig, installation:Installables ) => {
 
     await delay(1000);
 
-
-    // this statements are repeat it 
-
-    // await typing({
-    //   agent: agent_pubkey_bob,
-    //   isTyping: true,
-    // })(alice_cell);
-
-    // await delay(1000);
-
     typing({
       agent: agent_pubkey_bob,
       isTyping: false,
@@ -57,10 +46,10 @@ const signals = async ( conductorConfig, installation:Installables ) => {
 
     await delay(1000);
 
+    // TATS: there is no tape assert here? Is this getting tested anywhere?
   });
 
   orchestrator.run();
-
 };
 
 export default signals;
