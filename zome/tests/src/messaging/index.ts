@@ -488,6 +488,8 @@ const messaging = async ( conductorConfig, installation:Installables ) => {
     };
 
 
+
+
     const alice_today_text = await getMessagesByAgentByTimestamp(timestamp_filter_text_bobby)(bobby_cell);
     await delay(1000);
 
@@ -497,6 +499,11 @@ const messaging = async ( conductorConfig, installation:Installables ) => {
     for (var agent_key in alice_today_text[0]) {
       t.deepEqual(agent_key, agent_pubkey_bobby_string);
       t.deepEqual(alice_today_text[0][agent_key].length, 6); // MANUEL:this its failing receive a 9 intead of 6 
+
+      //this method its working good the returned value its 9 beacuse we have send 9 messages between alice and bobby, 
+
+
+
       console.log("the messages with this agent are:");
       console.log(alice_today_text[0][agent_key]);
       for (var message_key in alice_today_text[1]) {
