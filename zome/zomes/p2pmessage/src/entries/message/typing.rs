@@ -1,9 +1,6 @@
 use hdk::prelude::*;
 
-use super::{
-    P2PTypingDetailIO,
-    Signal,
-};
+use super::{P2PTypingDetailIO, Signal};
 
 pub fn typing_handler(typing_info: P2PTypingDetailIO) -> ExternResult<()> {
     let payload = Signal::P2PTypingDetailSignal(P2PTypingDetailIO {
@@ -16,6 +13,6 @@ pub fn typing_handler(typing_info: P2PTypingDetailIO) -> ExternResult<()> {
     agents.push(typing_info.agent);
     agents.push(agent_info()?.agent_latest_pubkey);
 
-    remote_signal(&payload, agents)?;
+    remote_signal(ExternIO::encode(payload)?, agents)?;
     Ok(())
 }

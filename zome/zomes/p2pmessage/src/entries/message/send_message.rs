@@ -50,9 +50,10 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
     };
 
     // // create file here
-    // let mut file_hash = None;
-    // if let Some(file) = file {
-    //     file_hash = Some(create_entry(&file)?);
+    // // let mut file_hash = None;
+    // if let Some(file) = file.clone() {
+    //     // file_hash = Some(create_entry(&file)?);
+    //     create_entry(&file)?;
     // };
 
     // let message = P2PMessage::from_input(message_input.clone(), None)?;

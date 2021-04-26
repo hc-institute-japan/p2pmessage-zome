@@ -5,6 +5,7 @@ use std::collections::HashMap;
 //pub mod handlers; MANUEL:this file contains a method never used maybe we want to erase the file
 
 //this are the files for each method definition
+pub mod get_file_bytes;
 pub mod get_latest_messages;
 pub mod get_messages_by_agent_by_timestamp;
 pub mod get_next_batch_messages;
@@ -57,6 +58,129 @@ entry_def!(P2PFileBytes
     }
 );
 
+entry_def!(P2PMessageReceipt EntryDef {
+    id: "p2pmessagereceipt".into(),
+    visibility: EntryVisibility::Private,
+    crdt_type: CrdtType,
+    required_validations: RequiredValidations::default(),
+    required_validation_type: RequiredValidationType::Element
+});
+
+impl P2PMessageReceipt {
+    pub fn from_message(message: P2PMessage) -> ExternResult<Self> {
+        let now = sys_time()?;
+        let receipt = P2PMessageReceipt {
+            id: hash_entry(&message)?,
+            status: Status::Delivered {
+                timestamp: Timestamp(now.as_secs() as i64, now.subsec_nanos()),
+            },
+        };
+        Ok(receipt)
+    }
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+#[serde(tag = "status", rename_all = "camelCase")]
+pub enum Status {
+    Sent,
+    Delivered { timestamp: Timestamp },
+    Read { timestamp: Timestamp },
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct MessageInput {
+    receiver: AgentPubKey,
+    payload: PayloadInput,
+    reply_to: Option<EntryHash>,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct ReceiveMessageInput(P2PMessage, Option<P2PFileBytes>);
+
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
+pub struct BooleanWrapper(bool);
+
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
+pub struct ReceiptHash(EntryHash);
+
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
+pub struct MessageHash(EntryHash);
+
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
+pub struct MessageBundle(P2PMessage, Vec<String>);
+
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
+pub struct MessageAndReceipt(P2PMessage, (EntryHash, P2PMessageReceipt));
+
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
+pub struct AgentMessages(HashMap<String, Vec<String>>);
+
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
+pub struct MessageContents(HashMap<String, MessageBundle>);
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct ReceiptContents(HashMap<String, P2PMessageReceipt>);
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct FileContents(HashMap<String, P2PFileBytes>);
+
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
+pub struct P2PMessageHashTables(AgentMessages, MessageContents, ReceiptContents);
+
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
+pub struct P2PMessageFilterAgentTimestamp {
+    conversant: AgentPubKey,
+    date: Timestamp,
+    payload_type: String,
+}
+
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
+pub struct BatchSize(u8);
+
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
+pub struct P2PMessageFilterBatch {
+    conversant: AgentPubKey,
+    batch_size: u8,
+    payload_type: String,
+    last_fetched_timestamp: Option<Timestamp>, // header timestamp; oldest message in the last fetched message
+    last_fetched_message_id: Option<EntryHash>,
+}
+
+// TYPING
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+#[serde(tag = "type")]
+pub enum Signal {
+    Message(MessageSignal),
+    P2PTypingDetailSignal(P2PTypingDetailIO),
+    P2PMessageReceipt(ReceiptContents),
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct P2PTypingDetailIO {
+    agent: AgentPubKey,
+    is_typing: bool,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct TypingSignal {
+    kind: String,
+    agent: AgentPubKey,
+    is_typing: bool,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct MessageSignal {
+    kind: String,
+    message: P2PMessage,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct ReadReceiptInput {
+    receipt: P2PMessageReceipt,
+    sender: AgentPubKey,
+}
+
 // impl P2PMessage {
 //     pub fn from_input(input: MessageInput, hash: Option<EntryHash>) -> ExternResult<Self> {
 //         let now = sys_time()?;
@@ -87,19 +211,6 @@ entry_def!(P2PFileBytes
 //     }
 // }
 
-impl P2PMessageReceipt {
-    pub fn from_message(message: P2PMessage) -> ExternResult<Self> {
-        let now = sys_time()?;
-        let receipt = P2PMessageReceipt {
-            id: hash_entry(&message)?,
-            status: Status::Delivered {
-                timestamp: Timestamp(now.as_secs() as i64, now.subsec_nanos()),
-            },
-        };
-        Ok(receipt)
-    }
-}
-
 // impl P2PFileBytes {
 //     pub fn from_input(input: MessageInput) -> ExternResult<Self> {
 //         match input.payload {
@@ -108,17 +219,6 @@ impl P2PMessageReceipt {
 //         }
 //     }
 // }
-
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub struct MessageInput {
-    receiver: AgentPubKey,
-    payload: PayloadInput,
-    reply_to: Option<EntryHash>,
-}
-
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub struct ReceiveMessageInput(P2PMessage, Option<P2PFileBytes>);
-
 // #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 // pub struct FileMetadata {
 //     file_name: String,
@@ -161,100 +261,3 @@ pub struct ReceiveMessageInput(P2PMessage, Option<P2PFileBytes>);
 //         bytes: SerializedBytes,
 //     },
 // }
-
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-#[serde(tag = "status", rename_all = "camelCase")]
-pub enum Status {
-    Sent,
-    Delivered { timestamp: Timestamp },
-    Read { timestamp: Timestamp },
-}
-
-#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
-pub struct BooleanWrapper(bool);
-
-#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
-pub struct ReceiptHash(EntryHash);
-
-#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
-pub struct MessageHash(EntryHash);
-
-#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
-pub struct MessageBundle(P2PMessage, Vec<String>);
-
-#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
-pub struct MessageAndReceipt(P2PMessage, (EntryHash, P2PMessageReceipt));
-
-#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
-pub struct AgentMessages(HashMap<String, Vec<String>>);
-
-#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
-pub struct MessageContents(HashMap<String, MessageBundle>);
-
-#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
-pub struct P2PMessageHashTables(AgentMessages, MessageContents, ReceiptContents);
-
-#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
-pub struct P2PMessageFilterAgentTimestamp {
-    conversant: AgentPubKey,
-    date: Timestamp,
-    payload_type: String,
-}
-
-#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
-pub struct BatchSize(u8);
-
-#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
-pub struct P2PMessageFilterBatch {
-    conversant: AgentPubKey,
-    batch_size: u8,
-    payload_type: String,
-    last_fetched_timestamp: Option<Timestamp>, // header timestamp; oldest message in the last fetched message
-    last_fetched_message_id: Option<EntryHash>,
-}
-
-// TYPING
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct P2PTypingDetailIO {
-    agent: AgentPubKey,
-    is_typing: bool,
-}
-
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub struct TypingSignal {
-    kind: String,
-    agent: AgentPubKey,
-    is_typing: bool,
-}
-
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub struct MessageSignal {
-    kind: String,
-    message: P2PMessage,
-}
-
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-#[serde(tag = "type")]
-pub enum Signal {
-    Message(MessageSignal),
-    P2PTypingDetailSignal(P2PTypingDetailIO),
-    P2PMessageReceipt(ReceiptContents),
-}
-
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub struct ReadReceiptInput {
-    receipt: P2PMessageReceipt,
-    sender: AgentPubKey,
-}
-
-entry_def!(P2PMessageReceipt EntryDef {
-    id: "p2pmessagereceipt".into(),
-    visibility: EntryVisibility::Private,
-    crdt_type: CrdtType,
-    required_validations: RequiredValidations::default(),
-    required_validation_type: RequiredValidationType::Element
-});
-
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub struct ReceiptContents(HashMap<String, P2PMessageReceipt>);

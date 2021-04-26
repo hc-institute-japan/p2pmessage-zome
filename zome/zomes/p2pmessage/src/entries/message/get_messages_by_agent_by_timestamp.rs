@@ -1,28 +1,19 @@
 use hdk::prelude::*;
 use std::collections::HashMap;
 
-use crate::utils::try_from_element;
-use super::helpers::insert_message;
 use super::helpers::get_receipts;
+use super::helpers::insert_message;
+use crate::utils::try_from_element;
 
 use super::{
-
-    Payload,
-    P2PMessage,
-    P2PMessageReceipt,
-    P2PMessageHashTables,
-    P2PMessageFilterAgentTimestamp,
-    MessageBundle,
-    AgentMessages,
-    MessageContents,
-    ReceiptContents,
-
+    AgentMessages, MessageBundle, MessageContents, P2PMessage, P2PMessageFilterAgentTimestamp,
+    P2PMessageHashTables, P2PMessageReceipt, Payload, ReceiptContents,
 };
 
-
-pub fn get_messages_by_agent_by_timestamp_handler( filter: P2PMessageFilterAgentTimestamp ) -> ExternResult<P2PMessageHashTables> {
-    
-    let queried_messages:Vec<Element> = query(
+pub fn get_messages_by_agent_by_timestamp_handler(
+    filter: P2PMessageFilterAgentTimestamp,
+) -> ExternResult<P2PMessageHashTables> {
+    let queried_messages: Vec<Element> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(0),
