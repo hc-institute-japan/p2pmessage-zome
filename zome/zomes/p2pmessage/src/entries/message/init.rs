@@ -5,8 +5,6 @@ use hdk::prelude::*;
  */
 
 pub fn init_handler() -> ExternResult<InitCallbackResult> {
-    debug!("init zome");
-
     let zome_name: ZomeName = zome_info()?.zome_name;
 
     let mut receive_message_function: GrantedFunctions = HashSet::new();

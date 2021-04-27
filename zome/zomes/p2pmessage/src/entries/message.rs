@@ -172,7 +172,7 @@ pub struct TypingSignal {
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct MessageSignal {
     name: String,
-    message: P2PMessage,
+    message: MessageAndReceipt,
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
