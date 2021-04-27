@@ -31,7 +31,7 @@ pub struct P2PMessage {
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct P2PMessageReceipt {
-    id: EntryHash,
+    id: Vec<EntryHash>,
     status: Status,
 }
 
@@ -70,7 +70,7 @@ impl P2PMessageReceipt {
     pub fn from_message(message: P2PMessage) -> ExternResult<Self> {
         let now = sys_time()?;
         let receipt = P2PMessageReceipt {
-            id: hash_entry(&message)?,
+            id: vec![hash_entry(&message)?],
             status: Status::Delivered {
                 timestamp: Timestamp(now.as_secs() as i64, now.subsec_nanos()),
             },
@@ -110,7 +110,7 @@ pub struct MessageHash(EntryHash);
 pub struct MessageBundle(P2PMessage, Vec<String>);
 
 #[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
-pub struct MessageAndReceipt(P2PMessage, (EntryHash, P2PMessageReceipt));
+pub struct MessageAndReceipt((EntryHash, P2PMessage), (EntryHash, P2PMessageReceipt));
 
 #[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
 pub struct AgentMessages(HashMap<String, Vec<String>>);
@@ -164,14 +164,14 @@ pub struct P2PTypingDetailIO {
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct TypingSignal {
-    kind: String,
+    name: String,
     agent: AgentPubKey,
     is_typing: bool,
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct MessageSignal {
-    kind: String,
+    name: String,
     message: P2PMessage,
 }
 
@@ -179,6 +179,13 @@ pub struct MessageSignal {
 pub struct ReadReceiptInput {
     receipt: P2PMessageReceipt,
     sender: AgentPubKey,
+}
+// to replace ReadReceiptInput
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct ReadMessageInput {
+    message_hashes: Vec<EntryHash>,
+    sender: AgentPubKey,
+    timestamp: Timestamp,
 }
 
 // impl P2PMessage {

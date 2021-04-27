@@ -37,10 +37,10 @@ const signals = async (conductorConfig, installation: Installables) => {
 
     console.log("Nicko typing test");
 
-    bob.setSignalHandler((signal) => {
-      console.log("Nicko 3 signal", signal);
-      t.deepEqual(handleTypeSignal(signal)(), signalVal.shift());
-    });
+    // bob.setSignalHandler((signal) => {
+    //   console.log("Nicko 3 signal", signal);
+    //   t.deepEqual(handleTypeSignal(signal)(), signalVal.shift());
+    // });
 
     const result = await typing({
       agent: agent_pubkey_bob,

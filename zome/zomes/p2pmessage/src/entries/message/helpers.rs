@@ -3,13 +3,7 @@ use std::collections::HashMap;
 
 use crate::utils::try_from_element;
 
-use super::{
-    MessageBundle,
-    P2PMessage,
-    P2PMessageReceipt,
-    ReceiptContents,
-    Status,
-};
+use super::{MessageBundle, P2PMessage, P2PMessageReceipt, ReceiptContents, Status};
 
 pub fn insert_message(
     agent_messages: &mut HashMap<String, Vec<String>>,
@@ -43,12 +37,11 @@ pub fn insert_message(
     Ok(message_array_length)
 }
 
-
 pub fn get_receipts(
     message_contents: &mut HashMap<String, MessageBundle>,
     receipt_contents: &mut HashMap<String, P2PMessageReceipt>,
 ) -> ExternResult<()> {
-    let queried_receipts:Vec<Element> = query(
+    let queried_receipts: Vec<Element> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(1),
@@ -61,16 +54,30 @@ pub fn get_receipts(
     for receipt in queried_receipts.clone().into_iter() {
         let receipt_entry: P2PMessageReceipt = try_from_element(receipt)?;
         let receipt_hash = hash_entry(&receipt_entry)?;
-        // if message_contents.contains_key(&format!("{:?}", &receipt_entry.id)) {
-        if message_contents.contains_key(&receipt_entry.id.to_string()) {
-            receipt_contents.insert(receipt_hash.clone().to_string(), receipt_entry.clone());
-            if let Some(message_bundle) =
-                // message_contents.get_mut(&format!("{:?}", &receipt_entry.id))
-                message_contents.get_mut(&receipt_entry.id.to_string())
-            {
-                // message_bundle.1.push(format!("{:?}", receipt_hash))
-                message_bundle.1.push(receipt_hash.to_string())
-            };
+
+        // // if message_contents.contains_key(&format!("{:?}", &receipt_entry.id)) {
+        // if message_contents.contains_key(&receipt_entry.id.to_string()) {
+        //     receipt_contents.insert(receipt_hash.clone().to_string(), receipt_entry.clone());
+        //     if let Some(message_bundle) =
+        //         // message_contents.get_mut(&format!("{:?}", &receipt_entry.id))
+        //         message_contents.get_mut(&receipt_entry.id.to_string())
+        //     {
+        //         // message_bundle.1.push(format!("{:?}", receipt_hash))
+        //         message_bundle.1.push(receipt_hash.to_string())
+        //     };
+        // }
+
+        for message_id in receipt_entry.id.clone().into_iter() {
+            if message_contents.contains_key(&message_id.to_string()) {
+                receipt_contents.insert(receipt_hash.clone().to_string(), receipt_entry.clone());
+                if let Some(message_bundle) =
+                    // message_contents.get_mut(&format!("{:?}", &receipt_entry.id))
+                    message_contents.get_mut(&message_id.to_string())
+                {
+                    // message_bundle.1.push(format!("{:?}", receipt_hash))
+                    message_bundle.1.push(receipt_hash.to_string())
+                };
+            }
         }
     }
 
@@ -79,7 +86,7 @@ pub fn get_receipts(
 
 pub fn commit_receipts(receipts: Vec<P2PMessageReceipt>) -> ExternResult<ReceiptContents> {
     // Query all the receipts
-    let query_result:Vec<Element> = query(
+    let query_result: Vec<Element> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(1),
@@ -107,7 +114,10 @@ pub fn commit_receipts(receipts: Vec<P2PMessageReceipt>) -> ExternResult<Receipt
     // Iterate through the receipts in the argument and push them into the hash map
     receipts.clone().into_iter().for_each(|receipt| {
         // receipts_hash_map.insert(format!("{:?}", receipt.id), receipt);
-        receipts_hash_map.insert(receipt.id.to_string(), receipt);
+        // receipts_hash_map.insert(receipt.id.to_string(), receipt); // <-- receipt.id should be the hash of the receipt
+        if let Ok(hash) = hash_entry(&receipt) {
+            receipts_hash_map.insert(hash.to_string(), receipt);
+        }
     });
 
     // Iterate through the receipts to check if the receipt has been committed, remove them from the hash map if it is
@@ -115,7 +125,7 @@ pub fn commit_receipts(receipts: Vec<P2PMessageReceipt>) -> ExternResult<Receipt
     for i in 0..all_receipts.len() {
         let receipt = all_receipts[i].clone();
         // let hash = format!("{:?}", receipt.id);
-        let hash = receipt.id;
+        let hash = hash_entry(&receipt)?;
 
         if receipts_hash_map.contains_key(&hash.to_string()) {
             if let Status::Read { timestamp: _ } = receipt.status {
@@ -138,4 +148,3 @@ pub fn commit_receipts(receipts: Vec<P2PMessageReceipt>) -> ExternResult<Receipt
 
     Ok(ReceiptContents(receipts_hash_map))
 }
-

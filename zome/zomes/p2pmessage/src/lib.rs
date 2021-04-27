@@ -53,8 +53,8 @@ fn send_message(message_input: MessageInput) -> ExternResult<MessageAndReceipt> 
 }
 
 #[hdk_extern]
-fn read_message(read_receipt_input: ReadReceiptInput) -> ExternResult<ReceiptContents> {
-    return read_message_handler(read_receipt_input);
+fn read_message(read_message_input: ReadMessageInput) -> ExternResult<ReceiptContents> {
+    return read_message_handler(read_message_input);
 }
 
 #[hdk_extern]

@@ -73,17 +73,17 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
     match receive_call_result {
         ZomeCallResponse::Ok(extern_io) => {
             let receipt: P2PMessageReceipt = extern_io.decode()?;
-            // create message entry pointing to file
             create_entry(&message)?;
-            // create receipt
             create_entry(&receipt)?;
-
             if let Some(file) = file {
                 create_entry(&file)?;
             };
 
             // TODO: CREATE AND RETURN ELEMENT HERE
-            Ok(MessageAndReceipt(message, (hash_entry(&receipt)?, receipt)))
+            Ok(MessageAndReceipt(
+                (hash_entry(&message)?, message),
+                (hash_entry(&receipt)?, receipt),
+            ))
         }
         ZomeCallResponse::Unauthorized(_, _, _, _) => {
             return crate::err(

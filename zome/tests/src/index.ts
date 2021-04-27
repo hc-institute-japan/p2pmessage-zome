@@ -49,9 +49,9 @@ const installables: Installables = {
   one: installAgent,
 };
 
-// messaging(conductorConfig, installables);
+messaging(conductorConfig, installables);
 // receipts(conductorConfig, installables);
-signals(conductorConfig, installables);
+// signals(conductorConfig, installables);
 //--------------------------------------------
 
 // TATS: should we delete this?

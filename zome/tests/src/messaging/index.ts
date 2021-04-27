@@ -66,38 +66,38 @@ function serializeHash(hash) {
   return `u${Base64.fromUint8Array(hash, true)}`;
 }
 
-function sendMessageSignalHandler(signal, data) {
-  return function (sender) {
-    if (signal.data.payload.payload.GroupMessageData) {
-      const group = JSON.stringify(
-        signal.data.payload.payload.GroupMessageData.content.groupHash
-      );
-      if (!data[group]) data[group] = {};
-      const agent = JSON.stringify(sender);
-      if (data[group][agent])
-        data[group][agent].push(signal.data.payload.payload.GroupMessageData);
-      else data[group][agent] = [signal.data.payload.payload.GroupMessageData];
-    }
-  };
-}
+// function sendMessageSignalHandler(signal, data) {
+//   return function (sender) {
+//     if (signal.data.payload.payload.GroupMessageData) {
+//       const group = JSON.stringify(
+//         signal.data.payload.payload.GroupMessageData.content.groupHash
+//       );
+//       if (!data[group]) data[group] = {};
+//       const agent = JSON.stringify(sender);
+//       if (data[group][agent])
+//         data[group][agent].push(signal.data.payload.payload.GroupMessageData);
+//       else data[group][agent] = [signal.data.payload.payload.GroupMessageData];
+//     }
+//   };
+// }
 
-function evaluateMessagesFromSignal(messagesFromSignal, messages, t) {
-  Object.keys(messagesFromSignal).forEach((group) => {
-    Object.keys(messagesFromSignal[group]).forEach((agent) => {
-      t.deepEqual(
-        messagesFromSignal[group][agent].filter(
-          (v, i, a) =>
-            a.findIndex((t) => JSON.stringify(t) === JSON.stringify(v)) === i
-        ),
-        messages.filter(
-          (message) =>
-            JSON.stringify(message.content.sender) !== agent &&
-            JSON.stringify(message.content.groupHash) === group
-        )
-      );
-    });
-  });
-}
+// function evaluateMessagesFromSignal(messagesFromSignal, messages, t) {
+//   Object.keys(messagesFromSignal).forEach((group) => {
+//     Object.keys(messagesFromSignal[group]).forEach((agent) => {
+//       t.deepEqual(
+//         messagesFromSignal[group][agent].filter(
+//           (v, i, a) =>
+//             a.findIndex((t) => JSON.stringify(t) === JSON.stringify(v)) === i
+//         ),
+//         messages.filter(
+//           (message) =>
+//             JSON.stringify(message.content.sender) !== agent &&
+//             JSON.stringify(message.content.groupHash) === group
+//         )
+//       );
+//     });
+//   });
+// }
 
 const messaging = async ( conductorConfig, installation:Installables ) => {
 
@@ -136,16 +136,16 @@ const messaging = async ( conductorConfig, installation:Installables ) => {
     agent_pubkey_carly_string = agent_pubkey_carly_string.replace(/\+/g, "-");
 
         
-    let list = {};
-    alice.setSignalHandler((signal) => {
-      sendMessageSignalHandler(signal, list)(agent_pubkey_alice);
-    });
-    alice.setSignalHandler((signal) => {
-      sendMessageSignalHandler(signal, list)(agent_pubkey_bobby);
-    });
-    alice.setSignalHandler((signal) => {
-      sendMessageSignalHandler(signal, list)(agent_pubkey_bobby);
-    });
+    // let list = {};
+    // alice.setSignalHandler((signal) => {
+    //   sendMessageSignalHandler(signal, list)(agent_pubkey_alice);
+    // });
+    // alice.setSignalHandler((signal) => {
+    //   sendMessageSignalHandler(signal, list)(agent_pubkey_bobby);
+    // });
+    // alice.setSignalHandler((signal) => {
+    //   sendMessageSignalHandler(signal, list)(agent_pubkey_bobby);
+    // });
 
     const message_1 = {
       receiver: agent_pubkey_bobby,

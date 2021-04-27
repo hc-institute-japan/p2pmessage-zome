@@ -11,7 +11,7 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
     };
 
     let signal = Signal::Message(MessageSignal {
-        kind: "RECEIVE_P2P_MESSAGE".to_string(),
+        name: "RECEIVE_P2P_MESSAGE".to_string(),
         message: input.0.clone(),
     });
     // let agents = vec![input.0.receiver.clone()];
