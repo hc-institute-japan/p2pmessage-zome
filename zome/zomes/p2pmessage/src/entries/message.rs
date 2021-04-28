@@ -151,14 +151,13 @@ pub struct P2PMessageFilterBatch {
 #[serde(tag = "type")]
 pub enum Signal {
     Message(MessageSignal),
-    P2PTypingDetailSignal(P2PTypingDetailIO),
+    P2PTypingDetailSignal(TypingSignal),
     P2PMessageReceipt(ReceiptSignal),
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct P2PTypingDetailIO {
-    name: String,
     agent: AgentPubKey,
     is_typing: bool,
 }

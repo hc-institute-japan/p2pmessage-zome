@@ -37,7 +37,10 @@ pub fn err<T>(code: &str, message: &str) -> ExternResult<T> {
 #[hdk_extern]
 fn recv_remote_signal(signal: ExternIO) -> ExternResult<()> {
     // debug!("this gets invoked");
-    emit_signal(ExternIO::decode(&signal)?)?;
+    let signal_detail = signal.decode()?;
+    emit_signal(&signal_detail)?;
+
+    // emit_signal(ExternIO::decode(&signal)?)?;
     Ok(())
 }
 
