@@ -152,7 +152,7 @@ pub struct P2PMessageFilterBatch {
 pub enum Signal {
     Message(MessageSignal),
     P2PTypingDetailSignal(P2PTypingDetailIO),
-    P2PMessageReceipt(ReceiptContents),
+    P2PMessageReceipt(ReceiptSignal),
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
@@ -173,6 +173,11 @@ pub struct TypingSignal {
 pub struct MessageSignal {
     name: String,
     message: MessageAndReceipt,
+}
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct ReceiptSignal {
+    name: String,
+    receipt: ReceiptContents,
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
