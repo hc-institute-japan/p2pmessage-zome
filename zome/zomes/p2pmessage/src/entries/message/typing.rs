@@ -4,6 +4,7 @@ use super::{P2PTypingDetailIO, Signal};
 
 pub fn typing_handler(typing_info: P2PTypingDetailIO) -> ExternResult<()> {
     let payload = Signal::P2PTypingDetailSignal(P2PTypingDetailIO {
+        name: "TYPING_P2P".to_string(),
         agent: agent_info()?.agent_latest_pubkey,
         is_typing: typing_info.is_typing,
     });

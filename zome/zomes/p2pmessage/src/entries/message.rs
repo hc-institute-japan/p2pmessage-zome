@@ -158,6 +158,7 @@ pub enum Signal {
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct P2PTypingDetailIO {
+    name: String,
     agent: AgentPubKey,
     is_typing: bool,
 }
