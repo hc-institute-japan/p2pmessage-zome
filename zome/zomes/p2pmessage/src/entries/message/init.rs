@@ -13,17 +13,11 @@ pub fn init_handler() -> ExternResult<InitCallbackResult> {
     let mut typing_function: GrantedFunctions = HashSet::new();
     typing_function.insert((zome_name.clone(), "typing".into()));
 
-    // let mut recv_remote_signal_function: GrantedFunctions = HashSet::new();
-    // // recv_remote_signal_function.insert((zome_name.clone(), "recv_remote:signal".into()));
-    // recv_remote_signal_function.insert((zome_name.clone(), "recv_remote_signal".into()));
+    let mut recv_remote_signal_function: GrantedFunctions = HashSet::new();
+    recv_remote_signal_function.insert((zome_name.clone(), "recv_remote_signal".into()));
 
     let mut receive_receipt_function = HashSet::new();
     receive_receipt_function.insert((zome_name, "receive_read_receipt".into()));
-
-    let mut recv_remote_signal_function = HashSet::new();
-    let zome_name: ZomeName = zome_info()?.zome_name;
-    let function_name: FunctionName = FunctionName("recv_remote_signal".into());
-    recv_remote_signal_function.insert((zome_name, function_name));
 
     create_cap_grant(CapGrantEntry {
         tag: "recv_remote_signal".into(),
