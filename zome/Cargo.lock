@@ -108,6 +108,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "file_types"
+version = "0.0.1"
+source = "git+https://github.com/hc-institute-japan/Kizuna?branch=develop#05beb585ed9bb1c7876ed93cf6a9b9ec454c0e91"
+dependencies = [
+ "derive_more",
+ "hdk",
+ "serde",
+]
+
+[[package]]
 name = "fixt"
 version = "0.0.2-alpha.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -353,6 +363,7 @@ name = "p2pmessage"
 version = "0.0.1"
 dependencies = [
  "derive_more",
+ "file_types",
  "hdk",
  "serde",
 ]

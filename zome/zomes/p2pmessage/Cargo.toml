@@ -12,3 +12,4 @@ crate-type = ["cdylib", "rlib"]
 derive_more = "0"
 serde = "1"
 hdk = "0.0.100"
+file_types = { git = "https://github.com/hc-institute-japan/Kizuna", package="file_types", branch = "develop"}
