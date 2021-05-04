@@ -7,7 +7,14 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
     create_entry(&input.0)?;
     create_entry(&receipt)?;
     if let Some(file) = input.1 {
-        create_entry(&file)?;
+        let file_hash = create_entry(&file)?;
+        debug!(
+            "{}",
+            format!(
+                "The file hash for the newly committed file is {}",
+                file_hash
+            )
+        );
     };
 
     let signal = Signal::Message(MessageSignal {

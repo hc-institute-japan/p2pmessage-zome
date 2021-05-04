@@ -29,6 +29,13 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
                 let p2pfile = P2PFileBytes(file_bytes.clone());
                 create_entry(&p2pfile)?;
                 let file_hash = hash_entry(&p2pfile)?;
+                debug!(
+                    "{}",
+                    format!(
+                        "The file hash for the newly committed file is {}",
+                        file_hash
+                    )
+                );
                 Payload::File {
                     metadata: FileMetadata {
                         file_name: metadata.file_name.clone(),
@@ -49,17 +56,9 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
         PayloadInput::File { file_bytes, .. } => Some(P2PFileBytes(file_bytes)),
     };
 
-    // // create file here
-    // // let mut file_hash = None;
-    // if let Some(file) = file.clone() {
-    //     // file_hash = Some(create_entry(&file)?);
-    //     create_entry(&file)?;
-    // };
-
     // let message = P2PMessage::from_input(message_input.clone(), None)?;
 
     // create message input to receive function of recipient
-
     let receive_input = ReceiveMessageInput(message.clone(), file.clone());
 
     let receive_call_result: ZomeCallResponse = call_remote(
@@ -72,6 +71,10 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
 
     match receive_call_result {
         ZomeCallResponse::Ok(extern_io) => {
+            debug!(
+                "{}",
+                format!("The receiver's receive function has been invoked")
+            );
             let receipt: P2PMessageReceipt = extern_io.decode()?;
             create_entry(&message)?;
             create_entry(&receipt)?;
