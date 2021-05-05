@@ -22,7 +22,7 @@ pub fn typing_handler(typing_info: P2PTypingDetailIO) -> ExternResult<()> {
             agents.clone()
         )
     );
-    remote_signal(ExternIO::encode(payload)?, agents)?;
-    debug!("sent remote");
+    let remote_result = remote_signal(ExternIO::encode(payload)?, agents)?;
+    debug!("{}", format!("sent remote {:?}", remote_result));
     Ok(())
 }
