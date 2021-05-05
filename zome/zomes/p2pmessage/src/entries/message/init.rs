@@ -19,17 +19,17 @@ pub fn init_handler() -> ExternResult<InitCallbackResult> {
     let mut receive_receipt_function = HashSet::new();
     receive_receipt_function.insert((zome_name, "receive_read_receipt".into()));
 
-    create_cap_grant(CapGrantEntry {
-        tag: "recv_remote_signal".into(),
-        access: CapAccess::Unrestricted,
-        functions: recv_remote_signal_function,
-    })?;
-
     // create_cap_grant(CapGrantEntry {
-    //     tag: "receive_message".into(),
+    //     tag: "recv_remote_signal".into(),
     //     access: CapAccess::Unrestricted,
-    //     functions: receive_message_function,
+    //     functions: recv_remote_signal_function,
     // })?;
+
+    create_cap_grant(CapGrantEntry {
+        tag: "receive_message".into(),
+        access: CapAccess::Unrestricted,
+        functions: receive_message_function,
+    })?;
 
     create_cap_grant(CapGrantEntry {
         tag: "typing".into(),
