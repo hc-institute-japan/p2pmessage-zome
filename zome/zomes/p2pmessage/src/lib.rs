@@ -20,7 +20,8 @@ use message::typing::typing_handler;
 entry_defs![
     P2PMessage::entry_def(),
     P2PMessageReceipt::entry_def(),
-    P2PFileBytes::entry_def()
+    P2PFileBytes::entry_def(),
+    Path::entry_def()
 ];
 
 pub fn error<T>(reason: &str) -> ExternResult<T> {
