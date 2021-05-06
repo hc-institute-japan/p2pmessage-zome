@@ -12,7 +12,7 @@ pub fn typing_handler(typing_info: P2PTypingDetailIO) -> ExternResult<()> {
     let mut agents = Vec::new();
 
     agents.push(typing_info.agent);
-    // agents.push(agent_info()?.agent_latest_pubkey);
+    agents.push(agent_info()?.agent_latest_pubkey);
 
     debug!(
         "{}",
@@ -22,7 +22,7 @@ pub fn typing_handler(typing_info: P2PTypingDetailIO) -> ExternResult<()> {
             agents.clone()
         )
     );
-    let remote_result = remote_signal(ExternIO::encode(payload)?, agents)?;
-    debug!("{}", format!("sent remote {:?}", remote_result));
+    remote_signal(ExternIO::encode(payload)?, agents)?;
+    debug!("{}", format!("sent remote"));
     Ok(())
 }
