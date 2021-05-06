@@ -20,8 +20,7 @@ use message::typing::typing_handler;
 entry_defs![
     P2PMessage::entry_def(),
     P2PMessageReceipt::entry_def(),
-    P2PFileBytes::entry_def(),
-    Path::entry_def()
+    P2PFileBytes::entry_def()
 ];
 
 pub fn error<T>(reason: &str) -> ExternResult<T> {
@@ -37,10 +36,8 @@ pub fn err<T>(code: &str, message: &str) -> ExternResult<T> {
 
 #[hdk_extern]
 fn recv_remote_signal(signal: ExternIO) -> ExternResult<()> {
-    let signal_detail = signal.decode()?;
-    debug!("about to emit");
+    let signal_detail: Signal = signal.decode()?;
     emit_signal(&signal_detail)?;
-    debug!("receive remote signal invoked, emitted signal");
     Ok(())
 }
 

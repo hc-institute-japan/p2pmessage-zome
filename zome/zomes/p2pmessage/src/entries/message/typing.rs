@@ -14,15 +14,6 @@ pub fn typing_handler(typing_info: P2PTypingDetailIO) -> ExternResult<()> {
     agents.push(typing_info.agent);
     agents.push(agent_info()?.agent_latest_pubkey);
 
-    debug!(
-        "{}",
-        format!(
-            "typing handler reaches here for {:?} to send to {:?}",
-            agent_info()?.agent_latest_pubkey,
-            agents.clone()
-        )
-    );
-    remote_signal(ExternIO::encode(payload)?, agents)?;
-    debug!("{}", format!("sent remote"));
+    remote_signal(ExternIO::encode(payload.clone())?, agents)?;
     Ok(())
 }
