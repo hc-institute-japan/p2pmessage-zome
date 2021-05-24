@@ -36,7 +36,7 @@ pub fn err<T>(code: &str, message: &str) -> ExternResult<T> {
 
 #[hdk_extern]
 fn recv_remote_signal(signal: ExternIO) -> ExternResult<()> {
-    let signal_detail: Signal = signal.decode()?;
+    let signal_detail: SignalDetails = signal.decode()?;
     emit_signal(&signal_detail)?;
     Ok(())
 }

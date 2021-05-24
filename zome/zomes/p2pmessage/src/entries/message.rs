@@ -146,7 +146,6 @@ pub struct P2PMessageFilterBatch {
     last_fetched_message_id: Option<EntryHash>,
 }
 
-// TYPING
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 #[serde(tag = "type")]
 pub enum Signal {
@@ -156,28 +155,31 @@ pub enum Signal {
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct P2PTypingDetailIO {
-    agent: AgentPubKey,
-    is_typing: bool,
-}
-
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-pub struct TypingSignal {
-    name: String,
-    agent: AgentPubKey,
-    is_typing: bool,
+pub struct SignalDetails {
+    pub name: String,
+    pub payload: Signal,
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct MessageSignal {
-    name: String,
     message: MessageAndReceipt,
 }
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct ReceiptSignal {
-    name: String,
     receipt: ReceiptContents,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct TypingSignal {
+    agent: AgentPubKey,
+    is_typing: bool,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct P2PTypingDetailIO {
+    agent: AgentPubKey,
+    is_typing: bool,
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]

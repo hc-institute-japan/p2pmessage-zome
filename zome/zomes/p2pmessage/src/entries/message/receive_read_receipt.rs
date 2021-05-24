@@ -3,7 +3,7 @@ use hdk::prelude::*;
 
 use super::helpers::commit_receipts;
 
-use super::{P2PMessageReceipt, ReceiptContents, ReceiptSignal, Signal};
+use super::{P2PMessageReceipt, ReceiptContents, ReceiptSignal, Signal, SignalDetails};
 
 pub fn receive_read_receipt_handler(receipt: P2PMessageReceipt) -> ExternResult<ReceiptContents> {
     let receipts = commit_receipts(vec![receipt.clone()])?;
@@ -12,11 +12,15 @@ pub fn receive_read_receipt_handler(receipt: P2PMessageReceipt) -> ExternResult<
     // receipt_contents.insert(hash_entry(&receipt.clone())?.to_string(), receipt.clone());
 
     let signal = Signal::P2PMessageReceipt(ReceiptSignal {
-        name: "RECEIVE_P2P_RECEIPT".to_string(),
         receipt: receipts.clone(),
     });
 
-    emit_signal(&signal)?;
+    let signal_details = SignalDetails {
+        name: "RECEIVE_P2P_RECEIPT".to_string(),
+        payload: signal,
+    };
+
+    emit_signal(&signal_details)?;
 
     Ok(receipts)
 }
