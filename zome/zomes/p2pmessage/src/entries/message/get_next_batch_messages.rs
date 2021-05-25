@@ -1,24 +1,19 @@
 use hdk::prelude::*;
 use std::collections::HashMap;
 
-use crate::utils::try_from_element;
-use super::helpers::insert_message;
 use super::helpers::get_receipts;
+use super::helpers::insert_message;
+use crate::utils::try_from_element;
 
 use super::{
-    MessageBundle,
-    P2PMessage,
-    P2PMessageFilterBatch,
-    P2PMessageHashTables,
-    P2PMessageReceipt,
-    Payload,
-    AgentMessages,
-    MessageContents,
-    ReceiptContents,
+    AgentMessages, MessageBundle, MessageContents, P2PMessage, P2PMessageFilterBatch,
+    P2PMessageHashTables, P2PMessageReceipt, Payload, ReceiptContents,
 };
 
-pub fn get_next_batch_messages_handler(filter: P2PMessageFilterBatch) -> ExternResult<P2PMessageHashTables> {
-    let queried_messages:Vec<Element> = query(
+pub fn get_next_batch_messages_handler(
+    filter: P2PMessageFilterBatch,
+) -> ExternResult<P2PMessageHashTables> {
+    let queried_messages: Vec<Element> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(0),
@@ -51,10 +46,9 @@ pub fn get_next_batch_messages_handler(filter: P2PMessageFilterBatch) -> ExternR
                 Some(ref id) if *id == message_hash => false,
                 Some(ref id) if *id != message_hash => true,
                 _ => false,
-            })
-            || filter.last_fetched_message_id == None
-                && (message_entry.author == filter.conversant
-                    || message_entry.receiver == filter.conversant)
+            } || filter.last_fetched_message_id == None)
+            && (message_entry.author == filter.conversant
+                || message_entry.receiver == filter.conversant)
         {
             match message_entry.payload {
                 Payload::Text { .. } => {
