@@ -68,7 +68,10 @@ pub fn get_next_batch_messages_handler(
                 }
                 Payload::File { ref file_type, .. } => match file_type {
                     FileType::Image { .. } => {
-                        if filter.payload_type == "Media" || filter.payload_type == "All" {
+                        if filter.payload_type == "Media"
+                            || filter.payload_type == "File"
+                            || filter.payload_type == "All"
+                        {
                             let current_batch_size = insert_message(
                                 &mut agent_messages,
                                 &mut message_contents,
@@ -83,7 +86,10 @@ pub fn get_next_batch_messages_handler(
                         }
                     }
                     FileType::Video { .. } => {
-                        if filter.payload_type == "Media" || filter.payload_type == "All" {
+                        if filter.payload_type == "Media"
+                            || filter.payload_type == "File"
+                            || filter.payload_type == "All"
+                        {
                             let current_batch_size = insert_message(
                                 &mut agent_messages,
                                 &mut message_contents,
@@ -98,7 +104,10 @@ pub fn get_next_batch_messages_handler(
                         }
                     }
                     FileType::Other { .. } => {
-                        if filter.payload_type == "File" || filter.payload_type == "All" {
+                        if filter.payload_type == "Other"
+                            || filter.payload_type == "File"
+                            || filter.payload_type == "All"
+                        {
                             let current_batch_size = insert_message(
                                 &mut agent_messages,
                                 &mut message_contents,
