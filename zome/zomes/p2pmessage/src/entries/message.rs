@@ -17,7 +17,7 @@ pub mod receive_read_receipt;
 pub mod send_message;
 pub mod typing;
 
-use file_types::{Payload, PayloadInput};
+use file_types::{FileType, Payload, PayloadInput};
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
