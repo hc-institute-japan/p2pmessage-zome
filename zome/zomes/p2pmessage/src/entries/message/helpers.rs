@@ -13,23 +13,16 @@ pub fn insert_message(
     key: AgentPubKey,
 ) -> ExternResult<usize> {
     let mut message_array_length = 0;
-    // match agent_messages.get_mut(&format!("{:?}", key)) {
     match agent_messages.get_mut(&key.to_string()) {
         Some(messages) => {
-            // messages.push(format!("{:?}", message_hash.clone()));
             messages.push(message_hash.clone().to_string());
             message_array_length = messages.len();
         }
         None => {
-            agent_messages.insert(
-                // format!("{:?}", key),
-                key.to_string(),
-                vec![message_hash.clone().to_string()],
-            );
+            agent_messages.insert(key.to_string(), vec![message_hash.clone().to_string()]);
         }
     };
     message_contents.insert(
-        // format!("{:?}", message_hash),
         message_hash.to_string(),
         MessageBundle(message_entry, Vec::new()),
     );
@@ -55,26 +48,10 @@ pub fn get_receipts(
         let receipt_entry: P2PMessageReceipt = try_from_element(receipt)?;
         let receipt_hash = hash_entry(&receipt_entry)?;
 
-        // // if message_contents.contains_key(&format!("{:?}", &receipt_entry.id)) {
-        // if message_contents.contains_key(&receipt_entry.id.to_string()) {
-        //     receipt_contents.insert(receipt_hash.clone().to_string(), receipt_entry.clone());
-        //     if let Some(message_bundle) =
-        //         // message_contents.get_mut(&format!("{:?}", &receipt_entry.id))
-        //         message_contents.get_mut(&receipt_entry.id.to_string())
-        //     {
-        //         // message_bundle.1.push(format!("{:?}", receipt_hash))
-        //         message_bundle.1.push(receipt_hash.to_string())
-        //     };
-        // }
-
         for message_id in receipt_entry.id.clone().into_iter() {
             if message_contents.contains_key(&message_id.to_string()) {
                 receipt_contents.insert(receipt_hash.clone().to_string(), receipt_entry.clone());
-                if let Some(message_bundle) =
-                    // message_contents.get_mut(&format!("{:?}", &receipt_entry.id))
-                    message_contents.get_mut(&message_id.to_string())
-                {
-                    // message_bundle.1.push(format!("{:?}", receipt_hash))
+                if let Some(message_bundle) = message_contents.get_mut(&message_id.to_string()) {
                     message_bundle.1.push(receipt_hash.to_string())
                 };
             }
@@ -84,7 +61,7 @@ pub fn get_receipts(
     Ok(())
 }
 
-pub fn commit_receipts(receipts: Vec<P2PMessageReceipt>) -> ExternResult<ReceiptContents> {
+pub fn _commit_receipts(receipts: Vec<P2PMessageReceipt>) -> ExternResult<ReceiptContents> {
     // Query all the receipts
     let query_result: Vec<Element> = query(
         QueryFilter::new()
@@ -113,8 +90,6 @@ pub fn commit_receipts(receipts: Vec<P2PMessageReceipt>) -> ExternResult<Receipt
 
     // Iterate through the receipts in the argument and push them into the hash map
     receipts.clone().into_iter().for_each(|receipt| {
-        // receipts_hash_map.insert(format!("{:?}", receipt.id), receipt);
-        // receipts_hash_map.insert(receipt.id.to_string(), receipt); // <-- receipt.id should be the hash of the receipt
         if let Ok(hash) = hash_entry(&receipt) {
             receipts_hash_map.insert(hash.to_string(), receipt);
         }
@@ -124,7 +99,6 @@ pub fn commit_receipts(receipts: Vec<P2PMessageReceipt>) -> ExternResult<Receipt
     // used for loops instead of for_each because you cant break iterators
     for i in 0..all_receipts.len() {
         let receipt = all_receipts[i].clone();
-        // let hash = format!("{:?}", receipt.id);
         let hash = hash_entry(&receipt)?;
 
         if receipts_hash_map.contains_key(&hash.to_string()) {

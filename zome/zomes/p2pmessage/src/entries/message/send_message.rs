@@ -6,10 +6,9 @@ use super::{
     MessageAndReceipt, MessageInput, P2PFileBytes, P2PMessage, P2PMessageReceipt,
     ReceiveMessageInput,
 };
+use crate::utils::error;
 
 pub fn send_message_handler(message_input: MessageInput) -> ExternResult<MessageAndReceipt> {
-    //MessageAndReceipt
-
     // TODO: check if receiver is blocked
 
     let now = sys_time()?;
@@ -29,13 +28,6 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
                 let p2pfile = P2PFileBytes(file_bytes.clone());
                 create_entry(&p2pfile)?;
                 let file_hash = hash_entry(&p2pfile)?;
-                debug!(
-                    "{}",
-                    format!(
-                        "The file hash for the newly committed file is {}",
-                        file_hash
-                    )
-                );
                 Payload::File {
                     metadata: FileMetadata {
                         file_name: metadata.file_name.clone(),
@@ -51,12 +43,14 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
         reply_to: message_input.reply_to,
     };
 
+    let receipt = P2PMessageReceipt::from_message(message.clone())?;
+    create_entry(&message)?;
+    create_entry(&receipt)?;
+
     let file = match message_input.payload {
         PayloadInput::Text { .. } => None,
         PayloadInput::File { file_bytes, .. } => Some(P2PFileBytes(file_bytes)),
     };
-
-    // let message = P2PMessage::from_input(message_input.clone(), None)?;
 
     // create message input to receive function of recipient
     let receive_input = ReceiveMessageInput(message.clone(), file.clone());
@@ -71,16 +65,8 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
 
     match receive_call_result {
         ZomeCallResponse::Ok(extern_io) => {
-            debug!(
-                "{}",
-                format!("The receiver's receive function has been invoked")
-            );
             let receipt: P2PMessageReceipt = extern_io.decode()?;
-            create_entry(&message)?;
             create_entry(&receipt)?;
-            if let Some(file) = file {
-                create_entry(&file)?;
-            };
 
             // TODO: CREATE AND RETURN ELEMENT HERE
             Ok(MessageAndReceipt(
@@ -88,14 +74,14 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
                 (hash_entry(&receipt)?, receipt),
             ))
         }
+        // This case shouldn't happen because of unrestricted access to receive message
+        // keeping it here for exhaustive matching
         ZomeCallResponse::Unauthorized(_, _, _, _) => {
-            return crate::err(
-                "TODO: 000:",
-                "This case shouldn't happen because of unrestricted access to receive message",
-            );
+            return error("Sorry, something went wrong. [Authorization error]");
         }
-        ZomeCallResponse::NetworkError(error) => {
-            return crate::err("TODO: 000", error.as_str());
+        // Error that might happen when
+        ZomeCallResponse::NetworkError(_e) => {
+            return error("Sorry, something went wrong. [Source chain error]");
         }
     }
 }
