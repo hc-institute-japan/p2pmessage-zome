@@ -1,6 +1,6 @@
 # message-zome
 
-[![hc-institute-japan](https://circleci.com/gh/hc-institute-japan/p2pmessage-zome.svg?style=svg)](https://circleci.com/gh/hc-institute-japan/p2pmessage-zome)
+ <!--- [![hc-institute-japan](https://circleci.com/gh/hc-institute-japan/p2pmessage-zome.svg?style=svg)](https://circleci.com/gh/hc-institute-japan/p2pmessage-zome) --->
 
 Small zome for allowing synchronous (soon asynchronous) messaging between two agents, in Holochain RSM.
 
