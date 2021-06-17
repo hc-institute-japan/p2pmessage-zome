@@ -68,7 +68,6 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
             let receipt: P2PMessageReceipt = extern_io.decode()?;
             create_entry(&receipt)?;
 
-            // TODO: CREATE AND RETURN ELEMENT HERE
             Ok(MessageAndReceipt(
                 (hash_entry(&message)?, message),
                 (hash_entry(&receipt)?, receipt),
@@ -80,8 +79,8 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
             return error("Sorry, something went wrong. [Authorization error]");
         }
         // Error that might happen when
-        ZomeCallResponse::NetworkError(_e) => {
-            return error("Sorry, something went wrong. [Source chain error]");
+        ZomeCallResponse::NetworkError(e) => {
+            return error(&e);
         }
     }
 }

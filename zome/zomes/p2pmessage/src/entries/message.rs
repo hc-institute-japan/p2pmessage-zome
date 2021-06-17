@@ -140,12 +140,21 @@ pub struct ReceiptHash(EntryHash);
 
 // GROUPING STRUCTURES
 #[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
-pub struct MessageBundle(P2PMessage, Vec<String>);
+pub struct MessageBundle(P2PMessageData, Vec<String>);
 
 #[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
 pub struct MessageAndReceipt((EntryHash, P2PMessage), (EntryHash, P2PMessageReceipt));
 
-// HASHMAP OUTPUT STRUCTURES
+// OUTPUT STRUCTURES
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
+pub struct P2PMessageData {
+    author: AgentPubKey,
+    receiver: AgentPubKey,
+    payload: Payload,
+    time_sent: Timestamp,
+    reply_to: Option<P2PMessage>,
+}
+
 #[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
 pub struct AgentMessages(HashMap<String, Vec<String>>);
 
