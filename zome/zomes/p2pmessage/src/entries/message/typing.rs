@@ -1,21 +1,22 @@
 use hdk::prelude::*;
 
-use super::{
-    P2PTypingDetailIO,
-    Signal,
-};
+use super::{P2PTypingDetailIO, Signal, SignalDetails, TypingSignal};
 
 pub fn typing_handler(typing_info: P2PTypingDetailIO) -> ExternResult<()> {
-    let payload = Signal::P2PTypingDetailSignal(P2PTypingDetailIO {
+    let signal = Signal::P2PTypingDetailSignal(TypingSignal {
         agent: agent_info()?.agent_latest_pubkey,
         is_typing: typing_info.is_typing,
     });
 
-    let mut agents = Vec::new();
+    let signal_details = SignalDetails {
+        name: "TYPING_P2P".to_string(),
+        payload: signal,
+    };
+
+    let mut agents: Vec<AgentPubKey> = Vec::new();
 
     agents.push(typing_info.agent);
-    agents.push(agent_info()?.agent_latest_pubkey);
 
-    remote_signal(&payload, agents)?;
+    remote_signal(ExternIO::encode(signal_details.clone())?, agents)?;
     Ok(())
 }

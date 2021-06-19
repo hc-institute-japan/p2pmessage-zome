@@ -6,10 +6,9 @@ use super::{
     MessageAndReceipt, MessageInput, P2PFileBytes, P2PMessage, P2PMessageReceipt,
     ReceiveMessageInput,
 };
+use crate::utils::error;
 
 pub fn send_message_handler(message_input: MessageInput) -> ExternResult<MessageAndReceipt> {
-    //MessageAndReceipt
-
     // TODO: check if receiver is blocked
 
     let now = sys_time()?;
@@ -44,21 +43,16 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
         reply_to: message_input.reply_to,
     };
 
+    let receipt = P2PMessageReceipt::from_message(message.clone())?;
+    create_entry(&message)?;
+    create_entry(&receipt)?;
+
     let file = match message_input.payload {
         PayloadInput::Text { .. } => None,
         PayloadInput::File { file_bytes, .. } => Some(P2PFileBytes(file_bytes)),
     };
 
-    // // create file here
-    // let mut file_hash = None;
-    // if let Some(file) = file {
-    //     file_hash = Some(create_entry(&file)?);
-    // };
-
-    // let message = P2PMessage::from_input(message_input.clone(), None)?;
-
     // create message input to receive function of recipient
-
     let receive_input = ReceiveMessageInput(message.clone(), file.clone());
 
     let receive_call_result: ZomeCallResponse = call_remote(
@@ -72,26 +66,21 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
     match receive_call_result {
         ZomeCallResponse::Ok(extern_io) => {
             let receipt: P2PMessageReceipt = extern_io.decode()?;
-            // create message entry pointing to file
-            create_entry(&message)?;
-            // create receipt
             create_entry(&receipt)?;
 
-            if let Some(file) = file {
-                create_entry(&file)?;
-            };
-
-            // TODO: CREATE AND RETURN ELEMENT HERE
-            Ok(MessageAndReceipt(message, (hash_entry(&receipt)?, receipt)))
+            Ok(MessageAndReceipt(
+                (hash_entry(&message)?, message),
+                (hash_entry(&receipt)?, receipt),
+            ))
         }
+        // This case shouldn't happen because of unrestricted access to receive message
+        // keeping it here for exhaustive matching
         ZomeCallResponse::Unauthorized(_, _, _, _) => {
-            return crate::err(
-                "TODO: 000:",
-                "This case shouldn't happen because of unrestricted access to receive message",
-            );
+            return error("Sorry, something went wrong. [Authorization error]");
         }
-        ZomeCallResponse::NetworkError(error) => {
-            return crate::err("TODO: 000", error.as_str());
+        // Error that might happen when
+        ZomeCallResponse::NetworkError(e) => {
+            return error(&e);
         }
     }
 }
