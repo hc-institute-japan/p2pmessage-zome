@@ -15,6 +15,7 @@ pub mod read_message;
 pub mod receive_message;
 pub mod receive_read_receipt;
 pub mod send_message;
+pub mod send_message_with_timestamp;
 pub mod typing;
 
 use file_types::{FileType, Payload, PayloadInput};
@@ -90,6 +91,15 @@ pub struct MessageInput {
     reply_to: Option<EntryHash>,
 }
 
+// test_stub: test structure for accepting timestamp as input in send_message
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct MessageInputWithTimestamp {
+    receiver: AgentPubKey,
+    payload: PayloadInput,
+    timestamp: Timestamp,
+    reply_to: Option<EntryHash>,
+}
+
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct ReadMessageInput {
     message_hashes: Vec<EntryHash>,
@@ -147,6 +157,7 @@ pub struct MessageAndReceipt((EntryHash, P2PMessage), (EntryHash, P2PMessageRece
 
 // OUTPUT STRUCTURES
 #[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct P2PMessageData {
     author: AgentPubKey,
     receiver: AgentPubKey,

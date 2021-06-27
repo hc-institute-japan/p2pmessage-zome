@@ -99,9 +99,11 @@ pub fn get_latest_messages_handler(batch_size: BatchSize) -> ExternResult<P2PMes
         }
     }
 
-    get_replies(&mut reply_pairs, &mut message_contents)?;
     get_receipts(&mut message_contents, &mut receipt_contents)?;
 
+    debug!("get latest succeeds until get_receipts");
+    get_replies(&mut reply_pairs, &mut message_contents)?;
+    debug!("get latest succeeds until get_replies");
     Ok(P2PMessageHashTables(
         AgentMessages(agent_messages),
         MessageContents(message_contents),

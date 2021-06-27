@@ -90,6 +90,7 @@ pub fn get_replies(
         let message_hash = hash_entry(&message_entry)?;
 
         // look for the reply_to message (timestep - 1)
+        // iterating over all p2pmesssages, if the message has been replied to
         if reply_pairs.contains_key(&message_hash.to_string()) {
             // build reply_to data
             let replied_to_message = P2PMessage {
