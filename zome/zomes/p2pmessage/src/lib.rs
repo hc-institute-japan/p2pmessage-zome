@@ -15,6 +15,7 @@ use message::read_message::read_message_handler;
 use message::receive_message::receive_message_handler;
 use message::receive_read_receipt::receive_read_receipt_handler;
 use message::send_message::send_message_handler;
+use message::send_message_with_timestamp::send_message_with_timestamp_handler;
 use message::typing::typing_handler;
 
 entry_defs![
@@ -47,9 +48,18 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
 }
 
 #[hdk_extern]
-fn send_message(message_input: MessageInput) -> ExternResult<MessageAndReceipt> {
+fn send_message(message_input: MessageInput) -> ExternResult<MessageDataAndReceipt> {
     //MessageAndReceipt
     return send_message_handler(message_input);
+}
+
+// test_stub: used for testing get by timestamp
+#[hdk_extern]
+fn send_message_with_timestamp(
+    message_input: MessageInputWithTimestamp,
+) -> ExternResult<MessageAndReceipt> {
+    //MessageAndReceipt
+    return send_message_with_timestamp_handler(message_input);
 }
 
 #[hdk_extern]

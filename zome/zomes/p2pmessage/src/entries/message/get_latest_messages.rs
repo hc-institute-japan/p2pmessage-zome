@@ -31,7 +31,9 @@ pub fn get_latest_messages_handler(batch_size: BatchSize) -> ExternResult<P2PMes
 
         if message_entry.author.clone() == agent_info()?.agent_latest_pubkey {
             match agent_messages.get(&message_entry.receiver.clone().to_string()) {
-                Some(messages) if messages.len() >= batch_size.0.into() => continue, // break instead?
+                Some(messages) if messages.len() >= batch_size.0.into() => {
+                    continue; // break instead?
+                }
                 Some(messages) if messages.len() < batch_size.0.into() => {
                     if message_entry.reply_to != None {
                         reply_pairs.insert(
@@ -53,6 +55,16 @@ pub fn get_latest_messages_handler(batch_size: BatchSize) -> ExternResult<P2PMes
                     )?;
                 }
                 _ => {
+                    if message_entry.reply_to != None {
+                        reply_pairs.insert(
+                            if let Some(ref reply_to_hash) = message_entry.reply_to {
+                                reply_to_hash.to_string()
+                            } else {
+                                "".to_string()
+                            },
+                            message_hash.to_string(),
+                        );
+                    };
                     insert_message(
                         &mut agent_messages,
                         &mut message_contents,
@@ -87,6 +99,16 @@ pub fn get_latest_messages_handler(batch_size: BatchSize) -> ExternResult<P2PMes
                     )?;
                 }
                 _ => {
+                    if message_entry.reply_to != None {
+                        reply_pairs.insert(
+                            if let Some(ref reply_to_hash) = message_entry.reply_to {
+                                reply_to_hash.to_string()
+                            } else {
+                                "".to_string()
+                            },
+                            message_hash.to_string(),
+                        );
+                    };
                     insert_message(
                         &mut agent_messages,
                         &mut message_contents,
@@ -99,8 +121,9 @@ pub fn get_latest_messages_handler(batch_size: BatchSize) -> ExternResult<P2PMes
         }
     }
 
-    get_replies(&mut reply_pairs, &mut message_contents)?;
     get_receipts(&mut message_contents, &mut receipt_contents)?;
+
+    get_replies(&mut reply_pairs, &mut message_contents)?;
 
     Ok(P2PMessageHashTables(
         AgentMessages(agent_messages),
