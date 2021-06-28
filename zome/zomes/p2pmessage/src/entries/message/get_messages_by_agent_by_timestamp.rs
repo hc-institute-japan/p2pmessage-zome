@@ -1,8 +1,7 @@
 use hdk::prelude::*;
 use std::collections::HashMap;
 
-use super::helpers::get_receipts;
-use super::helpers::insert_message;
+use super::helpers::{get_receipts, get_replies, insert_message};
 use crate::utils::try_from_element;
 
 use super::{
@@ -27,6 +26,7 @@ pub fn get_messages_by_agent_by_timestamp_handler(
     agent_messages.insert(filter.conversant.clone().to_string(), Vec::new());
     let mut message_contents: HashMap<String, MessageBundle> = HashMap::new();
     let mut receipt_contents: HashMap<String, P2PMessageReceipt> = HashMap::new();
+    let mut reply_pairs: HashMap<String, String> = HashMap::new();
 
     let day_start = (filter.date.0 / 86400) * 86400;
     let day_end = day_start + 86399;
@@ -44,6 +44,15 @@ pub fn get_messages_by_agent_by_timestamp_handler(
             match message_entry.payload {
                 Payload::Text { .. } => {
                     if filter.payload_type == "Text" || filter.payload_type == "All" {
+                        reply_pairs.insert(
+                            if let Some(ref reply_to_hash) = message_entry.reply_to {
+                                reply_to_hash.to_string()
+                            } else {
+                                "".to_string()
+                            },
+                            message_hash.to_string(),
+                        );
+
                         insert_message(
                             &mut agent_messages,
                             &mut message_contents,
@@ -55,6 +64,15 @@ pub fn get_messages_by_agent_by_timestamp_handler(
                 }
                 Payload::File { .. } => {
                     if filter.payload_type == "File" || filter.payload_type == "All" {
+                        reply_pairs.insert(
+                            if let Some(ref reply_to_hash) = message_entry.reply_to {
+                                reply_to_hash.to_string()
+                            } else {
+                                "".to_string()
+                            },
+                            message_hash.to_string(),
+                        );
+
                         insert_message(
                             &mut agent_messages,
                             &mut message_contents,
@@ -69,6 +87,8 @@ pub fn get_messages_by_agent_by_timestamp_handler(
     }
 
     get_receipts(&mut message_contents, &mut receipt_contents)?;
+
+    get_replies(&mut reply_pairs, &mut message_contents)?;
 
     Ok(P2PMessageHashTables(
         AgentMessages(agent_messages),

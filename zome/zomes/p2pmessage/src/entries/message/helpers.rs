@@ -4,7 +4,8 @@ use std::collections::HashMap;
 use crate::utils::try_from_element;
 
 use super::{
-    MessageBundle, P2PMessage, P2PMessageData, P2PMessageReceipt, ReceiptContents, Status,
+    MessageBundle, P2PMessage, P2PMessageData, P2PMessageReceipt, P2PMessageReplyTo,
+    ReceiptContents, Status,
 };
 
 pub fn insert_message(
@@ -93,7 +94,8 @@ pub fn get_replies(
         // iterating over all p2pmesssages, if the message has been replied to
         if reply_pairs.contains_key(&message_hash.to_string()) {
             // build reply_to data
-            let replied_to_message = P2PMessage {
+            let replied_to_message = P2PMessageReplyTo {
+                hash: message_hash.clone(),
                 author: message_entry.author,
                 receiver: message_entry.receiver,
                 payload: message_entry.payload,

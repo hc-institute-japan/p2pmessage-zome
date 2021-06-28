@@ -155,7 +155,21 @@ pub struct MessageBundle(P2PMessageData, Vec<String>);
 #[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
 pub struct MessageAndReceipt((EntryHash, P2PMessage), (EntryHash, P2PMessageReceipt));
 
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
+pub struct MessageDataAndReceipt((EntryHash, P2PMessageData), (EntryHash, P2PMessageReceipt));
+
 // OUTPUT STRUCTURES
+#[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct P2PMessageReplyTo {
+    hash: EntryHash,
+    author: AgentPubKey,
+    receiver: AgentPubKey,
+    payload: Payload,
+    time_sent: Timestamp,
+    reply_to: Option<EntryHash>,
+}
+
 #[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct P2PMessageData {
@@ -163,7 +177,7 @@ pub struct P2PMessageData {
     receiver: AgentPubKey,
     payload: Payload,
     time_sent: Timestamp,
-    reply_to: Option<P2PMessage>,
+    reply_to: Option<P2PMessageReplyTo>,
 }
 
 #[derive(From, Into, Serialize, Deserialize, Clone, SerializedBytes, Debug)]

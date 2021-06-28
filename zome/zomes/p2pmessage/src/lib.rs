@@ -48,7 +48,7 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
 }
 
 #[hdk_extern]
-fn send_message(message_input: MessageInput) -> ExternResult<MessageAndReceipt> {
+fn send_message(message_input: MessageInput) -> ExternResult<MessageDataAndReceipt> {
     //MessageAndReceipt
     return send_message_handler(message_input);
 }
