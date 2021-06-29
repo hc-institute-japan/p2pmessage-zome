@@ -1,7 +1,7 @@
 use hdk::prelude::*;
 use std::collections::HashMap;
 
-use super::helpers::{get_receipts, get_replies, insert_message};
+use super::helpers::{get_receipts, get_replies, insert_message, insert_reply};
 use crate::utils::try_from_element;
 
 use super::{
@@ -27,7 +27,7 @@ pub fn get_next_batch_messages_handler(
     agent_messages.insert(filter.conversant.clone().to_string(), Vec::new());
     let mut message_contents: HashMap<String, MessageBundle> = HashMap::new();
     let mut receipt_contents: HashMap<String, P2PMessageReceipt> = HashMap::new();
-    let mut reply_pairs: HashMap<String, String> = HashMap::new();
+    let mut reply_pairs: HashMap<String, Vec<String>> = HashMap::new();
 
     let filter_timestamp = match filter.last_fetched_timestamp {
         Some(timestamp) => timestamp,
@@ -53,14 +53,13 @@ pub fn get_next_batch_messages_handler(
             match message_entry.payload {
                 Payload::Text { .. } => {
                     if filter.payload_type == "Text" || filter.payload_type == "All" {
-                        reply_pairs.insert(
-                            if let Some(ref reply_to_hash) = message_entry.reply_to {
-                                reply_to_hash.to_string()
-                            } else {
-                                "".to_string()
-                            },
-                            message_hash.to_string(),
-                        );
+                        if message_entry.reply_to != None {
+                            insert_reply(
+                                &mut reply_pairs,
+                                message_entry.clone(),
+                                message_hash.clone(),
+                            );
+                        }
 
                         let current_batch_size = insert_message(
                             &mut agent_messages,
@@ -81,14 +80,13 @@ pub fn get_next_batch_messages_handler(
                             || filter.payload_type == "File"
                             || filter.payload_type == "All"
                         {
-                            reply_pairs.insert(
-                                if let Some(ref reply_to_hash) = message_entry.reply_to {
-                                    reply_to_hash.to_string()
-                                } else {
-                                    "".to_string()
-                                },
-                                message_hash.to_string(),
-                            );
+                            if message_entry.reply_to != None {
+                                insert_reply(
+                                    &mut reply_pairs,
+                                    message_entry.clone(),
+                                    message_hash.clone(),
+                                );
+                            }
 
                             let current_batch_size = insert_message(
                                 &mut agent_messages,
@@ -108,14 +106,13 @@ pub fn get_next_batch_messages_handler(
                             || filter.payload_type == "File"
                             || filter.payload_type == "All"
                         {
-                            reply_pairs.insert(
-                                if let Some(ref reply_to_hash) = message_entry.reply_to {
-                                    reply_to_hash.to_string()
-                                } else {
-                                    "".to_string()
-                                },
-                                message_hash.to_string(),
-                            );
+                            if message_entry.reply_to != None {
+                                insert_reply(
+                                    &mut reply_pairs,
+                                    message_entry.clone(),
+                                    message_hash.clone(),
+                                );
+                            }
 
                             let current_batch_size = insert_message(
                                 &mut agent_messages,
@@ -135,14 +132,13 @@ pub fn get_next_batch_messages_handler(
                             || filter.payload_type == "File"
                             || filter.payload_type == "All"
                         {
-                            reply_pairs.insert(
-                                if let Some(ref reply_to_hash) = message_entry.reply_to {
-                                    reply_to_hash.to_string()
-                                } else {
-                                    "".to_string()
-                                },
-                                message_hash.to_string(),
-                            );
+                            if message_entry.reply_to != None {
+                                insert_reply(
+                                    &mut reply_pairs,
+                                    message_entry.clone(),
+                                    message_hash.clone(),
+                                );
+                            }
 
                             let current_batch_size = insert_message(
                                 &mut agent_messages,

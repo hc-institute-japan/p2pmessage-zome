@@ -212,7 +212,7 @@ pub struct SignalDetails {
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct MessageSignal {
-    message: MessageAndReceipt,
+    message: MessageDataAndReceipt,
 }
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct ReceiptSignal {

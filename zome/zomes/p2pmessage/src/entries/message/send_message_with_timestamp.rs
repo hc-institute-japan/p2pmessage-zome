@@ -1,19 +1,18 @@
 use hdk::prelude::*;
 
+use crate::utils::try_from_element;
 use file_types::{FileMetadata, Payload, PayloadInput};
 
 use super::{
-    MessageAndReceipt, MessageInputWithTimestamp, P2PFileBytes, P2PMessage, P2PMessageReceipt,
-    ReceiveMessageInput,
+    MessageDataAndReceipt, MessageInputWithTimestamp, P2PFileBytes, P2PMessage, P2PMessageData,
+    P2PMessageReceipt, P2PMessageReplyTo, ReceiveMessageInput,
 };
 use crate::utils::error;
 
 // test_stub: this zome function is a test function to test get by timestamp
 pub fn send_message_with_timestamp_handler(
     message_input: MessageInputWithTimestamp,
-) -> ExternResult<MessageAndReceipt> {
-    // TODO: check if receiver is blocked
-
+) -> ExternResult<MessageDataAndReceipt> {
     let message = P2PMessage {
         author: agent_info()?.agent_latest_pubkey,
         receiver: message_input.receiver,
@@ -69,8 +68,58 @@ pub fn send_message_with_timestamp_handler(
             let receipt: P2PMessageReceipt = extern_io.decode()?;
             create_entry(&receipt)?;
 
-            Ok(MessageAndReceipt(
-                (hash_entry(&message)?, message),
+            let queried_messages: Vec<Element> = query(
+                QueryFilter::new()
+                    .entry_type(EntryType::App(AppEntryType::new(
+                        EntryDefIndex::from(0),
+                        zome_info()?.zome_id,
+                        EntryVisibility::Private,
+                    )))
+                    .include_entries(true),
+            )?;
+
+            let message_return;
+            for queried_message in queried_messages.clone().into_iter() {
+                let message_entry: P2PMessage = try_from_element(queried_message)?;
+                let message_hash = hash_entry(&message_entry)?;
+
+                if let Some(ref reply_to_hash) = message.reply_to {
+                    if *reply_to_hash == message_hash {
+                        let replied_to_message = P2PMessageReplyTo {
+                            hash: message_hash.clone(),
+                            author: message_entry.author,
+                            receiver: message_entry.receiver,
+                            payload: message_entry.payload,
+                            time_sent: message_entry.time_sent,
+                            reply_to: None,
+                        };
+
+                        message_return = P2PMessageData {
+                            author: message.author.clone(),
+                            receiver: message.receiver.clone(),
+                            payload: message.payload.clone(),
+                            time_sent: message.time_sent.clone(),
+                            reply_to: Some(replied_to_message),
+                        };
+
+                        return Ok(MessageDataAndReceipt(
+                            (hash_entry(&message)?, message_return),
+                            (hash_entry(&receipt)?, receipt),
+                        ));
+                    }
+                }
+            }
+
+            message_return = P2PMessageData {
+                author: message.author.clone(),
+                receiver: message.receiver.clone(),
+                payload: message.payload.clone(),
+                time_sent: message.time_sent.clone(),
+                reply_to: None,
+            };
+
+            Ok(MessageDataAndReceipt(
+                (hash_entry(&message)?, message_return),
                 (hash_entry(&receipt)?, receipt),
             ))
         }

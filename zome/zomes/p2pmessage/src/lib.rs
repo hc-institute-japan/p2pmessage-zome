@@ -57,7 +57,7 @@ fn send_message(message_input: MessageInput) -> ExternResult<MessageDataAndRecei
 #[hdk_extern]
 fn send_message_with_timestamp(
     message_input: MessageInputWithTimestamp,
-) -> ExternResult<MessageAndReceipt> {
+) -> ExternResult<MessageDataAndReceipt> {
     //MessageAndReceipt
     return send_message_with_timestamp_handler(message_input);
 }

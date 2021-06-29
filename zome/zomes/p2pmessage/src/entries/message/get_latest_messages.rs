@@ -1,7 +1,7 @@
 use hdk::prelude::*;
 use std::collections::HashMap;
 
-use super::helpers::{get_receipts, get_replies, insert_message};
+use super::helpers::{get_receipts, get_replies, insert_message, insert_reply};
 use crate::utils::try_from_element;
 
 use super::{
@@ -23,7 +23,7 @@ pub fn get_latest_messages_handler(batch_size: BatchSize) -> ExternResult<P2PMes
     let mut agent_messages: HashMap<String, Vec<String>> = HashMap::new();
     let mut message_contents: HashMap<String, MessageBundle> = HashMap::new();
     let mut receipt_contents: HashMap<String, P2PMessageReceipt> = HashMap::new();
-    let mut reply_pairs: HashMap<String, String> = HashMap::new();
+    let mut reply_pairs: HashMap<String, Vec<String>> = HashMap::new();
 
     for message in queried_messages.into_iter() {
         let message_entry: P2PMessage = try_from_element(message)?;
@@ -36,13 +36,10 @@ pub fn get_latest_messages_handler(batch_size: BatchSize) -> ExternResult<P2PMes
                 }
                 Some(messages) if messages.len() < batch_size.0.into() => {
                     if message_entry.reply_to != None {
-                        reply_pairs.insert(
-                            if let Some(ref reply_to_hash) = message_entry.reply_to {
-                                reply_to_hash.to_string()
-                            } else {
-                                "".to_string()
-                            },
-                            message_hash.to_string(),
+                        insert_reply(
+                            &mut reply_pairs,
+                            message_entry.clone(),
+                            message_hash.clone(),
                         );
                     }
 
@@ -56,13 +53,10 @@ pub fn get_latest_messages_handler(batch_size: BatchSize) -> ExternResult<P2PMes
                 }
                 _ => {
                     if message_entry.reply_to != None {
-                        reply_pairs.insert(
-                            if let Some(ref reply_to_hash) = message_entry.reply_to {
-                                reply_to_hash.to_string()
-                            } else {
-                                "".to_string()
-                            },
-                            message_hash.to_string(),
+                        insert_reply(
+                            &mut reply_pairs,
+                            message_entry.clone(),
+                            message_hash.clone(),
                         );
                     };
                     insert_message(
@@ -80,13 +74,10 @@ pub fn get_latest_messages_handler(batch_size: BatchSize) -> ExternResult<P2PMes
                 Some(messages) if messages.len() >= batch_size.0.into() => continue, // break instead?
                 Some(messages) if messages.len() < batch_size.0.into() => {
                     if message_entry.reply_to != None {
-                        reply_pairs.insert(
-                            if let Some(ref reply_to_hash) = message_entry.reply_to {
-                                reply_to_hash.to_string()
-                            } else {
-                                "".to_string()
-                            },
-                            message_hash.to_string(),
+                        insert_reply(
+                            &mut reply_pairs,
+                            message_entry.clone(),
+                            message_hash.clone(),
                         );
                     }
 
@@ -100,13 +91,10 @@ pub fn get_latest_messages_handler(batch_size: BatchSize) -> ExternResult<P2PMes
                 }
                 _ => {
                     if message_entry.reply_to != None {
-                        reply_pairs.insert(
-                            if let Some(ref reply_to_hash) = message_entry.reply_to {
-                                reply_to_hash.to_string()
-                            } else {
-                                "".to_string()
-                            },
-                            message_hash.to_string(),
+                        insert_reply(
+                            &mut reply_pairs,
+                            message_entry.clone(),
+                            message_hash.clone(),
                         );
                     };
                     insert_message(
