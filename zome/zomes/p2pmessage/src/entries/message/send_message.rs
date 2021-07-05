@@ -44,9 +44,9 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
         reply_to: message_input.reply_to,
     };
 
-    let receipt = P2PMessageReceipt::from_message(message.clone())?;
-    create_entry(&message)?;
-    create_entry(&receipt)?;
+    let sent_receipt = P2PMessageReceipt::from_message(message.clone())?;
+    // create_entry(&message)?;
+    // create_entry(&receipt)?;
 
     let file = match message_input.payload {
         PayloadInput::Text { .. } => None,
@@ -67,6 +67,8 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
     match receive_call_result {
         ZomeCallResponse::Ok(extern_io) => {
             let receipt: P2PMessageReceipt = extern_io.decode()?;
+            create_entry(&message)?;
+            create_entry(&sent_receipt)?;
             create_entry(&receipt)?;
 
             let queried_messages: Vec<Element> = query(
@@ -130,8 +132,9 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
             return error("Sorry, something went wrong. [Authorization error]");
         }
         // Error that might happen when
-        ZomeCallResponse::NetworkError(e) => {
-            return error(&e);
+        ZomeCallResponse::NetworkError(_e) => {
+            // return error(&e);
+            return error("Sorry, something went wrong. [Network error]");
         }
     }
 }
