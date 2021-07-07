@@ -107,7 +107,7 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
 
                         return Ok(MessageDataAndReceipt(
                             (hash_entry(&message)?, message_return),
-                            (hash_entry(&receipt)?, receipt),
+                            (hash_entry(&received_receipt)?, received_receipt),
                         ));
                     }
                 }
@@ -123,7 +123,7 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
 
             Ok(MessageDataAndReceipt(
                 (hash_entry(&message)?, message_return),
-                (hash_entry(&receipt)?, receipt),
+                (hash_entry(&received_receipt)?, received_receipt),
             ))
         }
         // This case shouldn't happen because of unrestricted access to receive message
