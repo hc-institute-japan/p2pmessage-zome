@@ -11,11 +11,13 @@ use message::get_latest_messages::get_latest_messages_handler;
 use message::get_messages_by_agent_by_timestamp::get_messages_by_agent_by_timestamp_handler;
 use message::get_next_batch_messages::get_next_batch_messages_handler;
 use message::init::init_handler;
+use message::pin_message::pin_message_handler;
 use message::read_message::read_message_handler;
 use message::receive_message::receive_message_handler;
 use message::receive_read_receipt::receive_read_receipt_handler;
 use message::send_message::send_message_handler;
 use message::send_message_with_timestamp::send_message_with_timestamp_handler;
+use message::sync_pins::sync_pins_handler;
 use message::typing::typing_handler;
 
 entry_defs![
@@ -102,4 +104,14 @@ fn receive_read_receipt(receipt: P2PMessageReceipt) -> ExternResult<ReceiptConte
 #[hdk_extern]
 fn get_file_bytes(file_hashes: Vec<EntryHash>) -> ExternResult<FileContents> {
     return get_file_bytes_handler(file_hashes);
+}
+
+#[hdk_extern]
+fn pin_message_handler(pin_message_input: PinMessageInput) -> ExternResult<PinContents> {
+    return pin_message_handler(pin_message_input);
+}
+
+#[hdk_extern]
+fn sync_pins_handler(pin: P2PMessagePin) -> ExternResult<PinContents> {
+    return sync_pins_handler(pin);
 }

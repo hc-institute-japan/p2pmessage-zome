@@ -124,7 +124,7 @@ pub struct ReadMessageInput {
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct PinMessageInput {
     message_hashes: Vec<EntryHash>,
-    sender: AgentPubKey,
+    conversant: AgentPubKey,
     status: String,
     timestamp: Timestamp,
 }

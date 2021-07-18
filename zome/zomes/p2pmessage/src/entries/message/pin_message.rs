@@ -23,7 +23,7 @@ pub fn pin_message_handler(pin_message_input: PinMessageInput) -> ExternResult<P
     pinned_messages.insert(pin_hash.to_string(), pin.clone());
 
     let zome_call_response: ZomeCallResponse = call_remote(
-        pin_message_input.sender,
+        pin_message_input.conversant,
         zome_info()?.zome_name,
         FunctionName("sync_pins".into()),
         None,
