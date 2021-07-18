@@ -11,11 +11,13 @@ pub mod get_messages_by_agent_by_timestamp;
 pub mod get_next_batch_messages;
 pub mod helpers;
 pub mod init;
+pub mod pin_message;
 pub mod read_message;
 pub mod receive_message;
 pub mod receive_read_receipt;
 pub mod send_message;
 pub mod send_message_with_timestamp;
+pub mod sync_pins;
 pub mod typing;
 
 use file_types::{FileType, Payload, PayloadInput};
