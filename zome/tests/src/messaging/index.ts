@@ -1,4 +1,5 @@
 import { Orchestrator, Player } from "@holochain/tryorama";
+import { ScenarioApi } from "@holochain/tryorama/lib/api";
 import { Base64 } from "js-base64";
 import { Installables } from "../types";
 import { delay } from "../utils";
@@ -101,8 +102,8 @@ function sendMessageSignalHandler(signal, data) {
 const messaging = async (conductorConfig, installation: Installables) => {
   let orchestrator = new Orchestrator();
 
-  orchestrator.registerScenario("p2pmessage", async (s, t) => {
-    const [alice, bobby, carly]: Player[] = await s.players([
+  orchestrator.registerScenario("p2pmessage", async (s: ScenarioApi, t) => {
+    const [alice, bobby, carly] = await s.players([
       conductorConfig,
       conductorConfig,
       conductorConfig,
@@ -133,16 +134,19 @@ const messaging = async (conductorConfig, installation: Installables) => {
     agent_pubkey_carly_string = agent_pubkey_carly_string.replace(/\//g, "_");
     agent_pubkey_carly_string = agent_pubkey_carly_string.replace(/\+/g, "-");
 
-    // let list = {};
-    // alice.setSignalHandler((signal) => {
-    //   sendMessageSignalHandler(signal, list)(agent_pubkey_alice);
-    // });
-    // alice.setSignalHandler((signal) => {
-    //   sendMessageSignalHandler(signal, list)(agent_pubkey_bobby);
-    // });
-    // alice.setSignalHandler((signal) => {
-    //   sendMessageSignalHandler(signal, list)(agent_pubkey_bobby);
-    // });
+    let list = {};
+    alice.setSignalHandler((signal) => {
+      // sendMessageSignalHandler(signal, list)(agent_pubkey_alice);
+      console.log("receiving signal...", signal);
+    });
+    bobby.setSignalHandler((signal) => {
+      // sendMessageSignalHandler(signal, list)(agent_pubkey_bobby);
+      console.log("receiving signal...", signal);
+    });
+    carly.setSignalHandler((signal) => {
+      // sendMessageSignalHandler(signal, list)(agent_pubkey_bobby);
+      console.log("receiving signal...", signal);
+    });
 
     const message_1 = {
       receiver: agent_pubkey_bobby,
