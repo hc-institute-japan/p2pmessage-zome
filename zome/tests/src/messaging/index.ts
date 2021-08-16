@@ -422,8 +422,10 @@ const messaging = async (conductorConfig, installation: Installables) => {
       batch_size: 3,
       payload_type: "Text",
       last_fetched_timestamp: last_message_alice[0].timeSent,
-      last_fetched_message_id: last_message_alice_receipt_id,
+      last_fetched_message_id: last_message_alice_receipt_id[0],
     };
+
+    console.log("nicko batch_filter", batch_filter_alice);
 
     const bobby_next_batch_1 = await getNextBatchMessages(batch_filter_alice)(
       bobby_cell
@@ -464,7 +466,7 @@ const messaging = async (conductorConfig, installation: Installables) => {
       batch_size: 2,
       payload_type: "Text",
       last_fetched_timestamp: last_message_carly[0].timeSent,
-      last_fetched_message_id: last_message_carly_receipt_id,
+      last_fetched_message_id: last_message_carly_receipt_id[0],
     };
 
     const bobby_next_batch_2 = await getNextBatchMessages(batch_filter_carly)(
