@@ -35,7 +35,7 @@ const installables: Installables = {
 
 messaging(conductorConfig, installables);
 // receipts(conductorConfig, installables);
-// signals(conductorConfig, installables);
-// pin(conductorConfig, installables);
-// jumps(conductorConfig, installables);
+signals(conductorConfig, installables);
+pin(conductorConfig, installables);
+jumps(conductorConfig, installables);
 // playground(conductorConfig, installables);
