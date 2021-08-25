@@ -44,9 +44,7 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
         reply_to: message_input.reply_to,
     };
 
-    let sent_receipt = P2PMessageReceipt::from_message(message.clone())?;
     create_entry(&message)?;
-    create_entry(&sent_receipt)?;
 
     let file = match message_input.payload {
         PayloadInput::Text { .. } => None,
@@ -67,8 +65,6 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
     match receive_call_result {
         ZomeCallResponse::Ok(extern_io) => {
             let received_receipt: P2PMessageReceipt = extern_io.decode()?;
-            // create_entry(&message)?;
-            // create_entry(&receipt)?;
             create_entry(&received_receipt)?;
 
             let queried_messages: Vec<Element> = query(
