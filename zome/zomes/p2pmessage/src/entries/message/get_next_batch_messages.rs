@@ -31,10 +31,7 @@ pub fn get_next_batch_messages_handler(
 
     let filter_timestamp = match filter.last_fetched_timestamp {
         Some(timestamp) => timestamp,
-        None => {
-            let now = sys_time()?;
-            Timestamp(now.as_secs() as i64, 0)
-        }
+        None => sys_time()?,
     };
 
     for message in queried_messages.into_iter() {

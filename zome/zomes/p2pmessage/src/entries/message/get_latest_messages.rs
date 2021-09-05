@@ -113,6 +113,19 @@ pub fn get_latest_messages_handler(batch_size: BatchSize) -> ExternResult<P2PMes
 
     get_replies(&mut reply_pairs, &mut message_contents)?;
 
+    // debug!(
+    //     "nicko get latest agent messages {:?}",
+    //     agent_messages.clone()
+    // );
+    // debug!(
+    //     "nicko get latest message contents {:?}",
+    //     message_contents.clone()
+    // );
+    // debug!(
+    //     "nicko get latest receipt contents {:?}",
+    //     receipt_contents.clone()
+    // );
+
     Ok(P2PMessageHashTables(
         AgentMessages(agent_messages),
         MessageContents(message_contents),

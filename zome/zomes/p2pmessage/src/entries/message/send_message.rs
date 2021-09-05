@@ -12,8 +12,6 @@ use crate::utils::error;
 pub fn send_message_handler(message_input: MessageInput) -> ExternResult<MessageDataAndReceipt> {
     // TODO: check if receiver is blocked
 
-    let now = sys_time()?;
-
     let message = P2PMessage {
         author: agent_info()?.agent_latest_pubkey,
         receiver: message_input.receiver,
@@ -27,7 +25,16 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
                 ref file_bytes,
             } => {
                 let p2pfile = P2PFileBytes(file_bytes.clone());
-                create_entry(&p2pfile)?;
+                // create_entry(&p2pfile)?;
+                let p2pfile_entry = Entry::App(p2pfile.clone().try_into()?);
+                host_call::<CreateInput, HeaderHash>(
+                    __create,
+                    CreateInput::new(
+                        P2PFileBytes::entry_def().id,
+                        p2pfile_entry,
+                        ChainTopOrdering::Relaxed,
+                    ),
+                )?;
                 let file_hash = hash_entry(&p2pfile)?;
                 Payload::File {
                     metadata: FileMetadata {
@@ -40,11 +47,20 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
                 }
             }
         },
-        time_sent: Timestamp(now.as_secs() as i64, now.subsec_nanos()),
+        time_sent: sys_time()?,
         reply_to: message_input.reply_to,
     };
 
-    create_entry(&message)?;
+    // create_entry(&message)?;
+    let message_entry = Entry::App(message.clone().try_into()?);
+    host_call::<CreateInput, HeaderHash>(
+        __create,
+        CreateInput::new(
+            P2PMessage::entry_def().id,
+            message_entry,
+            ChainTopOrdering::Relaxed,
+        ),
+    )?;
 
     let file = match message_input.payload {
         PayloadInput::Text { .. } => None,
@@ -65,7 +81,16 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
     match receive_call_result {
         ZomeCallResponse::Ok(extern_io) => {
             let received_receipt: P2PMessageReceipt = extern_io.decode()?;
-            create_entry(&received_receipt)?;
+            // create_entry(&received_receipt)?;
+            let received_receipt_entry = Entry::App(received_receipt.clone().try_into()?);
+            host_call::<CreateInput, HeaderHash>(
+                __create,
+                CreateInput::new(
+                    P2PMessageReceipt::entry_def().id,
+                    received_receipt_entry,
+                    ChainTopOrdering::Relaxed,
+                ),
+            )?;
 
             let queried_messages: Vec<Element> = query(
                 QueryFilter::new()
@@ -129,8 +154,14 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
         }
         // Error that might happen when
         ZomeCallResponse::NetworkError(_e) => {
+            // debug!("Nicko send message network error {:?}", e);
             // return error(&e);
             return error("Sorry, something went wrong. [Network error]");
+        }
+        ZomeCallResponse::CountersigningSession(_e) => {
+            // debug!("Nicko send message countersigning error {:?}", e);
+            // return error(&e);
+            return error("Sorry, something went wrong. [Countersigning error]");
         }
     }
 }

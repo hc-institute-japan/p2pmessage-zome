@@ -92,11 +92,10 @@ entry_def!(P2PMessagePin EntryDef {
 // ENTRY IMPLEMENTATIONS
 impl P2PMessageReceipt {
     pub fn from_message(message: P2PMessage) -> ExternResult<Self> {
-        let now = sys_time()?;
         let receipt = P2PMessageReceipt {
             id: vec![hash_entry(&message)?],
             status: Status::Delivered {
-                timestamp: Timestamp(now.as_secs() as i64, now.subsec_nanos()),
+                timestamp: sys_time()?,
             },
         };
         Ok(receipt)
@@ -141,7 +140,7 @@ pub struct ReceiveMessageInput(P2PMessage, Option<P2PFileBytes>);
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 #[serde(tag = "status", rename_all = "camelCase")]
 pub enum Status {
-    Sent,
+    Sent { timestamp: Timestamp },
     Delivered { timestamp: Timestamp },
     Read { timestamp: Timestamp },
 }

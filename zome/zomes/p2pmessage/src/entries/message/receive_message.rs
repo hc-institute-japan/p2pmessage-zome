@@ -1,17 +1,45 @@
 use hdk::prelude::*;
 
 use super::{
-    MessageDataAndReceipt, MessageSignal, P2PMessage, P2PMessageData, P2PMessageReceipt,
-    P2PMessageReplyTo, ReceiveMessageInput, Signal, SignalDetails,
+    MessageDataAndReceipt, MessageSignal, P2PFileBytes, P2PMessage, P2PMessageData,
+    P2PMessageReceipt, P2PMessageReplyTo, ReceiveMessageInput, Signal, SignalDetails,
 };
 use crate::utils::try_from_element;
 
 pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMessageReceipt> {
     let receipt = P2PMessageReceipt::from_message(input.0.clone())?;
-    create_entry(&input.0)?;
-    create_entry(&receipt)?;
+    // create_entry(&input.0)?;
+    // create_entry(&receipt)?;
+    let receipt_entry = Entry::App(receipt.clone().try_into()?);
+    let message_entry = Entry::App(input.0.clone().try_into()?);
+    host_call::<CreateInput, HeaderHash>(
+        __create,
+        CreateInput::new(
+            P2PMessage::entry_def().id,
+            message_entry,
+            ChainTopOrdering::Relaxed,
+        ),
+    )?;
+    host_call::<CreateInput, HeaderHash>(
+        __create,
+        CreateInput::new(
+            P2PMessageReceipt::entry_def().id,
+            receipt_entry,
+            ChainTopOrdering::Relaxed,
+        ),
+    )?;
+
     if let Some(file) = input.1 {
-        create_entry(&file)?;
+        // create_entry(&file)?;
+        let file_entry = Entry::App(file.clone().try_into()?);
+        host_call::<CreateInput, HeaderHash>(
+            __create,
+            CreateInput::new(
+                P2PFileBytes::entry_def().id,
+                file_entry,
+                ChainTopOrdering::Relaxed,
+            ),
+        )?;
     };
 
     let queried_messages: Vec<Element> = query(

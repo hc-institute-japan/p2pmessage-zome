@@ -132,5 +132,8 @@ pub fn send_message_with_timestamp_handler(
         ZomeCallResponse::NetworkError(e) => {
             return error(&e);
         }
+        ZomeCallResponse::CountersigningSession(_e) => {
+            return error("Sorry, something went wrong. [Countersigning error]");
+        }
     }
 }
