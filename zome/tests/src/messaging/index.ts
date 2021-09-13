@@ -410,27 +410,35 @@ const messaging = async (conductorConfig, installation: Installables) => {
     // console.log("Bobby gets the next batch (size 1) of messages from Alice");
 
     const last_message_alice_hash_string =
-      bobby_latest_messages_1[0][agent_pubkey_alice_string];
+      bobby_latest_messages_1[0][agent_pubkey_alice_string][0];
+    console.log(
+      "nicko next last message hash array",
+      bobby_latest_messages_1[0][agent_pubkey_alice_string]
+    );
+    console.log("nicko next last message hash", last_message_alice_hash_string);
     const last_message_alice =
-      bobby_latest_messages_1[1][last_message_alice_hash_string];
-    const last_message_alice_receipt_hash_string = last_message_alice[1][0];
-    const last_message_alice_receipt_id =
-      bobby_latest_messages_1[2][last_message_alice_receipt_hash_string].id;
+      bobby_latest_messages_1[1][last_message_alice_hash_string][0];
+    console.log("nicko next last message entry", last_message_alice);
+    console.log(
+      "nicko next last message entry payload",
+      last_message_alice.payload.payload
+    );
 
     const batch_filter_alice = {
       conversant: agent_pubkey_alice,
       batch_size: 3,
       payload_type: "Text",
-      last_fetched_timestamp: last_message_alice[0].timeSent,
-      last_fetched_message_id: last_message_alice_receipt_id[0],
+      last_fetched_timestamp: last_message_alice.timeSent,
+      last_fetched_message_id: last_message_alice_hash_string,
     };
-
-    console.log("nicko batch_filter", batch_filter_alice);
 
     const bobby_next_batch_1 = await getNextBatchMessages(batch_filter_alice)(
       bobby_cell
     );
     await delay(1000);
+
+    console.log("bobby next batch filter", batch_filter_alice);
+    console.log("bobby next batch 1", bobby_next_batch_1);
 
     // 32-33
     for (var agent_key in bobby_next_batch_1[0]) {
@@ -454,7 +462,7 @@ const messaging = async (conductorConfig, installation: Installables) => {
     // console.log("Bobby gets the next batch (size 2) of messages from Carly");
 
     const last_message_carly_hash_string =
-      bobby_latest_messages_1[0][agent_pubkey_carly_string];
+      bobby_latest_messages_1[0][agent_pubkey_carly_string][0];
     const last_message_carly =
       bobby_latest_messages_1[1][last_message_carly_hash_string];
     const last_message_carly_receipt_hash_string = last_message_carly[1][0];
@@ -466,7 +474,7 @@ const messaging = async (conductorConfig, installation: Installables) => {
       batch_size: 2,
       payload_type: "Text",
       last_fetched_timestamp: last_message_carly[0].timeSent,
-      last_fetched_message_id: last_message_carly_receipt_id[0],
+      last_fetched_message_id: last_message_carly_hash_string,
     };
 
     const bobby_next_batch_2 = await getNextBatchMessages(batch_filter_carly)(

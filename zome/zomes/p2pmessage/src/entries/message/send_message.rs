@@ -1,6 +1,6 @@
 use hdk::prelude::*;
 
-use crate::utils::try_from_element;
+// use crate::utils::try_from_element;
 use file_types::{FileMetadata, Payload, PayloadInput};
 
 use super::{
@@ -70,6 +70,34 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
     // create message input to receive function of recipient
     let receive_input = ReceiveMessageInput(message.clone(), file.clone());
 
+    let base_hash: EntryHash = agent_info()?.agent_latest_pubkey.into();
+    host_call::<CreateLinkInput, HeaderHash>(
+        __create_link,
+        CreateLinkInput::new(
+            base_hash.clone(),
+            hash_entry(&message)?,
+            LinkTag::new("messages"),
+            ChainTopOrdering::Relaxed,
+        ),
+    )?;
+
+    let base_hash_2: EntryHash = message.clone().receiver.into();
+    host_call::<CreateLinkInput, HeaderHash>(
+        __create_link,
+        CreateLinkInput::new(
+            base_hash_2.clone(),
+            hash_entry(&message)?,
+            LinkTag::new("messages_2"),
+            ChainTopOrdering::Relaxed,
+        ),
+    )?;
+
+    let links = get_links(base_hash.clone(), Some(LinkTag::new("messages")))?;
+    debug!(
+        "nicko send message links from base {:?} are {:?}",
+        base_hash, links
+    );
+
     let receive_call_result: ZomeCallResponse = call_remote(
         message.receiver.clone(),
         zome_info()?.zome_name,
@@ -104,7 +132,9 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
 
             let message_return;
             for queried_message in queried_messages.clone().into_iter() {
-                let message_entry: P2PMessage = try_from_element(queried_message)?;
+                debug!("nicko send {:?}", queried_message);
+                // let message_entry: P2PMessage = try_from_element(queried_message)?;
+                let message_entry: P2PMessage = queried_message.try_into()?;
                 let message_hash = hash_entry(&message_entry)?;
 
                 if let Some(ref reply_to_hash) = message.reply_to {

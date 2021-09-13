@@ -2,7 +2,7 @@ use hdk::prelude::*;
 use std::collections::HashMap;
 
 use super::helpers::{get_receipts, get_replies, insert_message, insert_reply};
-use crate::utils::try_from_element;
+// use crate::utils::try_from_element;
 
 use super::{
     AgentMessages, BatchSize, MessageBundle, MessageContents, P2PMessage, P2PMessageHashTables,
@@ -26,13 +26,14 @@ pub fn get_latest_messages_handler(batch_size: BatchSize) -> ExternResult<P2PMes
     let mut reply_pairs: HashMap<String, Vec<String>> = HashMap::new();
 
     for message in queried_messages.into_iter() {
-        let message_entry: P2PMessage = try_from_element(message)?;
+        // let message_entry: P2PMessage = try_from_element(message)?;
+        let message_entry: P2PMessage = message.try_into()?;
         let message_hash: EntryHash = hash_entry(&message_entry)?;
 
         if message_entry.author.clone() == agent_info()?.agent_latest_pubkey {
             match agent_messages.get(&message_entry.receiver.clone().to_string()) {
                 Some(messages) if messages.len() >= batch_size.0.into() => {
-                    continue; // break instead?
+                    continue; // continue to fill in other agent's hashmaps
                 }
                 Some(messages) if messages.len() < batch_size.0.into() => {
                     if message_entry.reply_to != None {

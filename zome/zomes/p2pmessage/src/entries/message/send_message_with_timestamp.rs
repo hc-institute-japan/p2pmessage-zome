@@ -1,6 +1,6 @@
 use hdk::prelude::*;
 
-use crate::utils::try_from_element;
+// use crate::utils::try_from_element;
 use file_types::{FileMetadata, Payload, PayloadInput};
 
 use super::{
@@ -26,7 +26,16 @@ pub fn send_message_with_timestamp_handler(
                 ref file_bytes,
             } => {
                 let p2pfile = P2PFileBytes(file_bytes.clone());
-                create_entry(&p2pfile)?;
+                // create_entry(&p2pfile)?;
+                let file_entry = Entry::App(p2pfile.clone().try_into()?);
+                host_call::<CreateInput, HeaderHash>(
+                    __create,
+                    CreateInput::new(
+                        P2PFileBytes::entry_def().id,
+                        file_entry,
+                        ChainTopOrdering::Relaxed,
+                    ),
+                )?;
                 let file_hash = hash_entry(&p2pfile)?;
                 Payload::File {
                     metadata: FileMetadata {
@@ -44,8 +53,27 @@ pub fn send_message_with_timestamp_handler(
     };
 
     let receipt = P2PMessageReceipt::from_message(message.clone())?;
-    create_entry(&message)?;
-    create_entry(&receipt)?;
+    // create_entry(&message)?;
+    // create_entry(&receipt)?;
+
+    let message_entry = Entry::App(message.clone().try_into()?);
+    host_call::<CreateInput, HeaderHash>(
+        __create,
+        CreateInput::new(
+            P2PMessage::entry_def().id,
+            message_entry,
+            ChainTopOrdering::Relaxed,
+        ),
+    )?;
+    let receipt_entry = Entry::App(receipt.clone().try_into()?);
+    host_call::<CreateInput, HeaderHash>(
+        __create,
+        CreateInput::new(
+            P2PMessageReceipt::entry_def().id,
+            receipt_entry,
+            ChainTopOrdering::Relaxed,
+        ),
+    )?;
 
     let file = match message_input.payload {
         PayloadInput::Text { .. } => None,
@@ -66,7 +94,16 @@ pub fn send_message_with_timestamp_handler(
     match receive_call_result {
         ZomeCallResponse::Ok(extern_io) => {
             let receipt: P2PMessageReceipt = extern_io.decode()?;
-            create_entry(&receipt)?;
+            // create_entry(&receipt)?;
+            let receipt_entry = Entry::App(receipt.clone().try_into()?);
+            host_call::<CreateInput, HeaderHash>(
+                __create,
+                CreateInput::new(
+                    P2PMessageReceipt::entry_def().id,
+                    receipt_entry,
+                    ChainTopOrdering::Relaxed,
+                ),
+            )?;
 
             let queried_messages: Vec<Element> = query(
                 QueryFilter::new()
@@ -80,7 +117,8 @@ pub fn send_message_with_timestamp_handler(
 
             let message_return;
             for queried_message in queried_messages.clone().into_iter() {
-                let message_entry: P2PMessage = try_from_element(queried_message)?;
+                // let message_entry: P2PMessage = try_from_element(queried_message)?;
+                let message_entry: P2PMessage = queried_message.try_into()?;
                 let message_hash = hash_entry(&message_entry)?;
 
                 if let Some(ref reply_to_hash) = message.reply_to {

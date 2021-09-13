@@ -6,7 +6,16 @@ use std::collections::HashMap;
 use super::{P2PMessagePin, PinContents, PinSignal, Signal, SignalDetails};
 
 pub fn sync_pins_handler(pin: P2PMessagePin) -> ExternResult<PinContents> {
-    let pin_hash = create_entry(&pin)?;
+    // let pin_hash = create_entry(&pin)?;
+    let pin_entry = Entry::App(pin.clone().try_into()?);
+    let pin_hash = host_call::<CreateInput, HeaderHash>(
+        __create,
+        CreateInput::new(
+            P2PMessagePin::entry_def().id,
+            pin_entry,
+            ChainTopOrdering::Relaxed,
+        ),
+    )?;
 
     let mut pin_contents: HashMap<String, P2PMessagePin> = HashMap::new();
     pin_contents.insert(pin_hash.to_string(), pin.clone());

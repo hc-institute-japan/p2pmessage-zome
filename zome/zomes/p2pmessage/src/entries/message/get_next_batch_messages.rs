@@ -2,12 +2,28 @@ use hdk::prelude::*;
 use std::collections::HashMap;
 
 use super::helpers::{get_receipts, get_replies, insert_message, insert_reply};
-use crate::utils::try_from_element;
+// use crate::utils::try_from_element;
 
 use super::{
     AgentMessages, FileType, MessageBundle, MessageContents, P2PMessage, P2PMessageFilterBatch,
     P2PMessageHashTables, P2PMessageReceipt, Payload, ReceiptContents,
 };
+
+// fn time_check(t1: Timestamp, t2: Timestamp) -> bool {
+//     let second_diff = t2.0 - t1.0;
+//     if second_diff > 0 {
+//         return true;
+//     } else if second_diff < 0 {
+//         return false;
+//     } else {
+//         let nano_diff = t2.1 - t1.1;
+//         if nano_diff > 0 {
+//             return true;
+//         } else {
+//             return false;
+//         }
+//     }
+// }
 
 pub fn get_next_batch_messages_handler(
     filter: P2PMessageFilterBatch,
@@ -35,10 +51,11 @@ pub fn get_next_batch_messages_handler(
     };
 
     for message in queried_messages.into_iter() {
-        let message_entry: P2PMessage = try_from_element(message)?;
+        let message_entry: P2PMessage = message.try_into()?;
         let message_hash = hash_entry(&message_entry)?;
 
         if (message_entry.time_sent.0 <= filter_timestamp.0)
+        // if (time_check(message_entry.time_sent, filter_timestamp))
             && (match filter.last_fetched_message_id {
                 Some(ref id) if *id == message_hash => false,
                 Some(ref id) if *id != message_hash => true,

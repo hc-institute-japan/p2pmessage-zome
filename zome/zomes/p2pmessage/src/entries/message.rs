@@ -9,6 +9,7 @@ pub mod get_adjacent_messages;
 pub mod get_file_bytes;
 pub mod get_latest_messages;
 pub mod get_messages_by_agent_by_timestamp;
+pub mod get_messages_links;
 pub mod get_next_batch_messages;
 pub mod get_next_messages;
 pub mod get_pinned_messages;
@@ -117,6 +118,13 @@ pub struct MessageInputWithTimestamp {
     payload: PayloadInput,
     timestamp: Timestamp,
     reply_to: Option<EntryHash>,
+}
+
+// test_stub
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct BaseAndTag {
+    base: AgentPubKey,
+    tag: String,
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]

@@ -63,6 +63,11 @@ function readMessageSignal(message) {
     conductor.call("p2pmessage", "read_message_signal", input);
 }
 
+function getMessagesLinks(agent) {
+  return (conductor) =>
+    conductor.call("p2pmessage", "get_messages_links", agent);
+}
+
 // function sendMessageSignalHandler(signal, data) {
 //   return function (sender) {
 //     if (signal.data.payload.payload.GroupMessageData) {
@@ -174,23 +179,80 @@ const playground = async (conductorConfig, installation: Installables) => {
       },
     ];
 
-    const send_alice_1 = await sendMessageSignal(messages[0])(alice_cell);
-    // await delay(5000);
-    // const read_message_1 = await readMessageSignal(send_alice_1)(bobby_cell);
+    // send a message and link that message to your pubkey
+    const send_alice_1 = await sendMessage(messages[0])(alice_cell);
+    await delay(1000);
 
-    // const send_alice_2 = await sendMessageSignal(messages[1])(alice_cell);
-    // const read_message_2 = await readMessage(send_alice_2)(bobby_cell);
+    /*
+     * LINK 1: sender agent pubkey -link-> message
+     */
+    // alice gets messages linked to herself
+    const links_1_fetched_by_alice = await getMessagesLinks({
+      base: agent_pubkey_alice,
+      tag: "messages_1",
+    })(alice_cell);
+    await delay(1000);
 
-    // const send_alice_3 = await sendMessageSignal(messages[1])(alice_cell);
+    // bobby gets messages linked to alice
+    const links_1_fetched_by_bobby = await getMessagesLinks({
+      base: agent_pubkey_alice,
+      tag: "messages_1",
+    })(bobby_cell);
+    await delay(1000);
 
-    // const send_alice_3 = await sendMessage(messages[2])(alice_cell, carly_cell);
-    // const read_message_3 = await readMessage(send_alice_3)(bobby_cell);
+    console.log("message links fetched by alice: ", links_1_fetched_by_alice);
+    console.log("message links fetched by bobby: ", links_1_fetched_by_bobby);
 
-    // const send_alice_4 = await sendMessage(messages[3])(bobby_cell, carly_cell);
-    // const read_message_4 = await readMessage(send_alice_4)(alice_cell);
+    // OK: fetching a link created by yourself with yourself as base and a message as target
+    t.deepEqual(links_1_fetched_by_alice.length, 1);
+    // NOT OK: fetching a link created by another agent with that agent as base and a message as target
+    t.deepEqual(links_1_fetched_by_bobby.length, 1);
 
-    // const send_alice_5 = await sendMessage(messages[4])(alice_cell, carly_cell);
-    // const read_message_5 = await readMessage(send_alice_5)(bobby_cell);
+    /*
+     * LINK 2: receiver agent pubkey -link-> message
+     */
+    const links_2_fetched_by_alice = await getMessagesLinks({
+      base: agent_pubkey_bobby,
+      tag: "messages_2",
+    })(alice_cell);
+    await delay(1000);
+
+    const links_2_fetched_by_bobby = await getMessagesLinks({
+      base: agent_pubkey_bobby,
+      tag: "messages_2",
+    })(bobby_cell);
+    await delay(1000);
+
+    console.log("message links fetched by alice: ", links_2_fetched_by_alice);
+    console.log("message links fetched by bobby: ", links_2_fetched_by_bobby);
+
+    // OK: fetching a link created by yourself with another agent as base and a message as target
+    t.deepEqual(links_2_fetched_by_alice.length, 1);
+    // OK: fetching a link created by another agent with yourself as the base and a message as target
+    t.deepEqual(links_2_fetched_by_bobby.length, 1);
+
+    /*
+     * SOURCE CHAIN QUERY ORDER
+     */
+    const send_alice_2 = await sendMessage(messages[1])(alice_cell);
+    await delay(1000);
+
+    const latest_messages_fetched_alice = await getLatestMessages(1)(
+      alice_cell
+    );
+    await delay(1000);
+    const last_message_hash_string =
+      latest_messages_fetched_alice[0][agent_pubkey_bobby_string][0];
+    const last_message =
+      latest_messages_fetched_alice[1][last_message_hash_string];
+
+    // should be the second message since query walks the chain in reverse
+    // console.log("last message", last_message[0].payload.payload);
+    // NOT OK: returns the first message which is "Hello, Bobby"
+    t.deepEqual(
+      last_message[0].payload.payload.payload,
+      "I was wondering if you were free today."
+    );
   });
 
   orchestrator.run();
