@@ -42,7 +42,8 @@ pub fn get_next_messages_handler(
         let message_entry: P2PMessage = message.try_into()?;
         let message_hash = hash_entry(&message_entry)?;
 
-        if (message_entry.time_sent.0 >= filter_timestamp.0)
+        if (message_entry.time_sent.as_seconds_and_nanos().0
+            >= filter_timestamp.as_seconds_and_nanos().0)
             && (match filter.last_fetched_message_id {
                 Some(ref id) if *id == message_hash => false,
                 Some(ref id) if *id != message_hash => true,

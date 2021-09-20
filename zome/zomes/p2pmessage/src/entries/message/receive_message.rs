@@ -4,7 +4,7 @@ use super::{
     MessageDataAndReceipt, MessageSignal, P2PFileBytes, P2PMessage, P2PMessageData,
     P2PMessageReceipt, P2PMessageReplyTo, ReceiveMessageInput, Signal, SignalDetails,
 };
-// use crate::utils::try_from_element;
+use crate::utils::try_from_element;
 
 pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMessageReceipt> {
     let receipt = P2PMessageReceipt::from_message(input.0.clone())?;
@@ -69,8 +69,8 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
 
     if input.0.reply_to != None {
         for queried_message in queried_messages.clone().into_iter() {
-            // let message_entry: P2PMessage = try_from_element(queried_message)?;
-            let message_entry: P2PMessage = queried_message.try_into()?;
+            let message_entry: P2PMessage = try_from_element(queried_message)?;
+            // let message_entry: P2PMessage = queried_message.try_into()?;
             let message_hash = hash_entry(&message_entry)?;
 
             if let Some(ref reply_to_hash) = input.0.reply_to {

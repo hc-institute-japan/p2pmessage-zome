@@ -253,6 +253,21 @@ const playground = async (conductorConfig, installation: Installables) => {
       last_message[0].payload.payload.payload,
       "I was wondering if you were free today."
     );
+
+    let i = 0;
+    let result_array: any[] = [];
+    do {
+      let message_temp = await sendMessage(messages[i % 3])(alice_cell);
+      // await readMessage(message_temp);
+      console.log("nicko at: ", i, message_temp);
+      result_array.push(message_temp[0][1].payload.payload.payload);
+      i = i + 1;
+    } while (i < 60);
+    console.log(
+      "nicko consolidated results: ",
+      result_array,
+      result_array.length
+    );
   });
 
   orchestrator.run();

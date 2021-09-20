@@ -50,7 +50,10 @@ pub fn get_adjacent_messages_handler(
             && (message_entry.author == filter.conversant
                 || message_entry.receiver == filter.conversant)
         {
-            if message_entry.time_sent.0 >= filter_timestamp.0 {
+            // if message_entry.time_sent.0 >= filter_timestamp.0 {
+            if message_entry.time_sent.as_seconds_and_nanos().0
+                >= filter_timestamp.as_seconds_and_nanos().0
+            {
                 match message_entry.payload {
                     Payload::Text { .. } => {
                         if filter.payload_type == "Text" || filter.payload_type == "All" {
