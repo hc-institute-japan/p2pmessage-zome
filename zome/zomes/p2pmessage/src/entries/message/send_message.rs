@@ -76,7 +76,7 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
         CreateLinkInput::new(
             base_hash.clone(),
             hash_entry(&message)?,
-            LinkTag::new("messages"),
+            LinkTag::new("messages_1"),
             ChainTopOrdering::Relaxed,
         ),
     )?;
@@ -93,6 +93,7 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
     )?;
 
     let links = get_links(base_hash.clone(), Some(LinkTag::new("messages")))?;
+    // let links = get_links(base_hash.clone(), None)?;
     debug!(
         "nicko send message links from base {:?} are {:?}",
         base_hash, links
