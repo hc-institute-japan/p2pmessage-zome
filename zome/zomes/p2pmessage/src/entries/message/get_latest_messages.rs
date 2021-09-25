@@ -1,3 +1,4 @@
+use hdk::prelude::holo_hash::AgentPubKeyB64;
 use hdk::prelude::*;
 use std::collections::HashMap;
 
@@ -10,7 +11,7 @@ use super::{
 };
 
 pub fn get_latest_messages_handler(batch_size: BatchSize) -> ExternResult<P2PMessageHashTables> {
-    let queried_messages: Vec<Element> = query(
+    let mut queried_messages: Vec<Element> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(0),
@@ -19,7 +20,8 @@ pub fn get_latest_messages_handler(batch_size: BatchSize) -> ExternResult<P2PMes
             )))
             .include_entries(true),
     )?;
-
+    queried_messages.reverse();
+    debug!("nicko queried messages: {:?}", queried_messages.clone());
     let mut agent_messages: HashMap<String, Vec<String>> = HashMap::new();
     let mut message_contents: HashMap<String, MessageBundle> = HashMap::new();
     let mut receipt_contents: HashMap<String, P2PMessageReceipt> = HashMap::new();
@@ -31,7 +33,9 @@ pub fn get_latest_messages_handler(batch_size: BatchSize) -> ExternResult<P2PMes
         let message_hash: EntryHash = hash_entry(&message_entry)?;
 
         if message_entry.author.clone() == agent_info()?.agent_latest_pubkey {
-            match agent_messages.get(&message_entry.receiver.clone().to_string()) {
+            match agent_messages
+                .get(&AgentPubKeyB64::from(message_entry.receiver.clone()).to_string())
+            {
                 Some(messages) if messages.len() >= batch_size.0.into() => {
                     continue; // continue to fill in other agent's hashmaps
                 }
@@ -71,7 +75,9 @@ pub fn get_latest_messages_handler(batch_size: BatchSize) -> ExternResult<P2PMes
             }
         } else {
             // add this message to author's array in hashmap
-            match agent_messages.get(&message_entry.author.clone().to_string()) {
+            match agent_messages
+                .get(&AgentPubKeyB64::from(message_entry.author.clone()).to_string())
+            {
                 Some(messages) if messages.len() >= batch_size.0.into() => continue, // break instead?
                 Some(messages) if messages.len() < batch_size.0.into() => {
                     if message_entry.reply_to != None {
@@ -113,19 +119,6 @@ pub fn get_latest_messages_handler(batch_size: BatchSize) -> ExternResult<P2PMes
     get_receipts(&mut message_contents, &mut receipt_contents)?;
 
     get_replies(&mut reply_pairs, &mut message_contents)?;
-
-    // debug!(
-    //     "nicko get latest agent messages {:?}",
-    //     agent_messages.clone()
-    // );
-    // debug!(
-    //     "nicko get latest message contents {:?}",
-    //     message_contents.clone()
-    // );
-    // debug!(
-    //     "nicko get latest receipt contents {:?}",
-    //     receipt_contents.clone()
-    // );
 
     Ok(P2PMessageHashTables(
         AgentMessages(agent_messages),

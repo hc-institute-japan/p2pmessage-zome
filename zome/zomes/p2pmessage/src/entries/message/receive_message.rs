@@ -42,7 +42,7 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
         )?;
     };
 
-    let queried_messages: Vec<Element> = query(
+    let mut queried_messages: Vec<Element> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(0),
@@ -51,13 +51,7 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
             )))
             .include_entries(true),
     )?;
-
-    let base_hash: EntryHash = input.clone().0.author.into();
-    let links = get_links(base_hash.clone(), Some(LinkTag::new("messages")))?;
-    debug!(
-        "nicko receive message links from base {:?} are {:?}",
-        base_hash, links
-    );
+    queried_messages.reverse();
 
     let mut message_return = P2PMessageData {
         author: input.0.author.clone(),

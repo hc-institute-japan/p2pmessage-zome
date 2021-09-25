@@ -1,3 +1,4 @@
+use hdk::prelude::holo_hash::HeaderHashB64;
 use hdk::prelude::*;
 use std::collections::HashMap;
 
@@ -20,7 +21,10 @@ pub fn receive_read_receipt_handler(receipt: P2PMessageReceipt) -> ExternResult<
     )?;
 
     let mut receipt_contents: HashMap<String, P2PMessageReceipt> = HashMap::new();
-    receipt_contents.insert(receipt_hash.to_string(), receipt.clone());
+    receipt_contents.insert(
+        HeaderHashB64::from(receipt_hash.clone()).to_string(), //b64 check
+        receipt.clone(),
+    );
 
     let signal = Signal::P2PMessageReceipt(ReceiptSignal {
         receipt: ReceiptContents(receipt_contents.clone()),

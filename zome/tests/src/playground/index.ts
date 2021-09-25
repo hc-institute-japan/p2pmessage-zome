@@ -181,7 +181,7 @@ const playground = async (conductorConfig, installation: Installables) => {
 
     // send a message and link that message to your pubkey
     const send_alice_1 = await sendMessage(messages[0])(alice_cell);
-    await delay(10000);
+    await delay(1000);
 
     /*
      * LINK 1: sender agent pubkey -link-> message
@@ -191,14 +191,14 @@ const playground = async (conductorConfig, installation: Installables) => {
       base: agent_pubkey_alice,
       tag: "messages_1",
     })(alice_cell);
-    await delay(3000);
+    await delay(1000);
 
     // bobby gets messages linked to alice
     const links_1_fetched_by_bobby = await getMessagesLinks({
       base: agent_pubkey_alice,
       tag: "messages_1",
     })(bobby_cell);
-    await delay(3000);
+    await delay(1000);
 
     console.log("message links 1 fetched by alice: ", links_1_fetched_by_alice);
     console.log("message links 1 fetched by bobby: ", links_1_fetched_by_bobby);
@@ -225,13 +225,13 @@ const playground = async (conductorConfig, installation: Installables) => {
       base: agent_pubkey_bobby,
       tag: "messages_2",
     })(alice_cell);
-    await delay(3000);
+    await delay(1000);
 
     const links_2_fetched_by_bobby = await getMessagesLinks({
       base: agent_pubkey_bobby,
       tag: "messages_2",
     })(bobby_cell);
-    await delay(3000);
+    await delay(1000);
 
     console.log("message links 2 fetched by alice: ", links_2_fetched_by_alice);
     console.log("message links 2 fetched by bobby: ", links_2_fetched_by_bobby);
@@ -244,40 +244,43 @@ const playground = async (conductorConfig, installation: Installables) => {
     /*
      * SOURCE CHAIN QUERY ORDER
      */
-    // const send_alice_2 = await sendMessage(messages[1])(alice_cell);
-    // await delay(5000);
+    const send_alice_2 = await sendMessage(messages[1])(alice_cell);
+    await delay(5000);
 
-    // const latest_messages_fetched_alice = await getLatestMessages(1)(
-    //   alice_cell
-    // );
-    // await delay(1000);
-    // const last_message_hash_string =
-    //   latest_messages_fetched_alice[0][agent_pubkey_bobby_string][0];
-    // const last_message =
-    //   latest_messages_fetched_alice[1][last_message_hash_string];
+    const latest_messages_fetched_alice = await getLatestMessages(1)(
+      alice_cell
+    );
 
-    // // should be the second message since query walks the chain in reverse
-    // // console.log("last message", last_message[0].payload.payload);
-    // // NOT OK: returns the first message which is "Hello, Bobby"
-    // t.deepEqual(
-    //   last_message[0].payload.payload.payload,
-    //   "I was wondering if you were free today."
-    // );
+    console.log("nicko latest message", latest_messages_fetched_alice);
+    console.log("nicko agent pubkey bobby", agent_pubkey_bobby_string);
+    await delay(1000);
+    const last_message_hash_string =
+      latest_messages_fetched_alice[0][agent_pubkey_bobby_string][0];
+    const last_message =
+      latest_messages_fetched_alice[1][last_message_hash_string];
 
-    // let i = 0;
-    // let result_array: any[] = [];
-    // do {
-    //   let message_temp = await sendMessage(messages[i % 3])(alice_cell);
-    //   // await readMessage(message_temp);
-    //   console.log("nicko at: ", i, message_temp);
-    //   result_array.push(message_temp[0][1].payload.payload.payload);
-    //   i = i + 1;
-    // } while (i < 60);
-    // console.log(
-    //   "nicko consolidated results: ",
-    //   result_array,
-    //   result_array.length
-    // );
+    // should be the second message since query walks the chain in reverse
+    // console.log("last message", last_message[0].payload.payload);
+    // NOT OK: returns the first message which is "Hello, Bobby"
+    t.deepEqual(
+      last_message[0].payload.payload.payload,
+      "I was wondering if you were free today."
+    );
+
+    let i = 0;
+    let result_array: any[] = [];
+    do {
+      let message_temp = await sendMessage(messages[i % 3])(alice_cell);
+      // await readMessage(message_temp);
+      console.log("nicko at: ", i, message_temp);
+      result_array.push(message_temp[0][1].payload.payload.payload);
+      i = i + 1;
+    } while (i < 60);
+    console.log(
+      "nicko consolidated results: ",
+      result_array,
+      result_array.length
+    );
   });
 
   orchestrator.run();

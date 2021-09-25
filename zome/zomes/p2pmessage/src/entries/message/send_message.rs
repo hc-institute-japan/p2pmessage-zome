@@ -41,7 +41,7 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
                         file_name: metadata.file_name.clone(),
                         file_size: metadata.file_size.clone(),
                         file_type: metadata.file_type.clone(),
-                        file_hash: file_hash.to_string(),
+                        file_hash: file_hash,
                     },
                     file_type: file_type.clone(),
                 }
@@ -92,13 +92,6 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
         ),
     )?;
 
-    let links = get_links(base_hash.clone(), Some(LinkTag::new("messages")))?;
-    // let links = get_links(base_hash.clone(), None)?;
-    debug!(
-        "nicko send message links from base {:?} are {:?}",
-        base_hash, links
-    );
-
     let receive_call_result: ZomeCallResponse = call_remote(
         message.receiver.clone(),
         zome_info()?.zome_name,
@@ -133,7 +126,6 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
 
             let message_return;
             for queried_message in queried_messages.clone().into_iter() {
-                debug!("nicko send {:?}", queried_message);
                 let message_entry: P2PMessage = try_from_element(queried_message)?;
                 // let message_entry: P2PMessage = queried_message.try_into()?;
                 let message_hash = hash_entry(&message_entry)?;

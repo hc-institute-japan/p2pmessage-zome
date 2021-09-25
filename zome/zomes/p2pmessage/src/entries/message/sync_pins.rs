@@ -1,3 +1,4 @@
+use hdk::prelude::holo_hash::HeaderHashB64;
 use hdk::prelude::*;
 use std::collections::HashMap;
 
@@ -18,7 +19,10 @@ pub fn sync_pins_handler(pin: P2PMessagePin) -> ExternResult<PinContents> {
     )?;
 
     let mut pin_contents: HashMap<String, P2PMessagePin> = HashMap::new();
-    pin_contents.insert(pin_hash.to_string(), pin.clone());
+    pin_contents.insert(
+        HeaderHashB64::from(pin_hash.clone()).to_string(), //b64 check
+        pin.clone(),
+    );
 
     let signal = Signal::P2PPinSignal(PinSignal {
         pin: PinContents(pin_contents.clone()),

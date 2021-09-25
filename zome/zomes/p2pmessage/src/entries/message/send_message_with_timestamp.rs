@@ -42,7 +42,7 @@ pub fn send_message_with_timestamp_handler(
                         file_name: metadata.file_name.clone(),
                         file_size: metadata.file_size.clone(),
                         file_type: metadata.file_type.clone(),
-                        file_hash: file_hash.to_string(),
+                        file_hash: file_hash,
                     },
                     file_type: file_type.clone(),
                 }

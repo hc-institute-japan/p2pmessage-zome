@@ -53,8 +53,7 @@ pub struct FileMetadata {
     pub file_name: String,
     pub file_size: usize,
     pub file_type: String,
-    // pub file_hash: EntryHash,
-    pub file_hash: String,
+    pub file_hash: EntryHash,
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
