@@ -31,10 +31,7 @@ pub fn pin_message_handler(pin_message_input: PinMessageInput) -> ExternResult<P
         ),
     )?;
 
-    pinned_messages.insert(
-        pin_hash.clone().to_string(), //b64 check
-        pin.clone(),
-    );
+    pinned_messages.insert(pin_hash.clone().to_string(), pin.clone());
     let conversant: AgentPubKey;
     if pin_message_input.conversants[0] != agent_info()?.agent_latest_pubkey {
         conversant = pin_message_input.conversants[0].clone()

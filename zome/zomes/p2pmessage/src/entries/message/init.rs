@@ -13,8 +13,8 @@ pub fn init_handler() -> ExternResult<InitCallbackResult> {
     let mut receive_receipt_function = BTreeSet::new();
     receive_receipt_function.insert((zome_name.clone(), "receive_read_receipt".into()));
 
-    // let mut typing_function: GrantedFunctions = HashSet::new();
-    // typing_function.insert((zome_name.clone(), "typing".into()));
+    let mut typing_function: GrantedFunctions = BTreeSet::new();
+    typing_function.insert((zome_name.clone(), "typing".into()));
 
     let mut recv_remote_signal_function: GrantedFunctions = BTreeSet::new();
     recv_remote_signal_function.insert((zome_name.clone(), "recv_remote_signal".into()));
@@ -34,11 +34,11 @@ pub fn init_handler() -> ExternResult<InitCallbackResult> {
         functions: receive_receipt_function,
     })?;
 
-    // create_cap_grant(CapGrantEntry {
-    //     tag: "typing".into(),
-    //     access: CapAccess::Unrestricted,
-    //     functions: typing_function,
-    // })?;
+    create_cap_grant(CapGrantEntry {
+        tag: "typing".into(),
+        access: CapAccess::Unrestricted,
+        functions: typing_function,
+    })?;
 
     create_cap_grant(CapGrantEntry {
         tag: "recv_remote_signal".into(),

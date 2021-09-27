@@ -10,7 +10,6 @@ use message::get_adjacent_messages::get_adjacent_messages_handler;
 use message::get_file_bytes::get_file_bytes_handler;
 use message::get_latest_messages::get_latest_messages_handler;
 use message::get_messages_by_agent_by_timestamp::get_messages_by_agent_by_timestamp_handler;
-use message::get_messages_links::get_messages_links_handler;
 use message::get_next_batch_messages::get_next_batch_messages_handler;
 use message::get_next_messages::get_next_messages_handler;
 use message::get_pinned_messages::get_pinned_messages_handler;
@@ -56,7 +55,6 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
 
 #[hdk_extern]
 fn send_message(message_input: MessageInput) -> ExternResult<MessageDataAndReceipt> {
-    //MessageAndReceipt
     return send_message_handler(message_input);
 }
 
@@ -65,7 +63,6 @@ fn send_message(message_input: MessageInput) -> ExternResult<MessageDataAndRecei
 fn send_message_with_timestamp(
     message_input: MessageInputWithTimestamp,
 ) -> ExternResult<MessageDataAndReceipt> {
-    //MessageAndReceipt
     return send_message_with_timestamp_handler(message_input);
 }
 
@@ -134,9 +131,4 @@ fn get_next_messages(filter: P2PMessageFilterBatch) -> ExternResult<P2PMessageHa
 #[hdk_extern]
 fn get_adjacent_messages(filter: P2PMessageFilterBatch) -> ExternResult<P2PMessageHashTables> {
     return get_adjacent_messages_handler(filter);
-}
-
-#[hdk_extern]
-fn get_messages_links(input: BaseAndTag) -> ExternResult<Links> {
-    return get_messages_links_handler(input);
 }

@@ -2,14 +2,10 @@ use derive_more::{From, Into};
 use hdk::prelude::{timestamp::Timestamp, *};
 use std::collections::HashMap;
 
-//pub mod handlers; MANUEL:this file contains a method never used maybe we want to erase the file
-
-//this are the files for each method definition
 pub mod get_adjacent_messages;
 pub mod get_file_bytes;
 pub mod get_latest_messages;
 pub mod get_messages_by_agent_by_timestamp;
-pub mod get_messages_links;
 pub mod get_next_batch_messages;
 pub mod get_next_messages;
 pub mod get_pinned_messages;

@@ -63,26 +63,6 @@ function readMessageSignal(message) {
     conductor.call("p2pmessage", "read_message_signal", input);
 }
 
-function getMessagesLinks(agent) {
-  return (conductor) =>
-    conductor.call("p2pmessage", "get_messages_links", agent);
-}
-
-// function sendMessageSignalHandler(signal, data) {
-//   return function (sender) {
-//     if (signal.data.payload.payload.GroupMessageData) {
-//       const group = JSON.stringify(
-//         signal.data.payload.payload.GroupMessageData.content.groupHash
-//       );
-//       if (!data[group]) data[group] = {};
-//       const agent = JSON.stringify(sender);
-//       if (data[group][agent])
-//         data[group][agent].push(signal.data.payload.payload.GroupMessageData);
-//       else data[group][agent] = [signal.data.payload.payload.GroupMessageData];
-//     }
-//   };
-// }
-
 const playground = async (conductorConfig, installation: Installables) => {
   let orchestrator = new Orchestrator();
 
@@ -120,15 +100,12 @@ const playground = async (conductorConfig, installation: Installables) => {
 
     let list = {};
     alice.setSignalHandler((signal) => {
-      // sendMessageSignalHandler(signal, list)(agent_pubkey_alice);
       console.log("receiving signal...", signal);
     });
     bobby.setSignalHandler((signal) => {
-      // sendMessageSignalHandler(signal, list)(agent_pubkey_bobby);
       console.log("receiving signal...", signal);
     });
     carly.setSignalHandler((signal) => {
-      // sendMessageSignalHandler(signal, list)(agent_pubkey_bobby);
       console.log("receiving signal...", signal);
     });
 
@@ -182,64 +159,6 @@ const playground = async (conductorConfig, installation: Installables) => {
     // send a message and link that message to your pubkey
     const send_alice_1 = await sendMessage(messages[0])(alice_cell);
     await delay(1000);
-
-    /*
-     * LINK 1: sender agent pubkey -link-> message
-     */
-    // alice gets messages linked to herself
-    const links_1_fetched_by_alice = await getMessagesLinks({
-      base: agent_pubkey_alice,
-      tag: "messages_1",
-    })(alice_cell);
-    await delay(1000);
-
-    // bobby gets messages linked to alice
-    const links_1_fetched_by_bobby = await getMessagesLinks({
-      base: agent_pubkey_alice,
-      tag: "messages_1",
-    })(bobby_cell);
-    await delay(1000);
-
-    console.log("message links 1 fetched by alice: ", links_1_fetched_by_alice);
-    console.log("message links 1 fetched by bobby: ", links_1_fetched_by_bobby);
-
-    //         |      CREATOR     |
-    //         |  self  |  other  |
-    // --------+--------+---------|
-    // B self  |   OK   |   OK    |
-    // A ------+--------+---------|
-    // S other |   OK   |  NOT OK |
-    // E ------+--------+---------|
-
-    // cannot fetch link to profiles created by other agents based on them
-
-    // OK: fetching a link created by yourself with yourself as base and a message as target
-    t.deepEqual(links_1_fetched_by_alice.length, 1);
-    // NOT OK: fetching a link created by another agent with that agent as base and a message as target
-    t.deepEqual(links_1_fetched_by_bobby.length, 1);
-
-    /*
-     * LINK 2: receiver agent pubkey -link-> message
-     */
-    const links_2_fetched_by_alice = await getMessagesLinks({
-      base: agent_pubkey_bobby,
-      tag: "messages_2",
-    })(alice_cell);
-    await delay(1000);
-
-    const links_2_fetched_by_bobby = await getMessagesLinks({
-      base: agent_pubkey_bobby,
-      tag: "messages_2",
-    })(bobby_cell);
-    await delay(1000);
-
-    console.log("message links 2 fetched by alice: ", links_2_fetched_by_alice);
-    console.log("message links 2 fetched by bobby: ", links_2_fetched_by_bobby);
-
-    // OK: fetching a link created by yourself with another agent as base and a message as target
-    t.deepEqual(links_2_fetched_by_alice.length, 1);
-    // OK: fetching a link created by another agent with yourself as the base and a message as target
-    t.deepEqual(links_2_fetched_by_bobby.length, 1);
 
     /*
      * SOURCE CHAIN QUERY ORDER

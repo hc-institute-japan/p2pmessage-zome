@@ -2,8 +2,6 @@ use hdk::prelude::*;
 use std::collections::HashMap;
 
 use super::helpers::{get_receipts, get_replies, insert_message, insert_reply};
-// use crate::utils::try_from_element;
-// use num_traits::pow::Pow;
 
 use super::{
     AgentMessages, FileType, MessageBundle, MessageContents, P2PMessage, P2PMessageFilterBatch,
@@ -25,7 +23,6 @@ pub fn get_next_messages_handler(
     queried_messages.reverse();
 
     let mut agent_messages: HashMap<String, Vec<String>> = HashMap::new();
-    // agent_messages.insert(format!("{:?}", filter.conversant.clone()), Vec::new());
     agent_messages.insert(filter.conversant.clone().to_string(), Vec::new());
     let mut message_contents: HashMap<String, MessageBundle> = HashMap::new();
     let mut receipt_contents: HashMap<String, P2PMessageReceipt> = HashMap::new();
@@ -39,7 +36,6 @@ pub fn get_next_messages_handler(
     };
 
     for message in queried_messages.into_iter() {
-        // let message_entry: P2PMessage = try_from_element(message)?;
         let message_entry: P2PMessage = message.try_into()?;
         let message_hash = hash_entry(&message_entry)?;
 

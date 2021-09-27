@@ -9,7 +9,6 @@ pub fn try_from_element<T: TryFrom<SerializedBytes>>(element: Element) -> Extern
 }
 
 pub fn try_from_entry<T: TryFrom<SerializedBytes>>(entry: Entry) -> ExternResult<T> {
-    // let entry_copy = entry.clone();
     match entry {
         Entry::App(content) => match T::try_from(content.into_sb()) {
             Ok(e) => Ok(e),

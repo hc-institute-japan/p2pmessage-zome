@@ -2,7 +2,6 @@ use hdk::prelude::*;
 use std::collections::HashMap;
 
 use super::helpers::{get_receipts, insert_message};
-// use crate::utils::try_from_element;
 
 use super::{
     AgentMessages, MessageBundle, MessageContents, P2PMessage, P2PMessageHashTables, P2PMessagePin,
@@ -42,7 +41,6 @@ pub fn get_pinned_messages_handler(conversant: AgentPubKey) -> ExternResult<P2PM
     let mut pinned_messages: HashMap<String, P2PMessagePin> = HashMap::new();
 
     for pin in queried_pins.into_iter() {
-        // let pin_entry: P2PMessagePin = try_from_element(pin)?;
         let pin_entry: P2PMessagePin = pin.try_into()?;
         let _pin_hash = hash_entry(&pin_entry)?;
 
@@ -71,7 +69,6 @@ pub fn get_pinned_messages_handler(conversant: AgentPubKey) -> ExternResult<P2PM
     }
 
     for message in queried_messages.into_iter() {
-        // let message_entry: P2PMessage = try_from_element(message)?;
         let message_entry: P2PMessage = message.try_into()?;
         let message_hash: EntryHash = hash_entry(&message_entry)?;
 

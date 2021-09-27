@@ -14,7 +14,6 @@ import playground from "./playground";
 
 import { Installables } from "./types";
 
-// QUIC
 const network = {
   network_type: NetworkType.QuicBootstrap,
   transport_pool: [{ type: TransportConfigType.Quic }],

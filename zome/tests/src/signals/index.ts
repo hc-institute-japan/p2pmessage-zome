@@ -17,7 +17,6 @@ function init() {
   return (conductor) => conductor.call("p2pmessage", "init", null);
 }
 
-
 const signals = async (conductorConfig, installation: Installables) => {
   let orchestrator = new Orchestrator();
 
@@ -35,13 +34,6 @@ const signals = async (conductorConfig, installation: Installables) => {
 
     const agent_pubkey_bob = bob_happ.agent;
 
-    console.log("Nicko typing test");
-
-    // bob.setSignalHandler((signal) => {
-    //   console.log("Nicko 3 signal", signal);
-    //   t.deepEqual(handleTypeSignal(signal)(), signalVal.shift());
-    // });
-
     const result = await typing({
       agent: agent_pubkey_bob,
       isTyping: true,
@@ -58,7 +50,7 @@ const signals = async (conductorConfig, installation: Installables) => {
 
     await delay(1000);
 
-    console.log("Nicko 4")
+    console.log("Nicko 4");
 
     // TATS: there is no tape assert here? Is this getting tested anywhere?
   });

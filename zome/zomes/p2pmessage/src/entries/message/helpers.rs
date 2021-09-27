@@ -1,8 +1,6 @@
 use hdk::prelude::*;
 use std::collections::HashMap;
 
-// use crate::utils::try_from_element;
-
 use super::{
     MessageBundle, P2PMessage, P2PMessageData, P2PMessageReceipt, P2PMessageReplyTo,
     ReceiptContents, Status,
@@ -75,7 +73,6 @@ pub fn get_receipts(
     )?;
 
     for receipt in queried_receipts.clone().into_iter() {
-        // let receipt_entry: P2PMessageReceipt = try_from_element(receipt)?;
         let receipt_entry: P2PMessageReceipt = receipt.try_into()?;
         let receipt_hash = hash_entry(&receipt_entry)?;
 
@@ -95,7 +92,6 @@ pub fn get_receipts(
 }
 
 pub fn get_replies(
-    // { reply_to hash, [reply hash] }
     reply_pairs: &mut HashMap<String, Vec<String>>,
     message_contents: &mut HashMap<String, MessageBundle>,
 ) -> ExternResult<()> {
@@ -110,7 +106,6 @@ pub fn get_replies(
     )?;
 
     for message in queried_messages.clone().into_iter() {
-        // let message_entry: P2PMessage = try_from_element(message)?;
         let message_entry: P2PMessage = message.try_into()?;
         let message_hash = hash_entry(&message_entry)?;
 

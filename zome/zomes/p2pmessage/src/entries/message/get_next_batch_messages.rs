@@ -2,28 +2,11 @@ use hdk::prelude::*;
 use std::collections::HashMap;
 
 use super::helpers::{get_receipts, get_replies, insert_message, insert_reply};
-// use crate::utils::try_from_element;
 
 use super::{
     AgentMessages, FileType, MessageBundle, MessageContents, P2PMessage, P2PMessageFilterBatch,
     P2PMessageHashTables, P2PMessageReceipt, Payload, ReceiptContents,
 };
-
-// fn time_check(t1: Timestamp, t2: Timestamp) -> bool {
-//     let second_diff = t2.0 - t1.0;
-//     if second_diff > 0 {
-//         return true;
-//     } else if second_diff < 0 {
-//         return false;
-//     } else {
-//         let nano_diff = t2.1 - t1.1;
-//         if nano_diff > 0 {
-//             return true;
-//         } else {
-//             return false;
-//         }
-//     }
-// }
 
 pub fn get_next_batch_messages_handler(
     filter: P2PMessageFilterBatch,
@@ -40,7 +23,6 @@ pub fn get_next_batch_messages_handler(
     queried_messages.reverse();
 
     let mut agent_messages: HashMap<String, Vec<String>> = HashMap::new();
-    // agent_messages.insert(format!("{:?}", filter.conversant.clone()), Vec::new());
     agent_messages.insert(filter.conversant.clone().to_string(), Vec::new());
     let mut message_contents: HashMap<String, MessageBundle> = HashMap::new();
     let mut receipt_contents: HashMap<String, P2PMessageReceipt> = HashMap::new();
@@ -55,8 +37,8 @@ pub fn get_next_batch_messages_handler(
         let message_entry: P2PMessage = message.try_into()?;
         let message_hash = hash_entry(&message_entry)?;
 
-        if (message_entry.time_sent.as_seconds_and_nanos().0 <= filter_timestamp.as_seconds_and_nanos().0)
-        // if (time_check(message_entry.time_sent, filter_timestamp))
+        if (message_entry.time_sent.as_seconds_and_nanos().0
+            <= filter_timestamp.as_seconds_and_nanos().0)
             && (match filter.last_fetched_message_id {
                 Some(ref id) if *id == message_hash => false,
                 Some(ref id) if *id != message_hash => true,

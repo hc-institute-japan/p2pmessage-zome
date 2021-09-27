@@ -1,6 +1,5 @@
 use hdk::prelude::*;
 
-// use crate::utils::try_from_element;
 use file_types::{FileMetadata, Payload, PayloadInput};
 
 use super::{
@@ -117,7 +116,6 @@ pub fn send_message_with_timestamp_handler(
 
             let message_return;
             for queried_message in queried_messages.clone().into_iter() {
-                // let message_entry: P2PMessage = try_from_element(queried_message)?;
                 let message_entry: P2PMessage = queried_message.try_into()?;
                 let message_hash = hash_entry(&message_entry)?;
 
@@ -161,12 +159,9 @@ pub fn send_message_with_timestamp_handler(
                 (hash_entry(&receipt)?, receipt),
             ))
         }
-        // This case shouldn't happen because of unrestricted access to receive message
-        // keeping it here for exhaustive matching
         ZomeCallResponse::Unauthorized(_, _, _, _) => {
             return error("Sorry, something went wrong. [Authorization error]");
         }
-        // Error that might happen when
         ZomeCallResponse::NetworkError(e) => {
             return error(&e);
         }

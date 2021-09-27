@@ -1,6 +1,5 @@
 use hdk::prelude::*;
 
-use crate::utils::try_from_element;
 use file_types::{FileMetadata, Payload, PayloadInput};
 
 use super::{
@@ -67,30 +66,7 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
         PayloadInput::File { file_bytes, .. } => Some(P2PFileBytes(file_bytes)),
     };
 
-    // create message input to receive function of recipient
     let receive_input = ReceiveMessageInput(message.clone(), file.clone());
-
-    let base_hash: EntryHash = agent_info()?.agent_latest_pubkey.into();
-    host_call::<CreateLinkInput, HeaderHash>(
-        __create_link,
-        CreateLinkInput::new(
-            base_hash.clone(),
-            hash_entry(&message)?,
-            LinkTag::new("messages_1"),
-            ChainTopOrdering::Relaxed,
-        ),
-    )?;
-
-    let base_hash_2: EntryHash = message.clone().receiver.into();
-    host_call::<CreateLinkInput, HeaderHash>(
-        __create_link,
-        CreateLinkInput::new(
-            base_hash_2.clone(),
-            hash_entry(&message)?,
-            LinkTag::new("messages_2"),
-            ChainTopOrdering::Relaxed,
-        ),
-    )?;
 
     let receive_call_result: ZomeCallResponse = call_remote(
         message.receiver.clone(),
@@ -126,8 +102,7 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
 
             let message_return;
             for queried_message in queried_messages.clone().into_iter() {
-                let message_entry: P2PMessage = try_from_element(queried_message)?;
-                // let message_entry: P2PMessage = queried_message.try_into()?;
+                let message_entry: P2PMessage = queried_message.try_into()?;
                 let message_hash = hash_entry(&message_entry)?;
 
                 if let Some(ref reply_to_hash) = message.reply_to {
@@ -170,20 +145,13 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
                 (hash_entry(&received_receipt)?, received_receipt),
             ))
         }
-        // This case shouldn't happen because of unrestricted access to receive message
-        // keeping it here for exhaustive matching
         ZomeCallResponse::Unauthorized(_, _, _, _) => {
             return error("Sorry, something went wrong. [Authorization error]");
         }
-        // Error that might happen when
         ZomeCallResponse::NetworkError(_e) => {
-            // debug!("Nicko send message network error {:?}", e);
-            // return error(&e);
             return error("Sorry, something went wrong. [Network error]");
         }
         ZomeCallResponse::CountersigningSession(_e) => {
-            // debug!("Nicko send message countersigning error {:?}", e);
-            // return error(&e);
             return error("Sorry, something went wrong. [Countersigning error]");
         }
     }
