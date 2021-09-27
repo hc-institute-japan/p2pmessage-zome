@@ -27,7 +27,7 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
                 ref file_bytes,
             } => {
                 let p2pfile = P2PFileBytes(file_bytes.clone());
-                create_entry(&p2pfile)?;
+                // create_entry(&p2pfile)?;
                 let file_hash = hash_entry(&p2pfile)?;
                 Payload::File {
                     metadata: FileMetadata {
@@ -44,11 +44,9 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
         reply_to: message_input.reply_to,
     };
 
-    create_entry(&message)?;
-
     let file = match message_input.payload {
         PayloadInput::Text { .. } => None,
-        PayloadInput::File { file_bytes, .. } => Some(P2PFileBytes(file_bytes)),
+        PayloadInput::File { ref file_bytes, .. } => Some(P2PFileBytes((*file_bytes).clone())),
     };
 
     // create message input to receive function of recipient
@@ -65,7 +63,13 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
     match receive_call_result {
         ZomeCallResponse::Ok(extern_io) => {
             let received_receipt: P2PMessageReceipt = extern_io.decode()?;
+            create_entry(&message)?;
             create_entry(&received_receipt)?;
+            if let PayloadInput::File { file_bytes, .. } = message_input.payload {
+                let p2pfile2 = P2PFileBytes(file_bytes.clone());
+                create_entry(&p2pfile2)?;
+                ()
+            };
 
             let queried_messages: Vec<Element> = query(
                 QueryFilter::new()

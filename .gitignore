@@ -7,3 +7,5 @@
 /zome/tests/node_modules/
 /example-dna/tests/node_modules/
 /example-dna/target
+.cargo/
+node_modules/
