@@ -1,4 +1,3 @@
-use hdk::prelude::holo_hash::{AgentPubKeyB64, EntryHashB64};
 use hdk::prelude::*;
 use std::collections::HashMap;
 
@@ -17,16 +16,13 @@ pub fn insert_message(
     key: AgentPubKey,
 ) -> ExternResult<usize> {
     let mut message_array_length = 0;
-    match agent_messages.get_mut(&AgentPubKeyB64::from(key.clone()).to_string()) {
+    match agent_messages.get_mut(&key.clone().to_string()) {
         Some(messages) => {
-            messages.push(EntryHashB64::from(message_hash.clone()).to_string());
+            messages.push(message_hash.clone().to_string());
             message_array_length = messages.len();
         }
         None => {
-            agent_messages.insert(
-                AgentPubKeyB64::from(key).to_string(),
-                vec![EntryHashB64::from(message_hash.clone()).to_string()],
-            );
+            agent_messages.insert(key.to_string(), vec![message_hash.clone().to_string()]);
         }
     };
     let message_data = P2PMessageData {
@@ -37,7 +33,7 @@ pub fn insert_message(
         reply_to: None,
     };
     message_contents.insert(
-        EntryHashB64::from(message_hash).to_string(),
+        message_hash.to_string(),
         MessageBundle(message_data, Vec::new()),
     );
 
@@ -50,14 +46,14 @@ pub fn insert_reply(
     message_hash: EntryHash,
 ) -> () {
     if let Some(ref reply_to_hash) = message_entry.reply_to {
-        match reply_pairs.get_mut(&EntryHashB64::from(reply_to_hash.clone()).to_string()) {
+        match reply_pairs.get_mut(&reply_to_hash.clone().to_string()) {
             Some(message_hashes) => {
-                message_hashes.push(EntryHashB64::from(message_hash.clone()).to_string());
+                message_hashes.push(message_hash.clone().to_string());
             }
             None => {
                 reply_pairs.insert(
-                    EntryHashB64::from(reply_to_hash.clone()).to_string(),
-                    vec![EntryHashB64::from(message_hash.clone()).to_string()],
+                    reply_to_hash.clone().to_string(),
+                    vec![message_hash.clone().to_string()],
                 );
             }
         }
@@ -84,17 +80,12 @@ pub fn get_receipts(
         let receipt_hash = hash_entry(&receipt_entry)?;
 
         for message_id in receipt_entry.id.clone().into_iter() {
-            if message_contents.contains_key(&EntryHashB64::from(message_id.clone()).to_string()) {
-                receipt_contents.insert(
-                    EntryHashB64::from(receipt_hash.clone()).to_string(),
-                    receipt_entry.clone(),
-                );
+            if message_contents.contains_key(&message_id.clone().to_string()) {
+                receipt_contents.insert(receipt_hash.clone().to_string(), receipt_entry.clone());
                 if let Some(message_bundle) =
-                    message_contents.get_mut(&EntryHashB64::from(message_id.clone()).to_string())
+                    message_contents.get_mut(&message_id.clone().to_string())
                 {
-                    message_bundle
-                        .1
-                        .push(EntryHashB64::from(receipt_hash.clone()).to_string())
+                    message_bundle.1.push(receipt_hash.clone().to_string())
                 };
             }
         }
@@ -124,8 +115,8 @@ pub fn get_replies(
         let message_hash = hash_entry(&message_entry)?;
 
         // iterating over all p2pmesssages, if the message has been replied to
-        if reply_pairs.contains_key(&EntryHashB64::from(message_hash.clone()).to_string()) {
-            match reply_pairs.get(&EntryHashB64::from(message_hash.clone()).to_string()) {
+        if reply_pairs.contains_key(&message_hash.clone().to_string()) {
+            match reply_pairs.get(&message_hash.clone().to_string()) {
                 Some(message_hashes) => {
                     // build reply_to data
                     let replied_to_message = P2PMessageReplyTo {
@@ -185,7 +176,7 @@ pub fn _commit_receipts(receipts: Vec<P2PMessageReceipt>) -> ExternResult<Receip
     // Iterate through the receipts in the argument and push them into the hash map
     receipts.clone().into_iter().for_each(|receipt| {
         if let Ok(hash) = hash_entry(&receipt) {
-            receipts_hash_map.insert(EntryHashB64::from(hash).to_string(), receipt);
+            receipts_hash_map.insert(hash.to_string(), receipt);
         }
     });
 
@@ -195,9 +186,9 @@ pub fn _commit_receipts(receipts: Vec<P2PMessageReceipt>) -> ExternResult<Receip
         let receipt = all_receipts[i].clone();
         let hash = hash_entry(&receipt)?;
 
-        if receipts_hash_map.contains_key(&EntryHashB64::from(hash.clone()).to_string()) {
+        if receipts_hash_map.contains_key(&hash.clone().to_string()) {
             if let Status::Read { timestamp: _ } = receipt.status {
-                receipts_hash_map.remove(&EntryHashB64::from(hash.clone()).to_string());
+                receipts_hash_map.remove(&hash.clone().to_string());
             }
         }
 

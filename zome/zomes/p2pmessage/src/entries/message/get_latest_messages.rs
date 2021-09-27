@@ -1,4 +1,3 @@
-use hdk::prelude::holo_hash::AgentPubKeyB64;
 use hdk::prelude::*;
 use std::collections::HashMap;
 
@@ -33,9 +32,7 @@ pub fn get_latest_messages_handler(batch_size: BatchSize) -> ExternResult<P2PMes
         let message_hash: EntryHash = hash_entry(&message_entry)?;
 
         if message_entry.author.clone() == agent_info()?.agent_latest_pubkey {
-            match agent_messages
-                .get(&AgentPubKeyB64::from(message_entry.receiver.clone()).to_string())
-            {
+            match agent_messages.get(&message_entry.receiver.clone().to_string()) {
                 Some(messages) if messages.len() >= batch_size.0.into() => {
                     continue; // continue to fill in other agent's hashmaps
                 }
@@ -75,9 +72,7 @@ pub fn get_latest_messages_handler(batch_size: BatchSize) -> ExternResult<P2PMes
             }
         } else {
             // add this message to author's array in hashmap
-            match agent_messages
-                .get(&AgentPubKeyB64::from(message_entry.author.clone()).to_string())
-            {
+            match agent_messages.get(&message_entry.author.clone().to_string()) {
                 Some(messages) if messages.len() >= batch_size.0.into() => continue, // break instead?
                 Some(messages) if messages.len() < batch_size.0.into() => {
                     if message_entry.reply_to != None {

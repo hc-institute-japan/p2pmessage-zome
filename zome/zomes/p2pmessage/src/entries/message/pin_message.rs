@@ -1,4 +1,3 @@
-use hdk::prelude::holo_hash::HeaderHashB64;
 use hdk::prelude::*;
 use std::collections::HashMap;
 
@@ -33,7 +32,7 @@ pub fn pin_message_handler(pin_message_input: PinMessageInput) -> ExternResult<P
     )?;
 
     pinned_messages.insert(
-        HeaderHashB64::from(pin_hash.clone()).to_string(), //b64 check
+        pin_hash.clone().to_string(), //b64 check
         pin.clone(),
     );
     let conversant: AgentPubKey;

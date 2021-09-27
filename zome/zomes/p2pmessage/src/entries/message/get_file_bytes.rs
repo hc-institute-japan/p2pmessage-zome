@@ -1,4 +1,3 @@
-use hdk::prelude::holo_hash::EntryHashB64;
 use hdk::prelude::*;
 use std::collections::HashMap;
 // use crate::utils::try_from_element;
@@ -24,10 +23,10 @@ pub fn get_file_bytes_handler(file_hashes: Vec<EntryHash>) -> ExternResult<FileC
         let file_hash = hash_entry(&file_entry)?;
 
         if file_hashes.contains(&file_hash) {
-            match files.get(&EntryHashB64::from(file_hash.clone()).to_string()) {
+            match files.get(&file_hash.clone().to_string()) {
                 Some(_file) => continue,
                 _ => {
-                    files.insert(EntryHashB64::from(file_hash).to_string(), file_entry);
+                    files.insert(file_hash.to_string(), file_entry);
                     ()
                 }
             }

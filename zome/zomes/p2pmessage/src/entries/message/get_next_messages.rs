@@ -1,4 +1,3 @@
-use hdk::prelude::holo_hash::AgentPubKeyB64;
 use hdk::prelude::*;
 use std::collections::HashMap;
 
@@ -27,10 +26,7 @@ pub fn get_next_messages_handler(
 
     let mut agent_messages: HashMap<String, Vec<String>> = HashMap::new();
     // agent_messages.insert(format!("{:?}", filter.conversant.clone()), Vec::new());
-    agent_messages.insert(
-        AgentPubKeyB64::from(filter.conversant.clone()).to_string(),
-        Vec::new(),
-    );
+    agent_messages.insert(filter.conversant.clone().to_string(), Vec::new());
     let mut message_contents: HashMap<String, MessageBundle> = HashMap::new();
     let mut receipt_contents: HashMap<String, P2PMessageReceipt> = HashMap::new();
     let mut reply_pairs: HashMap<String, Vec<String>> = HashMap::new();
