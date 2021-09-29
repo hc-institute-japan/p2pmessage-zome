@@ -25,15 +25,15 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
             } => {
                 let p2pfile = P2PFileBytes(file_bytes.clone());
                 // create_entry(&p2pfile)?;
-                let p2pfile_entry = Entry::App(p2pfile.clone().try_into()?);
-                host_call::<CreateInput, HeaderHash>(
-                    __create,
-                    CreateInput::new(
-                        P2PFileBytes::entry_def().id,
-                        p2pfile_entry,
-                        ChainTopOrdering::Relaxed,
-                    ),
-                )?;
+                // let p2pfile_entry = Entry::App(p2pfile.clone().try_into()?);
+                // host_call::<CreateInput, HeaderHash>(
+                //     __create,
+                //     CreateInput::new(
+                //         P2PFileBytes::entry_def().id,
+                //         p2pfile_entry,
+                //         ChainTopOrdering::Relaxed,
+                //     ),
+                // )?;
                 let file_hash = hash_entry(&p2pfile)?;
                 Payload::File {
                     metadata: FileMetadata {
@@ -63,7 +63,7 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
 
     let file = match message_input.payload {
         PayloadInput::Text { .. } => None,
-        PayloadInput::File { file_bytes, .. } => Some(P2PFileBytes(file_bytes)),
+        PayloadInput::File { ref file_bytes, .. } => Some(P2PFileBytes((*file_bytes).clone())),
     };
 
     let receive_input = ReceiveMessageInput(message.clone(), file.clone());
@@ -89,6 +89,20 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
                     ChainTopOrdering::Relaxed,
                 ),
             )?;
+
+            if let PayloadInput::File { file_bytes, .. } = message_input.payload {
+                let p2pfile = P2PFileBytes(file_bytes.clone());
+                let p2pfile_entry = Entry::App(p2pfile.clone().try_into()?);
+                host_call::<CreateInput, HeaderHash>(
+                    __create,
+                    CreateInput::new(
+                        P2PFileBytes::entry_def().id,
+                        p2pfile_entry,
+                        ChainTopOrdering::Relaxed,
+                    ),
+                )?;
+                ()
+            };
 
             let queried_messages: Vec<Element> = query(
                 QueryFilter::new()

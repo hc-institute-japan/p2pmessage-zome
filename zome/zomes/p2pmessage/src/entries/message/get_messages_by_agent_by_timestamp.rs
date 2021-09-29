@@ -36,8 +36,8 @@ pub fn get_messages_by_agent_by_timestamp_handler(
         let message_hash = hash_entry(&message_entry)?;
 
         // TODO: use header timestamp for message_time
-        if message_entry.time_sent.as_seconds_and_nanos().0 >= day_start
-            && message_entry.time_sent.as_seconds_and_nanos().0 <= day_end
+        if message_entry.time_sent.as_micros() >= day_start
+            && message_entry.time_sent.as_micros() <= day_end
             && (message_entry.author == filter.conversant
                 || message_entry.receiver == filter.conversant)
         {

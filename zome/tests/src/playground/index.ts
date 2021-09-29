@@ -6,10 +6,8 @@ import { delay } from "../utils";
 
 const dateToTimestamp = (date: Date) => {
   const milliseconds = date.getTime();
-  const seconds = (milliseconds / 1000) >> 0;
-  const nanoseconds = (milliseconds % 1000) * 1e6;
-  const ret: [number, number] = [seconds, nanoseconds];
-  return ret;
+  const microseconds = milliseconds * 1000;
+  return microseconds;
 };
 
 function sendMessage(message) {
@@ -190,16 +188,18 @@ const playground = async (conductorConfig, installation: Installables) => {
     let result_array: any[] = [];
     do {
       let message_temp = await sendMessage(messages[i % 3])(alice_cell);
-      // await readMessage(message_temp);
+      await readMessage(message_temp)(bobby_cell);
       console.log("nicko at: ", i, message_temp);
       result_array.push(message_temp[0][1].payload.payload.payload);
       i = i + 1;
-    } while (i < 60);
+    } while (i < 100);
     console.log(
       "nicko consolidated results: ",
       result_array,
       result_array.length
     );
+    let latest = await getLatestMessages(20)(alice_cell);
+    console.log("nicko latest messages", latest);
   });
 
   orchestrator.run();

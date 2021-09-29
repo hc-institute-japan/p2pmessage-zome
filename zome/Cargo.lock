@@ -108,7 +108,7 @@ version = "0.0.1"
 dependencies = [
  "derive_more",
  "hdk",
- "holo_hash 0.0.6",
+ "holo_hash 0.0.7",
  "serde",
 ]
 
@@ -168,6 +168,9 @@ name = "holo_hash"
 version = "0.0.7"
 source = "git+https://github.com/holochain/holochain?rev=d7a6ac364a6a50bee6297ec2041e8c1ffe0be7dc#d7a6ac364a6a50bee6297ec2041e8c1ffe0be7dc"
 dependencies = [
+ "base64",
+ "blake2b_simd",
+ "derive_more",
  "holochain_serialized_bytes",
  "serde",
  "serde_bytes",
