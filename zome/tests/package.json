@@ -12,14 +12,16 @@
   "license": "ISC",
   "dependencies": {
     "@holochain-open-dev/core-types": "^0.1.1",
-    "@holochain/conductor-api": "0.0.4",
-    "@holochain/tryorama": "^0.4.1",
+    "@holochain/conductor-api": "0.2",
+    "@holochain/tryorama": "holochain/tryorama#3a9e88b9ddcc11e8524073dd56ffb195aad42479",
+    "@mapbox/node-pre-gyp": "^1.0.5",
     "@types/lodash": "^4.14.158",
     "@types/node": "^14.14.37",
     "concurrently": "^5.3.0",
     "eslint-plugin-prettier": "^3.3.1",
     "js-base64": "^3.6.0",
     "lodash": "^4.17.19",
+    "sqlite3": "^4.2.0",
     "tape": "^5.0.1",
     "ts-node": "^8.10.2",
     "typescript": "^3.9.6"

@@ -1,6 +1,5 @@
 use hdk::prelude::*;
 
-use crate::utils::try_from_element;
 use file_types::{FileMetadata, Payload, PayloadInput};
 
 use super::{
@@ -11,8 +10,6 @@ use crate::utils::error;
 
 pub fn send_message_handler(message_input: MessageInput) -> ExternResult<MessageDataAndReceipt> {
     // TODO: check if receiver is blocked
-
-    let now = sys_time()?;
 
     let message = P2PMessage {
         author: agent_info()?.agent_latest_pubkey,
@@ -28,6 +25,15 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
             } => {
                 let p2pfile = P2PFileBytes(file_bytes.clone());
                 // create_entry(&p2pfile)?;
+                // let p2pfile_entry = Entry::App(p2pfile.clone().try_into()?);
+                // host_call::<CreateInput, HeaderHash>(
+                //     __create,
+                //     CreateInput::new(
+                //         P2PFileBytes::entry_def().id,
+                //         p2pfile_entry,
+                //         ChainTopOrdering::Relaxed,
+                //     ),
+                // )?;
                 let file_hash = hash_entry(&p2pfile)?;
                 Payload::File {
                     metadata: FileMetadata {
@@ -40,16 +46,26 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
                 }
             }
         },
-        time_sent: Timestamp(now.as_secs() as i64, now.subsec_nanos()),
+        time_sent: sys_time()?,
         reply_to: message_input.reply_to,
     };
+
+    // create_entry(&message)?;
+    let message_entry = Entry::App(message.clone().try_into()?);
+    host_call::<CreateInput, HeaderHash>(
+        __create,
+        CreateInput::new(
+            P2PMessage::entry_def().id,
+            message_entry,
+            ChainTopOrdering::Relaxed,
+        ),
+    )?;
 
     let file = match message_input.payload {
         PayloadInput::Text { .. } => None,
         PayloadInput::File { ref file_bytes, .. } => Some(P2PFileBytes((*file_bytes).clone())),
     };
 
-    // create message input to receive function of recipient
     let receive_input = ReceiveMessageInput(message.clone(), file.clone());
 
     let receive_call_result: ZomeCallResponse = call_remote(
@@ -63,11 +79,28 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
     match receive_call_result {
         ZomeCallResponse::Ok(extern_io) => {
             let received_receipt: P2PMessageReceipt = extern_io.decode()?;
-            create_entry(&message)?;
-            create_entry(&received_receipt)?;
+            // create_entry(&received_receipt)?;
+            let received_receipt_entry = Entry::App(received_receipt.clone().try_into()?);
+            host_call::<CreateInput, HeaderHash>(
+                __create,
+                CreateInput::new(
+                    P2PMessageReceipt::entry_def().id,
+                    received_receipt_entry,
+                    ChainTopOrdering::Relaxed,
+                ),
+            )?;
+
             if let PayloadInput::File { file_bytes, .. } = message_input.payload {
-                let p2pfile2 = P2PFileBytes(file_bytes.clone());
-                create_entry(&p2pfile2)?;
+                let p2pfile = P2PFileBytes(file_bytes.clone());
+                let p2pfile_entry = Entry::App(p2pfile.clone().try_into()?);
+                host_call::<CreateInput, HeaderHash>(
+                    __create,
+                    CreateInput::new(
+                        P2PFileBytes::entry_def().id,
+                        p2pfile_entry,
+                        ChainTopOrdering::Relaxed,
+                    ),
+                )?;
                 ()
             };
 
@@ -83,7 +116,7 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
 
             let message_return;
             for queried_message in queried_messages.clone().into_iter() {
-                let message_entry: P2PMessage = try_from_element(queried_message)?;
+                let message_entry: P2PMessage = queried_message.try_into()?;
                 let message_hash = hash_entry(&message_entry)?;
 
                 if let Some(ref reply_to_hash) = message.reply_to {
@@ -126,15 +159,14 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
                 (hash_entry(&received_receipt)?, received_receipt),
             ))
         }
-        // This case shouldn't happen because of unrestricted access to receive message
-        // keeping it here for exhaustive matching
         ZomeCallResponse::Unauthorized(_, _, _, _) => {
             return error("Sorry, something went wrong. [Authorization error]");
         }
-        // Error that might happen when
         ZomeCallResponse::NetworkError(_e) => {
-            // return error(&e);
             return error("Sorry, something went wrong. [Network error]");
+        }
+        ZomeCallResponse::CountersigningSession(_e) => {
+            return error("Sorry, something went wrong. [Countersigning error]");
         }
     }
 }

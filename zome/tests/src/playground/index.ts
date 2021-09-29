@@ -6,10 +6,8 @@ import { delay } from "../utils";
 
 const dateToTimestamp = (date: Date) => {
   const milliseconds = date.getTime();
-  const seconds = (milliseconds / 1000) >> 0;
-  const nanoseconds = (milliseconds % 1000) * 1e6;
-  const ret: [number, number] = [seconds, nanoseconds];
-  return ret;
+  const microseconds = milliseconds * 1000;
+  return microseconds;
 };
 
 function sendMessage(message) {
@@ -63,21 +61,6 @@ function readMessageSignal(message) {
     conductor.call("p2pmessage", "read_message_signal", input);
 }
 
-// function sendMessageSignalHandler(signal, data) {
-//   return function (sender) {
-//     if (signal.data.payload.payload.GroupMessageData) {
-//       const group = JSON.stringify(
-//         signal.data.payload.payload.GroupMessageData.content.groupHash
-//       );
-//       if (!data[group]) data[group] = {};
-//       const agent = JSON.stringify(sender);
-//       if (data[group][agent])
-//         data[group][agent].push(signal.data.payload.payload.GroupMessageData);
-//       else data[group][agent] = [signal.data.payload.payload.GroupMessageData];
-//     }
-//   };
-// }
-
 const playground = async (conductorConfig, installation: Installables) => {
   let orchestrator = new Orchestrator();
 
@@ -115,15 +98,12 @@ const playground = async (conductorConfig, installation: Installables) => {
 
     let list = {};
     alice.setSignalHandler((signal) => {
-      // sendMessageSignalHandler(signal, list)(agent_pubkey_alice);
       console.log("receiving signal...", signal);
     });
     bobby.setSignalHandler((signal) => {
-      // sendMessageSignalHandler(signal, list)(agent_pubkey_bobby);
       console.log("receiving signal...", signal);
     });
     carly.setSignalHandler((signal) => {
-      // sendMessageSignalHandler(signal, list)(agent_pubkey_bobby);
       console.log("receiving signal...", signal);
     });
 
@@ -174,23 +154,52 @@ const playground = async (conductorConfig, installation: Installables) => {
       },
     ];
 
-    const send_alice_1 = await sendMessageSignal(messages[0])(alice_cell);
-    // await delay(5000);
-    // const read_message_1 = await readMessageSignal(send_alice_1)(bobby_cell);
+    // send a message and link that message to your pubkey
+    const send_alice_1 = await sendMessage(messages[0])(alice_cell);
+    await delay(1000);
 
-    // const send_alice_2 = await sendMessageSignal(messages[1])(alice_cell);
-    // const read_message_2 = await readMessage(send_alice_2)(bobby_cell);
+    /*
+     * SOURCE CHAIN QUERY ORDER
+     */
+    const send_alice_2 = await sendMessage(messages[1])(alice_cell);
+    await delay(5000);
 
-    // const send_alice_3 = await sendMessageSignal(messages[1])(alice_cell);
+    const latest_messages_fetched_alice = await getLatestMessages(1)(
+      alice_cell
+    );
 
-    // const send_alice_3 = await sendMessage(messages[2])(alice_cell, carly_cell);
-    // const read_message_3 = await readMessage(send_alice_3)(bobby_cell);
+    console.log("nicko latest message", latest_messages_fetched_alice);
+    console.log("nicko agent pubkey bobby", agent_pubkey_bobby_string);
+    await delay(1000);
+    const last_message_hash_string =
+      latest_messages_fetched_alice[0][agent_pubkey_bobby_string][0];
+    const last_message =
+      latest_messages_fetched_alice[1][last_message_hash_string];
 
-    // const send_alice_4 = await sendMessage(messages[3])(bobby_cell, carly_cell);
-    // const read_message_4 = await readMessage(send_alice_4)(alice_cell);
+    // should be the second message since query walks the chain in reverse
+    // console.log("last message", last_message[0].payload.payload);
+    // NOT OK: returns the first message which is "Hello, Bobby"
+    t.deepEqual(
+      last_message[0].payload.payload.payload,
+      "I was wondering if you were free today."
+    );
 
-    // const send_alice_5 = await sendMessage(messages[4])(alice_cell, carly_cell);
-    // const read_message_5 = await readMessage(send_alice_5)(bobby_cell);
+    let i = 0;
+    let result_array: any[] = [];
+    do {
+      let message_temp = await sendMessage(messages[i % 3])(alice_cell);
+      await readMessage(message_temp)(bobby_cell);
+      console.log("nicko at: ", i, message_temp);
+      result_array.push(message_temp[0][1].payload.payload.payload);
+      i = i + 1;
+    } while (i < 100);
+    console.log(
+      "nicko consolidated results: ",
+      result_array,
+      result_array.length
+    );
+    let latest = await getLatestMessages(20)(alice_cell);
+    console.log("nicko latest messages", latest);
   });
 
   orchestrator.run();

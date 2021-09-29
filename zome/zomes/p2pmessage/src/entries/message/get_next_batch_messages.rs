@@ -2,7 +2,6 @@ use hdk::prelude::*;
 use std::collections::HashMap;
 
 use super::helpers::{get_receipts, get_replies, insert_message, insert_reply};
-use crate::utils::try_from_element;
 
 use super::{
     AgentMessages, FileType, MessageBundle, MessageContents, P2PMessage, P2PMessageFilterBatch,
@@ -12,7 +11,7 @@ use super::{
 pub fn get_next_batch_messages_handler(
     filter: P2PMessageFilterBatch,
 ) -> ExternResult<P2PMessageHashTables> {
-    let queried_messages: Vec<Element> = query(
+    let mut queried_messages: Vec<Element> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(0),
@@ -21,9 +20,9 @@ pub fn get_next_batch_messages_handler(
             )))
             .include_entries(true),
     )?;
+    queried_messages.reverse();
 
     let mut agent_messages: HashMap<String, Vec<String>> = HashMap::new();
-    // agent_messages.insert(format!("{:?}", filter.conversant.clone()), Vec::new());
     agent_messages.insert(filter.conversant.clone().to_string(), Vec::new());
     let mut message_contents: HashMap<String, MessageBundle> = HashMap::new();
     let mut receipt_contents: HashMap<String, P2PMessageReceipt> = HashMap::new();
@@ -31,17 +30,14 @@ pub fn get_next_batch_messages_handler(
 
     let filter_timestamp = match filter.last_fetched_timestamp {
         Some(timestamp) => timestamp,
-        None => {
-            let now = sys_time()?;
-            Timestamp(now.as_secs() as i64, 0)
-        }
+        None => sys_time()?,
     };
 
     for message in queried_messages.into_iter() {
-        let message_entry: P2PMessage = try_from_element(message)?;
+        let message_entry: P2PMessage = message.try_into()?;
         let message_hash = hash_entry(&message_entry)?;
 
-        if (message_entry.time_sent.0 <= filter_timestamp.0)
+        if (message_entry.time_sent.as_micros() <= filter_timestamp.as_micros())
             && (match filter.last_fetched_message_id {
                 Some(ref id) if *id == message_hash => false,
                 Some(ref id) if *id != message_hash => true,

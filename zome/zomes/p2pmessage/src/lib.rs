@@ -55,7 +55,6 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
 
 #[hdk_extern]
 fn send_message(message_input: MessageInput) -> ExternResult<MessageDataAndReceipt> {
-    //MessageAndReceipt
     return send_message_handler(message_input);
 }
 
@@ -64,7 +63,6 @@ fn send_message(message_input: MessageInput) -> ExternResult<MessageDataAndRecei
 fn send_message_with_timestamp(
     message_input: MessageInputWithTimestamp,
 ) -> ExternResult<MessageDataAndReceipt> {
-    //MessageAndReceipt
     return send_message_with_timestamp_handler(message_input);
 }
 

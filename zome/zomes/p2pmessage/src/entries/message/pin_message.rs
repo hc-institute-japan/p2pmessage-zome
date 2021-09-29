@@ -20,17 +20,24 @@ pub fn pin_message_handler(pin_message_input: PinMessageInput) -> ExternResult<P
         },
     };
 
-    let pin_hash = create_entry(&pin)?;
+    // let pin_hash = create_entry(&pin)?;
+    let pin_entry = Entry::App(pin.clone().try_into()?);
+    let pin_hash = host_call::<CreateInput, HeaderHash>(
+        __create,
+        CreateInput::new(
+            P2PMessagePin::entry_def().id,
+            pin_entry,
+            ChainTopOrdering::Relaxed,
+        ),
+    )?;
 
-    pinned_messages.insert(pin_hash.to_string(), pin.clone());
+    pinned_messages.insert(pin_hash.clone().to_string(), pin.clone());
     let conversant: AgentPubKey;
     if pin_message_input.conversants[0] != agent_info()?.agent_latest_pubkey {
         conversant = pin_message_input.conversants[0].clone()
     } else {
         conversant = pin_message_input.conversants[1].clone()
     }
-
-    debug!("conversant {:?}", conversant);
 
     let zome_call_response: ZomeCallResponse = call_remote(
         conversant,

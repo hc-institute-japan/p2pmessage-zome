@@ -14,7 +14,6 @@ import playground from "./playground";
 
 import { Installables } from "./types";
 
-// QUIC
 const network = {
   network_type: NetworkType.QuicBootstrap,
   transport_pool: [{ type: TransportConfigType.Quic }],
@@ -33,9 +32,9 @@ const installables: Installables = {
   one: installAgent,
 };
 
-messaging(conductorConfig, installables);
+// messaging(conductorConfig, installables);
 // receipts(conductorConfig, installables);
-signals(conductorConfig, installables);
-pin(conductorConfig, installables);
-jumps(conductorConfig, installables);
-// playground(conductorConfig, installables);
+// signals(conductorConfig, installables);
+// pin(conductorConfig, installables);
+// jumps(conductorConfig, installables);
+playground(conductorConfig, installables);

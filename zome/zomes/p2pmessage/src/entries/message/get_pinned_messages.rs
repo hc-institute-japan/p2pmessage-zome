@@ -2,7 +2,6 @@ use hdk::prelude::*;
 use std::collections::HashMap;
 
 use super::helpers::{get_receipts, insert_message};
-use crate::utils::try_from_element;
 
 use super::{
     AgentMessages, MessageBundle, MessageContents, P2PMessage, P2PMessageHashTables, P2PMessagePin,
@@ -10,7 +9,7 @@ use super::{
 };
 
 pub fn get_pinned_messages_handler(conversant: AgentPubKey) -> ExternResult<P2PMessageHashTables> {
-    let queried_pins: Vec<Element> = query(
+    let mut queried_pins: Vec<Element> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(3),
@@ -20,7 +19,7 @@ pub fn get_pinned_messages_handler(conversant: AgentPubKey) -> ExternResult<P2PM
             .include_entries(true),
     )?;
 
-    let queried_messages: Vec<Element> = query(
+    let mut queried_messages: Vec<Element> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(0),
@@ -29,6 +28,9 @@ pub fn get_pinned_messages_handler(conversant: AgentPubKey) -> ExternResult<P2PM
             )))
             .include_entries(true),
     )?;
+
+    queried_messages.reverse();
+    queried_pins.reverse();
 
     let mut agent_messages: HashMap<String, Vec<String>> = HashMap::new();
     agent_messages.insert(conversant.clone().to_string(), Vec::new());
@@ -39,14 +41,14 @@ pub fn get_pinned_messages_handler(conversant: AgentPubKey) -> ExternResult<P2PM
     let mut pinned_messages: HashMap<String, P2PMessagePin> = HashMap::new();
 
     for pin in queried_pins.into_iter() {
-        let pin_entry: P2PMessagePin = try_from_element(pin)?;
+        let pin_entry: P2PMessagePin = pin.try_into()?;
         let _pin_hash = hash_entry(&pin_entry)?;
 
         if pin_entry.conversants.contains(&conversant) {
             match pin_entry.status {
                 PinStatus::Pinned { timestamp: _ } => {
                     for message_hash in &pin_entry.id {
-                        match unpinned_messages.get_mut(&message_hash.to_string()) {
+                        match unpinned_messages.get_mut(&message_hash.clone().to_string()) {
                             Some(_pin) => None,
                             None => pinned_messages
                                 .insert(message_hash.clone().to_string(), pin_entry.clone()),
@@ -55,7 +57,7 @@ pub fn get_pinned_messages_handler(conversant: AgentPubKey) -> ExternResult<P2PM
                 }
                 PinStatus::Unpinned { timestamp: _ } => {
                     for message_hash in &pin_entry.id {
-                        match pinned_messages.get_mut(&message_hash.to_string()) {
+                        match pinned_messages.get_mut(&message_hash.clone().to_string()) {
                             Some(_pin) => None,
                             None => unpinned_messages
                                 .insert(message_hash.clone().to_string(), pin_entry.clone()),
@@ -67,10 +69,10 @@ pub fn get_pinned_messages_handler(conversant: AgentPubKey) -> ExternResult<P2PM
     }
 
     for message in queried_messages.into_iter() {
-        let message_entry: P2PMessage = try_from_element(message)?;
+        let message_entry: P2PMessage = message.try_into()?;
         let message_hash: EntryHash = hash_entry(&message_entry)?;
 
-        if pinned_messages.contains_key(&message_hash.to_string()) {
+        if pinned_messages.contains_key(&message_hash.clone().to_string()) {
             insert_message(
                 &mut agent_messages,
                 &mut message_contents,

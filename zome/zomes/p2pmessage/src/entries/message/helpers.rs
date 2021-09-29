@@ -1,8 +1,6 @@
 use hdk::prelude::*;
 use std::collections::HashMap;
 
-use crate::utils::try_from_element;
-
 use super::{
     MessageBundle, P2PMessage, P2PMessageData, P2PMessageReceipt, P2PMessageReplyTo,
     ReceiptContents, Status,
@@ -16,7 +14,7 @@ pub fn insert_message(
     key: AgentPubKey,
 ) -> ExternResult<usize> {
     let mut message_array_length = 0;
-    match agent_messages.get_mut(&key.to_string()) {
+    match agent_messages.get_mut(&key.clone().to_string()) {
         Some(messages) => {
             messages.push(message_hash.clone().to_string());
             message_array_length = messages.len();
@@ -46,13 +44,13 @@ pub fn insert_reply(
     message_hash: EntryHash,
 ) -> () {
     if let Some(ref reply_to_hash) = message_entry.reply_to {
-        match reply_pairs.get_mut(&reply_to_hash.to_string()) {
+        match reply_pairs.get_mut(&reply_to_hash.clone().to_string()) {
             Some(message_hashes) => {
                 message_hashes.push(message_hash.clone().to_string());
             }
             None => {
                 reply_pairs.insert(
-                    reply_to_hash.to_string(),
+                    reply_to_hash.clone().to_string(),
                     vec![message_hash.clone().to_string()],
                 );
             }
@@ -75,14 +73,16 @@ pub fn get_receipts(
     )?;
 
     for receipt in queried_receipts.clone().into_iter() {
-        let receipt_entry: P2PMessageReceipt = try_from_element(receipt)?;
+        let receipt_entry: P2PMessageReceipt = receipt.try_into()?;
         let receipt_hash = hash_entry(&receipt_entry)?;
 
         for message_id in receipt_entry.id.clone().into_iter() {
-            if message_contents.contains_key(&message_id.to_string()) {
+            if message_contents.contains_key(&message_id.clone().to_string()) {
                 receipt_contents.insert(receipt_hash.clone().to_string(), receipt_entry.clone());
-                if let Some(message_bundle) = message_contents.get_mut(&message_id.to_string()) {
-                    message_bundle.1.push(receipt_hash.to_string())
+                if let Some(message_bundle) =
+                    message_contents.get_mut(&message_id.clone().to_string())
+                {
+                    message_bundle.1.push(receipt_hash.clone().to_string())
                 };
             }
         }
@@ -92,7 +92,6 @@ pub fn get_receipts(
 }
 
 pub fn get_replies(
-    // { reply_to hash, [reply hash] }
     reply_pairs: &mut HashMap<String, Vec<String>>,
     message_contents: &mut HashMap<String, MessageBundle>,
 ) -> ExternResult<()> {
@@ -107,12 +106,12 @@ pub fn get_replies(
     )?;
 
     for message in queried_messages.clone().into_iter() {
-        let message_entry: P2PMessage = try_from_element(message)?;
+        let message_entry: P2PMessage = message.try_into()?;
         let message_hash = hash_entry(&message_entry)?;
 
         // iterating over all p2pmesssages, if the message has been replied to
-        if reply_pairs.contains_key(&message_hash.to_string()) {
-            match reply_pairs.get(&message_hash.to_string()) {
+        if reply_pairs.contains_key(&message_hash.clone().to_string()) {
+            match reply_pairs.get(&message_hash.clone().to_string()) {
                 Some(message_hashes) => {
                     // build reply_to data
                     let replied_to_message = P2PMessageReplyTo {
@@ -128,6 +127,7 @@ pub fn get_replies(
                         // append reply_to data to reply
                         if let Some(message_bundle) =
                             message_contents.get_mut(&reply_hash.to_string())
+                        //b64 check
                         {
                             message_bundle.0.reply_to = Some(replied_to_message.clone())
                         }
@@ -181,9 +181,9 @@ pub fn _commit_receipts(receipts: Vec<P2PMessageReceipt>) -> ExternResult<Receip
         let receipt = all_receipts[i].clone();
         let hash = hash_entry(&receipt)?;
 
-        if receipts_hash_map.contains_key(&hash.to_string()) {
+        if receipts_hash_map.contains_key(&hash.clone().to_string()) {
             if let Status::Read { timestamp: _ } = receipt.status {
-                receipts_hash_map.remove(&hash.to_string());
+                receipts_hash_map.remove(&hash.clone().to_string());
             }
         }
 

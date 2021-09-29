@@ -2,9 +2,6 @@ use derive_more::{From, Into};
 use hdk::prelude::{timestamp::Timestamp, *};
 use std::collections::HashMap;
 
-//pub mod handlers; MANUEL:this file contains a method never used maybe we want to erase the file
-
-//this are the files for each method definition
 pub mod get_adjacent_messages;
 pub mod get_file_bytes;
 pub mod get_latest_messages;
@@ -92,11 +89,10 @@ entry_def!(P2PMessagePin EntryDef {
 // ENTRY IMPLEMENTATIONS
 impl P2PMessageReceipt {
     pub fn from_message(message: P2PMessage) -> ExternResult<Self> {
-        let now = sys_time()?;
         let receipt = P2PMessageReceipt {
             id: vec![hash_entry(&message)?],
             status: Status::Delivered {
-                timestamp: Timestamp(now.as_secs() as i64, now.subsec_nanos()),
+                timestamp: sys_time()?,
             },
         };
         Ok(receipt)
@@ -120,6 +116,13 @@ pub struct MessageInputWithTimestamp {
     reply_to: Option<EntryHash>,
 }
 
+// test_stub
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct BaseAndTag {
+    base: AgentPubKey,
+    tag: String,
+}
+
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct ReadMessageInput {
     message_hashes: Vec<EntryHash>,
@@ -141,7 +144,7 @@ pub struct ReceiveMessageInput(P2PMessage, Option<P2PFileBytes>);
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 #[serde(tag = "status", rename_all = "camelCase")]
 pub enum Status {
-    Sent,
+    Sent { timestamp: Timestamp },
     Delivered { timestamp: Timestamp },
     Read { timestamp: Timestamp },
 }

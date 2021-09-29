@@ -1,20 +1,47 @@
 use hdk::prelude::*;
 
 use super::{
-    MessageDataAndReceipt, MessageSignal, P2PMessage, P2PMessageData, P2PMessageReceipt,
-    P2PMessageReplyTo, ReceiveMessageInput, Signal, SignalDetails,
+    MessageDataAndReceipt, MessageSignal, P2PFileBytes, P2PMessage, P2PMessageData,
+    P2PMessageReceipt, P2PMessageReplyTo, ReceiveMessageInput, Signal, SignalDetails,
 };
-use crate::utils::try_from_element;
 
 pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMessageReceipt> {
     let receipt = P2PMessageReceipt::from_message(input.0.clone())?;
-    create_entry(&input.0)?;
-    create_entry(&receipt)?;
-    if let Some(file) = input.1 {
-        create_entry(&file)?;
+    // create_entry(&input.0)?;
+    // create_entry(&receipt)?;
+    let receipt_entry = Entry::App(receipt.clone().try_into()?);
+    let message_entry = Entry::App(input.0.clone().try_into()?);
+    host_call::<CreateInput, HeaderHash>(
+        __create,
+        CreateInput::new(
+            P2PMessage::entry_def().id,
+            message_entry,
+            ChainTopOrdering::Relaxed,
+        ),
+    )?;
+    host_call::<CreateInput, HeaderHash>(
+        __create,
+        CreateInput::new(
+            P2PMessageReceipt::entry_def().id,
+            receipt_entry,
+            ChainTopOrdering::Relaxed,
+        ),
+    )?;
+
+    if let Some(file) = input.1.clone() {
+        // create_entry(&file)?;
+        let file_entry = Entry::App(file.clone().try_into()?);
+        host_call::<CreateInput, HeaderHash>(
+            __create,
+            CreateInput::new(
+                P2PFileBytes::entry_def().id,
+                file_entry,
+                ChainTopOrdering::Relaxed,
+            ),
+        )?;
     };
 
-    let queried_messages: Vec<Element> = query(
+    let mut queried_messages: Vec<Element> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(0),
@@ -23,6 +50,7 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
             )))
             .include_entries(true),
     )?;
+    queried_messages.reverse();
 
     let mut message_return = P2PMessageData {
         author: input.0.author.clone(),
@@ -34,7 +62,7 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
 
     if input.0.reply_to != None {
         for queried_message in queried_messages.clone().into_iter() {
-            let message_entry: P2PMessage = try_from_element(queried_message)?;
+            let message_entry: P2PMessage = queried_message.try_into()?;
             let message_hash = hash_entry(&message_entry)?;
 
             if let Some(ref reply_to_hash) = input.0.reply_to {

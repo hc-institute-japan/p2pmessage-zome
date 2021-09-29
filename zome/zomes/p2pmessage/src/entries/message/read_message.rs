@@ -10,7 +10,16 @@ pub fn read_message_handler(read_message_input: ReadMessageInput) -> ExternResul
         },
     };
 
-    create_entry(&receipt)?;
+    // create_entry(&receipt)?;
+    let read_receipt_entry = Entry::App(receipt.clone().try_into()?);
+    host_call::<CreateInput, HeaderHash>(
+        __create,
+        CreateInput::new(
+            P2PMessageReceipt::entry_def().id,
+            read_receipt_entry,
+            ChainTopOrdering::Relaxed,
+        ),
+    )?;
 
     let zome_call_response: ZomeCallResponse = call_remote(
         read_message_input.sender,

@@ -2,7 +2,6 @@ use hdk::prelude::*;
 use std::collections::HashMap;
 
 use super::helpers::{get_receipts, get_replies, insert_message, insert_reply};
-use crate::utils::try_from_element;
 
 use super::{
     AgentMessages, MessageBundle, MessageContents, P2PMessage, P2PMessageFilterAgentTimestamp,
@@ -12,7 +11,7 @@ use super::{
 pub fn get_messages_by_agent_by_timestamp_handler(
     filter: P2PMessageFilterAgentTimestamp,
 ) -> ExternResult<P2PMessageHashTables> {
-    let queried_messages: Vec<Element> = query(
+    let mut queried_messages: Vec<Element> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(0),
@@ -21,6 +20,7 @@ pub fn get_messages_by_agent_by_timestamp_handler(
             )))
             .include_entries(true),
     )?;
+    queried_messages.reverse();
 
     let mut agent_messages: HashMap<String, Vec<String>> = HashMap::new();
     agent_messages.insert(filter.conversant.clone().to_string(), Vec::new());
@@ -28,16 +28,16 @@ pub fn get_messages_by_agent_by_timestamp_handler(
     let mut receipt_contents: HashMap<String, P2PMessageReceipt> = HashMap::new();
     let mut reply_pairs: HashMap<String, Vec<String>> = HashMap::new();
 
-    let day_start = (filter.date.0 / 86400) * 86400;
+    let day_start = (filter.date.as_seconds_and_nanos().0 / 86400) * 86400;
     let day_end = day_start + 86399;
 
     for message in queried_messages.into_iter() {
-        let message_entry: P2PMessage = try_from_element(message)?;
+        let message_entry: P2PMessage = message.try_into()?;
         let message_hash = hash_entry(&message_entry)?;
 
         // TODO: use header timestamp for message_time
-        if message_entry.time_sent.0 >= day_start
-            && message_entry.time_sent.0 <= day_end
+        if message_entry.time_sent.as_micros() >= day_start
+            && message_entry.time_sent.as_micros() <= day_end
             && (message_entry.author == filter.conversant
                 || message_entry.receiver == filter.conversant)
         {
