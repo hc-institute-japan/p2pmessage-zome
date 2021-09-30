@@ -51,15 +51,15 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
     };
 
     // create_entry(&message)?;
-    let message_entry = Entry::App(message.clone().try_into()?);
-    host_call::<CreateInput, HeaderHash>(
-        __create,
-        CreateInput::new(
-            P2PMessage::entry_def().id,
-            message_entry,
-            ChainTopOrdering::Relaxed,
-        ),
-    )?;
+    // let message_entry = Entry::App(message.clone().try_into()?);
+    // host_call::<CreateInput, HeaderHash>(
+    //     __create,
+    //     CreateInput::new(
+    //         P2PMessage::entry_def().id,
+    //         message_entry,
+    //         ChainTopOrdering::Relaxed,
+    //     ),
+    // )?;
 
     let file = match message_input.payload {
         PayloadInput::Text { .. } => None,
@@ -86,6 +86,17 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
                 CreateInput::new(
                     P2PMessageReceipt::entry_def().id,
                     received_receipt_entry,
+                    ChainTopOrdering::Relaxed,
+                ),
+            )?;
+
+            // create_entry(&message)?;
+            let message_entry = Entry::App(message.clone().try_into()?);
+            host_call::<CreateInput, HeaderHash>(
+                __create,
+                CreateInput::new(
+                    P2PMessage::entry_def().id,
+                    message_entry,
                     ChainTopOrdering::Relaxed,
                 ),
             )?;
