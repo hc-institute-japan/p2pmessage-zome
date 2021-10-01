@@ -10,7 +10,6 @@ pub fn read_message_handler(read_message_input: ReadMessageInput) -> ExternResul
         },
     };
 
-    // create_entry(&receipt)?;
     let read_receipt_entry = Entry::App(receipt.clone().try_into()?);
     host_call::<CreateInput, HeaderHash>(
         __create,

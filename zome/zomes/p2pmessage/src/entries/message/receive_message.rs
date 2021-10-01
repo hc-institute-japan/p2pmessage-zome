@@ -2,13 +2,17 @@ use hdk::prelude::*;
 
 use super::{
     MessageDataAndReceipt, MessageSignal, P2PFileBytes, P2PMessage, P2PMessageData,
-    P2PMessageReceipt, P2PMessageReplyTo, ReceiveMessageInput, Signal, SignalDetails,
+    P2PMessageReceipt, P2PMessageReplyTo, ReceiveMessageInput, Signal, SignalDetails, Status,
 };
 
 pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMessageReceipt> {
-    let receipt = P2PMessageReceipt::from_message(input.0.clone())?;
-    // create_entry(&input.0)?;
-    // create_entry(&receipt)?;
+    // let receipt = P2PMessageReceipt::from_message(input.0.clone())?;
+    let receipt = P2PMessageReceipt {
+        id: vec![hash_entry(&input.0)?],
+        status: Status::Delivered {
+            timestamp: sys_time()?,
+        },
+    };
     let receipt_entry = Entry::App(receipt.clone().try_into()?);
     let message_entry = Entry::App(input.0.clone().try_into()?);
     host_call::<CreateInput, HeaderHash>(
@@ -29,7 +33,6 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
     )?;
 
     if let Some(file) = input.1.clone() {
-        // create_entry(&file)?;
         let file_entry = Entry::App(file.clone().try_into()?);
         host_call::<CreateInput, HeaderHash>(
             __create,
@@ -41,31 +44,28 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
         )?;
     };
 
-    let mut queried_messages: Vec<Element> = query(
-        QueryFilter::new()
-            .entry_type(EntryType::App(AppEntryType::new(
-                EntryDefIndex::from(0),
-                zome_info()?.zome_id,
-                EntryVisibility::Private,
-            )))
-            .include_entries(true),
-    )?;
-    queried_messages.reverse();
-
-    let mut message_return = P2PMessageData {
+    let mut message_return;
+    message_return = P2PMessageData {
         author: input.0.author.clone(),
         receiver: input.0.receiver.clone(),
         payload: input.0.payload.clone(),
         time_sent: input.0.time_sent.clone(),
         reply_to: None,
     };
-
-    if input.0.reply_to != None {
+    if let Some(ref reply_to_hash) = input.0.reply_to {
+        let queried_messages: Vec<Element> = query(
+            QueryFilter::new()
+                .entry_type(EntryType::App(AppEntryType::new(
+                    EntryDefIndex::from(0),
+                    zome_info()?.zome_id,
+                    EntryVisibility::Private,
+                )))
+                .include_entries(true),
+        )?;
         for queried_message in queried_messages.clone().into_iter() {
-            let message_entry: P2PMessage = queried_message.try_into()?;
-            let message_hash = hash_entry(&message_entry)?;
+            if let Ok(message_entry) = TryInto::<P2PMessage>::try_into(queried_message.clone()) {
+                let message_hash = hash_entry(&message_entry)?;
 
-            if let Some(ref reply_to_hash) = input.0.reply_to {
                 if *reply_to_hash == message_hash {
                     let replied_to_message = P2PMessageReplyTo {
                         hash: message_hash.clone(),

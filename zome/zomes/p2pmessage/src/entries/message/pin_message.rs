@@ -20,7 +20,6 @@ pub fn pin_message_handler(pin_message_input: PinMessageInput) -> ExternResult<P
         },
     };
 
-    // let pin_hash = create_entry(&pin)?;
     let pin_entry = Entry::App(pin.clone().try_into()?);
     let pin_hash = host_call::<CreateInput, HeaderHash>(
         __create,

@@ -41,7 +41,6 @@ pub fn get_pinned_messages_handler(conversant: AgentPubKey) -> ExternResult<P2PM
     let mut pinned_messages: HashMap<String, P2PMessagePin> = HashMap::new();
 
     for pin in queried_pins.into_iter() {
-        // let pin_entry: P2PMessagePin = pin.try_into()?;
         if let Ok(pin_entry) = TryInto::<P2PMessagePin>::try_into(pin.clone()) {
             let _pin_hash = hash_entry(&pin_entry)?;
 
@@ -74,7 +73,6 @@ pub fn get_pinned_messages_handler(conversant: AgentPubKey) -> ExternResult<P2PM
     }
 
     for message in queried_messages.into_iter() {
-        // let message_entry: P2PMessage = message.try_into()?;
         if let Ok(message_entry) = TryInto::<P2PMessage>::try_into(message) {
             let message_hash: EntryHash = hash_entry(&message_entry)?;
 

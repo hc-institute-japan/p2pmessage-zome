@@ -36,7 +36,6 @@ pub fn get_next_messages_handler(
     };
 
     for message in queried_messages.into_iter() {
-        // let message_entry: P2PMessage = message.try_into()?;
         if let Ok(message_entry) = TryInto::<P2PMessage>::try_into(message.clone()) {
             let message_hash = hash_entry(&message_entry)?;
 

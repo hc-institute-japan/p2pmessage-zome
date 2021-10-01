@@ -73,7 +73,6 @@ pub fn get_receipts(
     )?;
 
     for receipt in queried_receipts.clone().into_iter() {
-        // let receipt_entry: P2PMessageReceipt = receipt.try_into()?;
         if let Ok(receipt_entry) = TryInto::<P2PMessageReceipt>::try_into(receipt) {
             let receipt_hash = hash_entry(&receipt_entry)?;
 
@@ -111,7 +110,6 @@ pub fn get_replies(
     )?;
 
     for message in queried_messages.clone().into_iter() {
-        // let message_entry: P2PMessage = message.try_into()?;
         if let Ok(message_entry) = TryInto::<P2PMessage>::try_into(message) {
             let message_hash = hash_entry(&message_entry)?;
 
