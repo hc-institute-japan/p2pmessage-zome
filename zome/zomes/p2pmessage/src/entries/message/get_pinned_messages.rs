@@ -41,45 +41,54 @@ pub fn get_pinned_messages_handler(conversant: AgentPubKey) -> ExternResult<P2PM
     let mut pinned_messages: HashMap<String, P2PMessagePin> = HashMap::new();
 
     for pin in queried_pins.into_iter() {
-        let pin_entry: P2PMessagePin = pin.try_into()?;
-        let _pin_hash = hash_entry(&pin_entry)?;
+        // let pin_entry: P2PMessagePin = pin.try_into()?;
+        if let Ok(pin_entry) = TryInto::<P2PMessagePin>::try_into(pin.clone()) {
+            let _pin_hash = hash_entry(&pin_entry)?;
 
-        if pin_entry.conversants.contains(&conversant) {
-            match pin_entry.status {
-                PinStatus::Pinned { timestamp: _ } => {
-                    for message_hash in &pin_entry.id {
-                        match unpinned_messages.get_mut(&message_hash.clone().to_string()) {
-                            Some(_pin) => None,
-                            None => pinned_messages
-                                .insert(message_hash.clone().to_string(), pin_entry.clone()),
-                        };
+            if pin_entry.conversants.contains(&conversant) {
+                match pin_entry.status {
+                    PinStatus::Pinned { timestamp: _ } => {
+                        for message_hash in &pin_entry.id {
+                            match unpinned_messages.get_mut(&message_hash.clone().to_string()) {
+                                Some(_pin) => None,
+                                None => pinned_messages
+                                    .insert(message_hash.clone().to_string(), pin_entry.clone()),
+                            };
+                        }
                     }
-                }
-                PinStatus::Unpinned { timestamp: _ } => {
-                    for message_hash in &pin_entry.id {
-                        match pinned_messages.get_mut(&message_hash.clone().to_string()) {
-                            Some(_pin) => None,
-                            None => unpinned_messages
-                                .insert(message_hash.clone().to_string(), pin_entry.clone()),
-                        };
+                    PinStatus::Unpinned { timestamp: _ } => {
+                        for message_hash in &pin_entry.id {
+                            match pinned_messages.get_mut(&message_hash.clone().to_string()) {
+                                Some(_pin) => None,
+                                None => unpinned_messages
+                                    .insert(message_hash.clone().to_string(), pin_entry.clone()),
+                            };
+                        }
                     }
                 }
             }
+        } else {
+            debug!("The hidden entry is {:?}", pin.clone());
+            continue;
         }
     }
 
     for message in queried_messages.into_iter() {
-        let message_entry: P2PMessage = message.try_into()?;
-        let message_hash: EntryHash = hash_entry(&message_entry)?;
+        // let message_entry: P2PMessage = message.try_into()?;
+        if let Ok(message_entry) = TryInto::<P2PMessage>::try_into(message) {
+            let message_hash: EntryHash = hash_entry(&message_entry)?;
 
-        if pinned_messages.contains_key(&message_hash.clone().to_string()) {
-            insert_message(
-                &mut agent_messages,
-                &mut message_contents,
-                message_entry.clone(),
-                message_hash,
-                message_entry.receiver.clone(),
-            )?;
+            if pinned_messages.contains_key(&message_hash.clone().to_string()) {
+                insert_message(
+                    &mut agent_messages,
+                    &mut message_contents,
+                    message_entry.clone(),
+                    message_hash,
+                    message_entry.receiver.clone(),
+                )?;
+            }
+        } else {
+            continue;
         }
     }
 

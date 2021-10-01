@@ -18,6 +18,7 @@ pub fn get_latest_messages_handler(batch_size: BatchSize) -> ExternResult<P2PMes
             )))
             .include_entries(true),
     )?;
+    debug!("nicko the latest queried are {:?}", queried_messages);
     queried_messages.reverse();
     let mut agent_messages: HashMap<String, Vec<String>> = HashMap::new();
     let mut message_contents: HashMap<String, MessageBundle> = HashMap::new();
@@ -25,86 +26,90 @@ pub fn get_latest_messages_handler(batch_size: BatchSize) -> ExternResult<P2PMes
     let mut reply_pairs: HashMap<String, Vec<String>> = HashMap::new();
 
     for message in queried_messages.into_iter() {
-        let message_entry: P2PMessage = message.try_into()?;
-        let message_hash: EntryHash = hash_entry(&message_entry)?;
+        if let Ok(message_entry) = TryInto::<P2PMessage>::try_into(message.clone()) {
+            let message_hash: EntryHash = hash_entry(&message_entry)?;
 
-        if message_entry.author.clone() == agent_info()?.agent_latest_pubkey {
-            match agent_messages.get(&message_entry.receiver.clone().to_string()) {
-                Some(messages) if messages.len() >= batch_size.0.into() => {
-                    continue; // continue to fill in other agent's hashmaps
-                }
-                Some(messages) if messages.len() < batch_size.0.into() => {
-                    if message_entry.reply_to != None {
-                        insert_reply(
-                            &mut reply_pairs,
-                            message_entry.clone(),
-                            message_hash.clone(),
-                        );
+            if message_entry.author.clone() == agent_info()?.agent_latest_pubkey {
+                match agent_messages.get(&message_entry.receiver.clone().to_string()) {
+                    Some(messages) if messages.len() >= batch_size.0.into() => {
+                        continue; // continue to fill in other agent's hashmaps
                     }
+                    Some(messages) if messages.len() < batch_size.0.into() => {
+                        if message_entry.reply_to != None {
+                            insert_reply(
+                                &mut reply_pairs,
+                                message_entry.clone(),
+                                message_hash.clone(),
+                            );
+                        }
 
-                    insert_message(
-                        &mut agent_messages,
-                        &mut message_contents,
-                        message_entry.clone(),
-                        message_hash,
-                        message_entry.receiver.clone(),
-                    )?;
-                }
-                _ => {
-                    if message_entry.reply_to != None {
-                        insert_reply(
-                            &mut reply_pairs,
+                        insert_message(
+                            &mut agent_messages,
+                            &mut message_contents,
                             message_entry.clone(),
-                            message_hash.clone(),
-                        );
-                    };
-                    insert_message(
-                        &mut agent_messages,
-                        &mut message_contents,
-                        message_entry.clone(),
-                        message_hash,
-                        message_entry.receiver.clone(),
-                    )?;
+                            message_hash,
+                            message_entry.receiver.clone(),
+                        )?;
+                    }
+                    _ => {
+                        if message_entry.reply_to != None {
+                            insert_reply(
+                                &mut reply_pairs,
+                                message_entry.clone(),
+                                message_hash.clone(),
+                            );
+                        };
+                        insert_message(
+                            &mut agent_messages,
+                            &mut message_contents,
+                            message_entry.clone(),
+                            message_hash,
+                            message_entry.receiver.clone(),
+                        )?;
+                    }
+                }
+            } else {
+                // add this message to author's array in hashmap
+                match agent_messages.get(&message_entry.author.clone().to_string()) {
+                    Some(messages) if messages.len() >= batch_size.0.into() => continue, // break instead?
+                    Some(messages) if messages.len() < batch_size.0.into() => {
+                        if message_entry.reply_to != None {
+                            insert_reply(
+                                &mut reply_pairs,
+                                message_entry.clone(),
+                                message_hash.clone(),
+                            );
+                        }
+
+                        insert_message(
+                            &mut agent_messages,
+                            &mut message_contents,
+                            message_entry.clone(),
+                            message_hash,
+                            message_entry.author.clone(),
+                        )?;
+                    }
+                    _ => {
+                        if message_entry.reply_to != None {
+                            insert_reply(
+                                &mut reply_pairs,
+                                message_entry.clone(),
+                                message_hash.clone(),
+                            );
+                        };
+                        insert_message(
+                            &mut agent_messages,
+                            &mut message_contents,
+                            message_entry.clone(),
+                            message_hash,
+                            message_entry.author.clone(),
+                        )?;
+                    }
                 }
             }
         } else {
-            // add this message to author's array in hashmap
-            match agent_messages.get(&message_entry.author.clone().to_string()) {
-                Some(messages) if messages.len() >= batch_size.0.into() => continue, // break instead?
-                Some(messages) if messages.len() < batch_size.0.into() => {
-                    if message_entry.reply_to != None {
-                        insert_reply(
-                            &mut reply_pairs,
-                            message_entry.clone(),
-                            message_hash.clone(),
-                        );
-                    }
-
-                    insert_message(
-                        &mut agent_messages,
-                        &mut message_contents,
-                        message_entry.clone(),
-                        message_hash,
-                        message_entry.author.clone(),
-                    )?;
-                }
-                _ => {
-                    if message_entry.reply_to != None {
-                        insert_reply(
-                            &mut reply_pairs,
-                            message_entry.clone(),
-                            message_hash.clone(),
-                        );
-                    };
-                    insert_message(
-                        &mut agent_messages,
-                        &mut message_contents,
-                        message_entry.clone(),
-                        message_hash,
-                        message_entry.author.clone(),
-                    )?;
-                }
-            }
+            debug!("The hidden entry is {:?}", message.clone());
+            continue;
         }
     }
 

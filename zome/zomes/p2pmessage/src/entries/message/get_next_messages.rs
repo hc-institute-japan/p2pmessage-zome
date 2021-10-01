@@ -36,87 +36,92 @@ pub fn get_next_messages_handler(
     };
 
     for message in queried_messages.into_iter() {
-        let message_entry: P2PMessage = message.try_into()?;
-        let message_hash = hash_entry(&message_entry)?;
+        // let message_entry: P2PMessage = message.try_into()?;
+        if let Ok(message_entry) = TryInto::<P2PMessage>::try_into(message.clone()) {
+            let message_hash = hash_entry(&message_entry)?;
 
-        if (message_entry.time_sent.as_micros() >= filter_timestamp.as_micros())
-            && (match filter.last_fetched_message_id {
-                Some(ref id) if *id == message_hash => false,
-                Some(ref id) if *id != message_hash => true,
-                _ => false,
-            } || filter.last_fetched_message_id == None)
-            && (message_entry.author == filter.conversant
-                || message_entry.receiver == filter.conversant)
-        {
-            match message_entry.payload {
-                Payload::Text { .. } => {
-                    if filter.payload_type == "Text" || filter.payload_type == "All" {
-                        if message_entry.reply_to != None {
-                            insert_reply(
-                                &mut reply_pairs,
-                                message_entry.clone(),
-                                message_hash.clone(),
-                            );
+            if (message_entry.time_sent.as_micros() >= filter_timestamp.as_micros())
+                && (match filter.last_fetched_message_id {
+                    Some(ref id) if *id == message_hash => false,
+                    Some(ref id) if *id != message_hash => true,
+                    _ => false,
+                } || filter.last_fetched_message_id == None)
+                && (message_entry.author == filter.conversant
+                    || message_entry.receiver == filter.conversant)
+            {
+                match message_entry.payload {
+                    Payload::Text { .. } => {
+                        if filter.payload_type == "Text" || filter.payload_type == "All" {
+                            if message_entry.reply_to != None {
+                                insert_reply(
+                                    &mut reply_pairs,
+                                    message_entry.clone(),
+                                    message_hash.clone(),
+                                );
+                            }
+
+                            later_message_hashes.push(message_hash);
+                            later_messages.push(message_entry);
                         }
-
-                        later_message_hashes.push(message_hash);
-                        later_messages.push(message_entry);
                     }
+                    Payload::File { ref file_type, .. } => match file_type {
+                        FileType::Image { .. } => {
+                            if filter.payload_type == "Media"
+                                || filter.payload_type == "File"
+                                || filter.payload_type == "All"
+                            {
+                                if message_entry.reply_to != None {
+                                    insert_reply(
+                                        &mut reply_pairs,
+                                        message_entry.clone(),
+                                        message_hash.clone(),
+                                    );
+                                }
+
+                                later_message_hashes.push(message_hash);
+                                later_messages.push(message_entry);
+                            }
+                        }
+                        FileType::Video { .. } => {
+                            if filter.payload_type == "Media"
+                                || filter.payload_type == "File"
+                                || filter.payload_type == "All"
+                            {
+                                if message_entry.reply_to != None {
+                                    insert_reply(
+                                        &mut reply_pairs,
+                                        message_entry.clone(),
+                                        message_hash.clone(),
+                                    );
+                                }
+
+                                later_message_hashes.push(message_hash);
+                                later_messages.push(message_entry);
+                            }
+                        }
+                        FileType::Other { .. } => {
+                            if filter.payload_type == "Other"
+                                || filter.payload_type == "File"
+                                || filter.payload_type == "All"
+                            {
+                                if message_entry.reply_to != None {
+                                    insert_reply(
+                                        &mut reply_pairs,
+                                        message_entry.clone(),
+                                        message_hash.clone(),
+                                    );
+                                }
+
+                                later_message_hashes.push(message_hash);
+                                later_messages.push(message_entry);
+                            }
+                        }
+                    },
                 }
-                Payload::File { ref file_type, .. } => match file_type {
-                    FileType::Image { .. } => {
-                        if filter.payload_type == "Media"
-                            || filter.payload_type == "File"
-                            || filter.payload_type == "All"
-                        {
-                            if message_entry.reply_to != None {
-                                insert_reply(
-                                    &mut reply_pairs,
-                                    message_entry.clone(),
-                                    message_hash.clone(),
-                                );
-                            }
-
-                            later_message_hashes.push(message_hash);
-                            later_messages.push(message_entry);
-                        }
-                    }
-                    FileType::Video { .. } => {
-                        if filter.payload_type == "Media"
-                            || filter.payload_type == "File"
-                            || filter.payload_type == "All"
-                        {
-                            if message_entry.reply_to != None {
-                                insert_reply(
-                                    &mut reply_pairs,
-                                    message_entry.clone(),
-                                    message_hash.clone(),
-                                );
-                            }
-
-                            later_message_hashes.push(message_hash);
-                            later_messages.push(message_entry);
-                        }
-                    }
-                    FileType::Other { .. } => {
-                        if filter.payload_type == "Other"
-                            || filter.payload_type == "File"
-                            || filter.payload_type == "All"
-                        {
-                            if message_entry.reply_to != None {
-                                insert_reply(
-                                    &mut reply_pairs,
-                                    message_entry.clone(),
-                                    message_hash.clone(),
-                                );
-                            }
-
-                            later_message_hashes.push(message_hash);
-                            later_messages.push(message_entry);
-                        }
-                    }
-                },
             }
+        } else {
+            debug!("The hidden entry is {:?}", message.clone());
+            continue;
         }
     }
 

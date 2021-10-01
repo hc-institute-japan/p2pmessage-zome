@@ -73,18 +73,23 @@ pub fn get_receipts(
     )?;
 
     for receipt in queried_receipts.clone().into_iter() {
-        let receipt_entry: P2PMessageReceipt = receipt.try_into()?;
-        let receipt_hash = hash_entry(&receipt_entry)?;
+        // let receipt_entry: P2PMessageReceipt = receipt.try_into()?;
+        if let Ok(receipt_entry) = TryInto::<P2PMessageReceipt>::try_into(receipt) {
+            let receipt_hash = hash_entry(&receipt_entry)?;
 
-        for message_id in receipt_entry.id.clone().into_iter() {
-            if message_contents.contains_key(&message_id.clone().to_string()) {
-                receipt_contents.insert(receipt_hash.clone().to_string(), receipt_entry.clone());
-                if let Some(message_bundle) =
-                    message_contents.get_mut(&message_id.clone().to_string())
-                {
-                    message_bundle.1.push(receipt_hash.clone().to_string())
-                };
+            for message_id in receipt_entry.id.clone().into_iter() {
+                if message_contents.contains_key(&message_id.clone().to_string()) {
+                    receipt_contents
+                        .insert(receipt_hash.clone().to_string(), receipt_entry.clone());
+                    if let Some(message_bundle) =
+                        message_contents.get_mut(&message_id.clone().to_string())
+                    {
+                        message_bundle.1.push(receipt_hash.clone().to_string())
+                    };
+                }
             }
+        } else {
+            continue;
         }
     }
 
@@ -106,35 +111,39 @@ pub fn get_replies(
     )?;
 
     for message in queried_messages.clone().into_iter() {
-        let message_entry: P2PMessage = message.try_into()?;
-        let message_hash = hash_entry(&message_entry)?;
+        // let message_entry: P2PMessage = message.try_into()?;
+        if let Ok(message_entry) = TryInto::<P2PMessage>::try_into(message) {
+            let message_hash = hash_entry(&message_entry)?;
 
-        // iterating over all p2pmesssages, if the message has been replied to
-        if reply_pairs.contains_key(&message_hash.clone().to_string()) {
-            match reply_pairs.get(&message_hash.clone().to_string()) {
-                Some(message_hashes) => {
-                    // build reply_to data
-                    let replied_to_message = P2PMessageReplyTo {
-                        hash: message_hash.clone(),
-                        author: message_entry.author,
-                        receiver: message_entry.receiver,
-                        payload: message_entry.payload,
-                        time_sent: message_entry.time_sent,
-                        reply_to: None,
-                    };
+            // iterating over all p2pmesssages, if the message has been replied to
+            if reply_pairs.contains_key(&message_hash.clone().to_string()) {
+                match reply_pairs.get(&message_hash.clone().to_string()) {
+                    Some(message_hashes) => {
+                        // build reply_to data
+                        let replied_to_message = P2PMessageReplyTo {
+                            hash: message_hash.clone(),
+                            author: message_entry.author,
+                            receiver: message_entry.receiver,
+                            payload: message_entry.payload,
+                            time_sent: message_entry.time_sent,
+                            reply_to: None,
+                        };
 
-                    for reply_hash in message_hashes {
-                        // append reply_to data to reply
-                        if let Some(message_bundle) =
-                            message_contents.get_mut(&reply_hash.to_string())
-                        //b64 check
-                        {
-                            message_bundle.0.reply_to = Some(replied_to_message.clone())
+                        for reply_hash in message_hashes {
+                            // append reply_to data to reply
+                            if let Some(message_bundle) =
+                                message_contents.get_mut(&reply_hash.to_string())
+                            //b64 check
+                            {
+                                message_bundle.0.reply_to = Some(replied_to_message.clone())
+                            }
                         }
                     }
+                    None => continue,
                 }
-                None => continue,
             }
+        } else {
+            continue;
         }
     }
 

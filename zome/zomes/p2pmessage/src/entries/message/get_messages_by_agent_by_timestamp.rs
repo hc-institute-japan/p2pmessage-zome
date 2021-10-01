@@ -32,54 +32,59 @@ pub fn get_messages_by_agent_by_timestamp_handler(
     let day_end = day_start + 86399;
 
     for message in queried_messages.into_iter() {
-        let message_entry: P2PMessage = message.try_into()?;
-        let message_hash = hash_entry(&message_entry)?;
+        // let message_entry: P2PMessage = message.try_into()?;
+        if let Ok(message_entry) = TryInto::<P2PMessage>::try_into(message.clone()) {
+            let message_hash = hash_entry(&message_entry)?;
 
-        // TODO: use header timestamp for message_time
-        if message_entry.time_sent.as_micros() >= day_start
-            && message_entry.time_sent.as_micros() <= day_end
-            && (message_entry.author == filter.conversant
-                || message_entry.receiver == filter.conversant)
-        {
-            match message_entry.payload {
-                Payload::Text { .. } => {
-                    if filter.payload_type == "Text" || filter.payload_type == "All" {
-                        if message_entry.reply_to != None {
-                            insert_reply(
-                                &mut reply_pairs,
-                                message_entry.clone(),
-                                message_hash.clone(),
-                            );
+            // TODO: use header timestamp for message_time
+            if message_entry.time_sent.as_micros() >= day_start
+                && message_entry.time_sent.as_micros() <= day_end
+                && (message_entry.author == filter.conversant
+                    || message_entry.receiver == filter.conversant)
+            {
+                match message_entry.payload {
+                    Payload::Text { .. } => {
+                        if filter.payload_type == "Text" || filter.payload_type == "All" {
+                            if message_entry.reply_to != None {
+                                insert_reply(
+                                    &mut reply_pairs,
+                                    message_entry.clone(),
+                                    message_hash.clone(),
+                                );
+                            }
+                            insert_message(
+                                &mut agent_messages,
+                                &mut message_contents,
+                                message_entry,
+                                message_hash,
+                                filter.conversant.clone(),
+                            )?;
                         }
-                        insert_message(
-                            &mut agent_messages,
-                            &mut message_contents,
-                            message_entry,
-                            message_hash,
-                            filter.conversant.clone(),
-                        )?;
                     }
-                }
-                Payload::File { .. } => {
-                    if filter.payload_type == "File" || filter.payload_type == "All" {
-                        if message_entry.reply_to != None {
-                            insert_reply(
-                                &mut reply_pairs,
-                                message_entry.clone(),
-                                message_hash.clone(),
-                            );
-                        }
+                    Payload::File { .. } => {
+                        if filter.payload_type == "File" || filter.payload_type == "All" {
+                            if message_entry.reply_to != None {
+                                insert_reply(
+                                    &mut reply_pairs,
+                                    message_entry.clone(),
+                                    message_hash.clone(),
+                                );
+                            }
 
-                        insert_message(
-                            &mut agent_messages,
-                            &mut message_contents,
-                            message_entry,
-                            message_hash,
-                            filter.conversant.clone(),
-                        )?;
+                            insert_message(
+                                &mut agent_messages,
+                                &mut message_contents,
+                                message_entry,
+                                message_hash,
+                                filter.conversant.clone(),
+                            )?;
+                        }
                     }
                 }
             }
+        } else {
+            debug!("The hidden entry is {:?}", message.clone());
+            continue;
         }
     }
 
