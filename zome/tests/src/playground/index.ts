@@ -32,7 +32,7 @@ function getLatestMessages(batch_size) {
 
 function getNextBatchMessages(batch_filter) {
   return (conductor) =>
-    conductor.call("p2pmessage", "get_next_batch_messages", batch_filter);
+    conductor.call("p2pmessage", "get_previous_messages", batch_filter);
 }
 
 function getMessagesByAgentByTimestamp(timestamp_filter) {

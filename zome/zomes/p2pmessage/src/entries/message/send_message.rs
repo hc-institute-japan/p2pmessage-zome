@@ -3,12 +3,14 @@ use hdk::prelude::*;
 use file_types::{FileMetadata, Payload, PayloadInput};
 
 use super::{
-    MessageDataAndReceipt, MessageInput, P2PFileBytes, P2PMessage, P2PMessageData,
-    P2PMessageReceipt, P2PMessageReplyTo, ReceiveMessageInput,
+    MessageInput, P2PFileBytes, P2PMessage, P2PMessageData, P2PMessageReceipt, P2PMessageReplyTo,
+    ReceiveMessageInput,
 };
 use crate::utils::error;
 
-pub fn send_message_handler(message_input: MessageInput) -> ExternResult<MessageDataAndReceipt> {
+pub fn send_message_handler(
+    message_input: MessageInput,
+) -> ExternResult<((EntryHash, P2PMessageData), (EntryHash, P2PMessageReceipt))> {
     // TODO: check if receiver is blocked
 
     let message = P2PMessage {
@@ -45,7 +47,10 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
         PayloadInput::File { ref file_bytes, .. } => Some(P2PFileBytes((*file_bytes).clone())),
     };
 
-    let receive_input = ReceiveMessageInput(message.clone(), file.clone());
+    let receive_input = ReceiveMessageInput {
+        message: message.clone(),
+        file: file.clone(),
+    };
 
     let receive_call_result: ZomeCallResponse = call_remote(
         message.receiver.clone(),
@@ -57,24 +62,23 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
 
     match receive_call_result {
         ZomeCallResponse::Ok(extern_io) => {
-            let received_receipt: P2PMessageReceipt = extern_io.decode()?;
-
-            let received_receipt_entry = Entry::App(received_receipt.clone().try_into()?);
-            host_call::<CreateInput, HeaderHash>(
-                __create,
-                CreateInput::new(
-                    P2PMessageReceipt::entry_def().id,
-                    received_receipt_entry,
-                    ChainTopOrdering::Relaxed,
-                ),
-            )?;
-
             let message_entry = Entry::App(message.clone().try_into()?);
             host_call::<CreateInput, HeaderHash>(
                 __create,
                 CreateInput::new(
                     P2PMessage::entry_def().id,
                     message_entry.clone(),
+                    ChainTopOrdering::Relaxed,
+                ),
+            )?;
+
+            let received_receipt: P2PMessageReceipt = extern_io.decode()?;
+            let received_receipt_entry = Entry::App(received_receipt.clone().try_into()?);
+            host_call::<CreateInput, HeaderHash>(
+                __create,
+                CreateInput::new(
+                    P2PMessageReceipt::entry_def().id,
+                    received_receipt_entry,
                     ChainTopOrdering::Relaxed,
                 ),
             )?;
@@ -129,7 +133,7 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
                                 reply_to: Some(replied_to_message),
                             };
 
-                            return Ok(MessageDataAndReceipt(
+                            return Ok((
                                 (hash_entry(&message)?, message_return),
                                 (hash_entry(&received_receipt)?, received_receipt),
                             ));
@@ -148,7 +152,7 @@ pub fn send_message_handler(message_input: MessageInput) -> ExternResult<Message
                 reply_to: None,
             };
 
-            Ok(MessageDataAndReceipt(
+            Ok((
                 (hash_entry(&message)?, message_return),
                 (hash_entry(&received_receipt)?, received_receipt),
             ))

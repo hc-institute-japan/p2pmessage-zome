@@ -3,6 +3,7 @@ use hdk::prelude::*;
 mod entries;
 mod utils;
 use entries::message::{self};
+use std::collections::HashMap;
 
 use message::*;
 
@@ -10,13 +11,13 @@ use message::get_adjacent_messages::get_adjacent_messages_handler;
 use message::get_file_bytes::get_file_bytes_handler;
 use message::get_latest_messages::get_latest_messages_handler;
 use message::get_messages_by_agent_by_timestamp::get_messages_by_agent_by_timestamp_handler;
-use message::get_next_batch_messages::get_next_batch_messages_handler;
 use message::get_next_messages::get_next_messages_handler;
 use message::get_pinned_messages::get_pinned_messages_handler;
+use message::get_previous_messages::get_previous_messages_handler;
 use message::init::init_handler;
 use message::pin_message::pin_message_handler;
 use message::read_message::read_message_handler;
-use message::receive_message::receive_message_handler;
+// use message::receive_message::receive_message_handler;
 use message::receive_read_receipt::receive_read_receipt_handler;
 use message::send_message::send_message_handler;
 use message::send_message_with_timestamp::send_message_with_timestamp_handler;
@@ -54,36 +55,34 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
 }
 
 #[hdk_extern]
-fn send_message(message_input: MessageInput) -> ExternResult<MessageDataAndReceipt> {
+fn send_message(
+    message_input: MessageInput,
+) -> ExternResult<((EntryHash, P2PMessageData), (EntryHash, P2PMessageReceipt))> {
     return send_message_handler(message_input);
 }
 
-// test_stub: used for testing get by timestamp
-#[hdk_extern]
+#[hdk_extern] // test function for sending messsages in particular dates
 fn send_message_with_timestamp(
-    message_input: MessageInputWithTimestamp,
-) -> ExternResult<MessageDataAndReceipt> {
+    message_input: MessageWithTimestampInput,
+) -> ExternResult<((EntryHash, P2PMessageData), (EntryHash, P2PMessageReceipt))> {
     return send_message_with_timestamp_handler(message_input);
 }
 
+// #[hdk_extern] // not called from the front end
+// fn receive_message(input: ReceiveMessageInput) -> ExternResult<P2PMessageReceipt> {
+//     return receive_message_handler(input.0, input.1);
+// }
+
 #[hdk_extern]
-fn read_message(read_message_input: ReadMessageInput) -> ExternResult<ReceiptContents> {
+fn read_message(
+    read_message_input: ReadMessageInput,
+) -> ExternResult<HashMap<String, P2PMessageReceipt>> {
     return read_message_handler(read_message_input);
 }
 
 #[hdk_extern]
-fn receive_message(input: ReceiveMessageInput) -> ExternResult<P2PMessageReceipt> {
-    return receive_message_handler(input);
-}
-
-#[hdk_extern]
-fn get_latest_messages(batch_size: BatchSize) -> ExternResult<P2PMessageHashTables> {
+fn get_latest_messages(batch_size: u8) -> ExternResult<P2PMessageHashTables> {
     return get_latest_messages_handler(batch_size);
-}
-
-#[hdk_extern]
-fn get_next_batch_messages(filter: P2PMessageFilterBatch) -> ExternResult<P2PMessageHashTables> {
-    return get_next_batch_messages_handler(filter);
 }
 
 #[hdk_extern]
@@ -94,38 +93,45 @@ fn get_messages_by_agent_by_timestamp(
 }
 
 #[hdk_extern]
+fn get_previous_messages(filter: P2PMessageFilterBatch) -> ExternResult<P2PMessageHashTables> {
+    return get_previous_messages_handler(filter);
+}
+
+#[hdk_extern]
+fn get_next_messages(filter: P2PMessageFilterBatch) -> ExternResult<P2PMessageHashTables> {
+    return get_next_messages_handler(filter);
+}
+
+#[hdk_extern]
 fn typing(typing_info: P2PTypingDetailIO) -> ExternResult<()> {
     return typing_handler(typing_info);
 }
 
 #[hdk_extern]
-fn receive_read_receipt(receipt: P2PMessageReceipt) -> ExternResult<ReceiptContents> {
+fn receive_read_receipt(
+    receipt: P2PMessageReceipt,
+) -> ExternResult<HashMap<String, P2PMessageReceipt>> {
     return receive_read_receipt_handler(receipt);
 }
 
 #[hdk_extern]
-fn get_file_bytes(file_hashes: Vec<EntryHash>) -> ExternResult<FileContents> {
+fn get_file_bytes(file_hashes: Vec<EntryHash>) -> ExternResult<HashMap<String, P2PFileBytes>> {
     return get_file_bytes_handler(file_hashes);
 }
 
 #[hdk_extern]
-fn pin_message(pin_message_input: PinMessageInput) -> ExternResult<PinContents> {
+fn pin_message(pin_message_input: PinMessageInput) -> ExternResult<HashMap<String, P2PMessagePin>> {
     return pin_message_handler(pin_message_input);
 }
 
 #[hdk_extern]
-fn sync_pins(pin: P2PMessagePin) -> ExternResult<PinContents> {
+fn sync_pins(pin: P2PMessagePin) -> ExternResult<HashMap<String, P2PMessagePin>> {
     return sync_pins_handler(pin);
 }
 
 #[hdk_extern]
 fn get_pinned_messages(conversant: AgentPubKey) -> ExternResult<P2PMessageHashTables> {
     return get_pinned_messages_handler(conversant);
-}
-
-#[hdk_extern]
-fn get_next_messages(filter: P2PMessageFilterBatch) -> ExternResult<P2PMessageHashTables> {
-    return get_next_messages_handler(filter);
 }
 
 #[hdk_extern]

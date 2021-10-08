@@ -1,9 +1,11 @@
 use hdk::prelude::*;
 use std::collections::HashMap;
 
-use super::{FileContents, P2PFileBytes};
+use super::P2PFileBytes;
 
-pub fn get_file_bytes_handler(file_hashes: Vec<EntryHash>) -> ExternResult<FileContents> {
+pub fn get_file_bytes_handler(
+    file_hashes: Vec<EntryHash>,
+) -> ExternResult<HashMap<String, P2PFileBytes>> {
     let queried_files: Vec<Element> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
@@ -30,10 +32,10 @@ pub fn get_file_bytes_handler(file_hashes: Vec<EntryHash>) -> ExternResult<FileC
                 }
             }
         } else {
-            debug!("The hidden entry is {:?}", file);
             continue;
         }
     }
 
-    Ok(FileContents(files))
+    // Ok(FileContents(files))
+    Ok(files)
 }

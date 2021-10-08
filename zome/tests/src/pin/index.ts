@@ -1,25 +1,15 @@
 import { AppSignal } from "@holochain/conductor-api";
 import { Orchestrator, Player } from "@holochain/tryorama";
-import { delay, extractPayloadFromSignal } from "../utils";
+import {
+  delay,
+  extractPayloadFromSignal,
+  dateToTimestamp,
+  serializeHash,
+} from "../utils";
 import { Installables } from "../types";
 
 const handleTypeSignal = (signal: AppSignal) => () =>
   extractPayloadFromSignal(signal);
-
-const Uint8ArrayToBase64 = (arr: Uint8Array): string => {
-  return (
-    "u" +
-    Buffer.from(arr).toString("base64").replace(/\//g, "_").replace(/\+/g, "-")
-  );
-};
-
-const dateToTimestamp = (date: Date) => {
-  const milliseconds = date.getTime();
-  const seconds = (milliseconds / 1000) >> 0;
-  const nanoseconds = (milliseconds % 1000) * 1e6;
-  const ret: [number, number] = [seconds, nanoseconds];
-  return ret;
-};
 
 function sendMessage(message) {
   return (conductor) => conductor.call("p2pmessage", "send_message", message);
@@ -154,7 +144,7 @@ const pin = async (conductorConfig, installation: Installables) => {
 
     t.deepEqual(
       Object.keys(pinnedMessages1[1]).includes(
-        Uint8ArrayToBase64(message_3_result[0][0])
+        serializeHash(message_3_result[0][0])
       ),
       true
     );
@@ -169,10 +159,10 @@ const pin = async (conductorConfig, installation: Installables) => {
 
     t.deepEqual(
       Object.keys(pinnedMessages2[1]).includes(
-        Uint8ArrayToBase64(message_3_result[0][0])
+        serializeHash(message_3_result[0][0])
       ) &&
         Object.keys(pinnedMessages2[1]).includes(
-          Uint8ArrayToBase64(message_4_result[0][0])
+          serializeHash(message_4_result[0][0])
         ),
       true
     );
@@ -187,10 +177,10 @@ const pin = async (conductorConfig, installation: Installables) => {
 
     t.deepEqual(
       !Object.keys(pinnedMessages3[1]).includes(
-        Uint8ArrayToBase64(message_3_result[0][0])
+        serializeHash(message_3_result[0][0])
       ) &&
         Object.keys(pinnedMessages2[1]).includes(
-          Uint8ArrayToBase64(message_4_result[0][0])
+          serializeHash(message_4_result[0][0])
         ),
       true
     );

@@ -6,10 +6,10 @@ import {
 } from "@holochain/tryorama";
 import path from "path";
 import messaging from "./messaging";
+import getters from "./getters";
 import receipts from "./receipts";
 import signals from "./signals";
 import pin from "./pin";
-import jumps from "./jumps";
 import playground from "./playground";
 
 import { Installables } from "./types";
@@ -32,9 +32,9 @@ const installables: Installables = {
   one: installAgent,
 };
 
-// messaging(conductorConfig, installables);
-// receipts(conductorConfig, installables);
-// signals(conductorConfig, installables);
-// pin(conductorConfig, installables);
-// jumps(conductorConfig, installables);
-playground(conductorConfig, installables);
+messaging(conductorConfig, installables);
+getters(conductorConfig, installables);
+receipts(conductorConfig, installables); // pass
+// signals(conductorConfig, installables); // 0 tests
+pin(conductorConfig, installables); // pass
+// playground(conductorConfig, installables);

@@ -17,6 +17,6 @@ pub fn typing_handler(typing_info: P2PTypingDetailIO) -> ExternResult<()> {
 
     agents.push(typing_info.agent);
 
-    remote_signal(ExternIO::encode(signal_details.clone())?, agents)?;
+    remote_signal(ExternIO::encode(signal_details)?, agents)?;
     Ok(())
 }

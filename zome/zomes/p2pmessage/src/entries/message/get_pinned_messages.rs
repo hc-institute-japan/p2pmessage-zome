@@ -4,8 +4,7 @@ use std::collections::HashMap;
 use super::helpers::{get_receipts, insert_message};
 
 use super::{
-    AgentMessages, MessageBundle, MessageContents, P2PMessage, P2PMessageHashTables, P2PMessagePin,
-    P2PMessageReceipt, PinStatus, ReceiptContents,
+    P2PMessage, P2PMessageData, P2PMessageHashTables, P2PMessagePin, P2PMessageReceipt, PinStatus,
 };
 
 pub fn get_pinned_messages_handler(conversant: AgentPubKey) -> ExternResult<P2PMessageHashTables> {
@@ -34,7 +33,7 @@ pub fn get_pinned_messages_handler(conversant: AgentPubKey) -> ExternResult<P2PM
 
     let mut agent_messages: HashMap<String, Vec<String>> = HashMap::new();
     agent_messages.insert(conversant.clone().to_string(), Vec::new());
-    let mut message_contents: HashMap<String, MessageBundle> = HashMap::new();
+    let mut message_contents: HashMap<String, (P2PMessageData, Vec<String>)> = HashMap::new();
     let mut receipt_contents: HashMap<String, P2PMessageReceipt> = HashMap::new();
 
     let mut unpinned_messages: HashMap<String, P2PMessagePin> = HashMap::new();
@@ -67,7 +66,6 @@ pub fn get_pinned_messages_handler(conversant: AgentPubKey) -> ExternResult<P2PM
                 }
             }
         } else {
-            debug!("The hidden entry is {:?}", pin.clone());
             continue;
         }
     }
@@ -92,9 +90,15 @@ pub fn get_pinned_messages_handler(conversant: AgentPubKey) -> ExternResult<P2PM
 
     get_receipts(&mut message_contents, &mut receipt_contents)?;
 
+    // Ok(P2PMessageHashTables(
+    //     AgentMessages(agent_messages),
+    //     MessageContents(message_contents),
+    //     ReceiptContents(receipt_contents),
+    // ))
+
     Ok(P2PMessageHashTables(
-        AgentMessages(agent_messages),
-        MessageContents(message_contents),
-        ReceiptContents(receipt_contents),
+        agent_messages,
+        message_contents,
+        receipt_contents,
     ))
 }

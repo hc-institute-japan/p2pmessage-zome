@@ -1,14 +1,11 @@
 use hdk::prelude::*;
 use std::collections::HashMap;
 
-use super::{
-    MessageBundle, P2PMessage, P2PMessageData, P2PMessageReceipt, P2PMessageReplyTo,
-    ReceiptContents, Status,
-};
+use super::{P2PMessage, P2PMessageData, P2PMessageReceipt, P2PMessageReplyTo};
 
 pub fn insert_message(
     agent_messages: &mut HashMap<String, Vec<String>>,
-    message_contents: &mut HashMap<String, MessageBundle>,
+    message_contents: &mut HashMap<String, (P2PMessageData, Vec<String>)>,
     message_entry: P2PMessage,
     message_hash: EntryHash,
     key: AgentPubKey,
@@ -30,10 +27,7 @@ pub fn insert_message(
         time_sent: message_entry.time_sent,
         reply_to: None,
     };
-    message_contents.insert(
-        message_hash.to_string(),
-        MessageBundle(message_data, Vec::new()),
-    );
+    message_contents.insert(message_hash.to_string(), (message_data, Vec::new()));
 
     Ok(message_array_length)
 }
@@ -59,7 +53,7 @@ pub fn insert_reply(
 }
 
 pub fn get_receipts(
-    message_contents: &mut HashMap<String, MessageBundle>,
+    message_contents: &mut HashMap<String, (P2PMessageData, Vec<String>)>,
     receipt_contents: &mut HashMap<String, P2PMessageReceipt>,
 ) -> ExternResult<()> {
     let queried_receipts: Vec<Element> = query(
@@ -72,10 +66,10 @@ pub fn get_receipts(
             .include_entries(true),
     )?;
 
-    for receipt in queried_receipts.clone().into_iter() {
+    for receipt in queried_receipts.into_iter() {
         if let Ok(receipt_entry) = TryInto::<P2PMessageReceipt>::try_into(receipt) {
             let receipt_hash = hash_entry(&receipt_entry)?;
-
+            // distribute this receipt to every messsage it belongs to
             for message_id in receipt_entry.id.clone().into_iter() {
                 if message_contents.contains_key(&message_id.clone().to_string()) {
                     receipt_contents
@@ -97,7 +91,7 @@ pub fn get_receipts(
 
 pub fn get_replies(
     reply_pairs: &mut HashMap<String, Vec<String>>,
-    message_contents: &mut HashMap<String, MessageBundle>,
+    message_contents: &mut HashMap<String, (P2PMessageData, Vec<String>)>,
 ) -> ExternResult<()> {
     let queried_messages: Vec<Element> = query(
         QueryFilter::new()
@@ -148,64 +142,64 @@ pub fn get_replies(
     Ok(())
 }
 
-pub fn _commit_receipts(receipts: Vec<P2PMessageReceipt>) -> ExternResult<ReceiptContents> {
-    // Query all the receipts
-    let query_result: Vec<Element> = query(
-        QueryFilter::new()
-            .entry_type(EntryType::App(AppEntryType::new(
-                EntryDefIndex::from(1),
-                zome_info()?.zome_id,
-                EntryVisibility::Private,
-            )))
-            .include_entries(true),
-    )?;
+// pub fn _commit_receipts(receipts: Vec<P2PMessageReceipt>) -> ExternResult<ReceiptContents> {
+//     // Query all the receipts
+//     let query_result: Vec<Element> = query(
+//         QueryFilter::new()
+//             .entry_type(EntryType::App(AppEntryType::new(
+//                 EntryDefIndex::from(1),
+//                 zome_info()?.zome_id,
+//                 EntryVisibility::Private,
+//             )))
+//             .include_entries(true),
+//     )?;
 
-    // Get all receipts from query result
-    let all_receipts = query_result
-        .into_iter()
-        .filter_map(|el| {
-            if let Ok(Some(receipt)) = el.into_inner().1.to_app_option::<P2PMessageReceipt>() {
-                return Some(receipt);
-            } else {
-                None
-            }
-        })
-        .collect::<Vec<P2PMessageReceipt>>();
+//     // Get all receipts from query result
+//     let all_receipts = query_result
+//         .into_iter()
+//         .filter_map(|el| {
+//             if let Ok(Some(receipt)) = el.into_inner().1.to_app_option::<P2PMessageReceipt>() {
+//                 return Some(receipt);
+//             } else {
+//                 None
+//             }
+//         })
+//         .collect::<Vec<P2PMessageReceipt>>();
 
-    // initialize hash map that will be returned
-    let mut receipts_hash_map: HashMap<String, P2PMessageReceipt> = HashMap::new();
+//     // initialize hash map that will be returned
+//     let mut receipts_hash_map: HashMap<String, P2PMessageReceipt> = HashMap::new();
 
-    // Iterate through the receipts in the argument and push them into the hash map
-    receipts.clone().into_iter().for_each(|receipt| {
-        if let Ok(hash) = hash_entry(&receipt) {
-            receipts_hash_map.insert(hash.to_string(), receipt);
-        }
-    });
+//     // Iterate through the receipts in the argument and push them into the hash map
+//     receipts.clone().into_iter().for_each(|receipt| {
+//         if let Ok(hash) = hash_entry(&receipt) {
+//             receipts_hash_map.insert(hash.to_string(), receipt);
+//         }
+//     });
 
-    // Iterate through the receipts to check if the receipt has been committed, remove them from the hash map if it is
-    // used for loops instead of for_each because you cant break iterators
-    for i in 0..all_receipts.len() {
-        let receipt = all_receipts[i].clone();
-        let hash = hash_entry(&receipt)?;
+//     // Iterate through the receipts to check if the receipt has been committed, remove them from the hash map if it is
+//     // used for loops instead of for_each because you cant break iterators
+//     for i in 0..all_receipts.len() {
+//         let receipt = all_receipts[i].clone();
+//         let hash = hash_entry(&receipt)?;
 
-        if receipts_hash_map.contains_key(&hash.clone().to_string()) {
-            if let Status::Read { timestamp: _ } = receipt.status {
-                receipts_hash_map.remove(&hash.clone().to_string());
-            }
-        }
+//         if receipts_hash_map.contains_key(&hash.clone().to_string()) {
+//             if let Status::Read { timestamp: _ } = receipt.status {
+//                 receipts_hash_map.remove(&hash.clone().to_string());
+//             }
+//         }
 
-        if receipts_hash_map.is_empty() {
-            break;
-        }
-    }
+//         if receipts_hash_map.is_empty() {
+//             break;
+//         }
+//     }
 
-    // iterate the remaining contents of the hashmap
-    receipts_hash_map
-        .clone()
-        .into_iter()
-        .for_each(|(_entry_hash, receipt)| {
-            create_entry(&receipt).expect("Expected P2P message receipt entry");
-        });
+//     // iterate the remaining contents of the hashmap
+//     receipts_hash_map
+//         .clone()
+//         .into_iter()
+//         .for_each(|(_entry_hash, receipt)| {
+//             create_entry(&receipt).expect("Expected P2P message receipt entry");
+//         });
 
-    Ok(ReceiptContents(receipts_hash_map))
-}
+//     Ok(ReceiptContents(receipts_hash_map))
+// }

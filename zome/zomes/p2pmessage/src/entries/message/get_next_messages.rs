@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use super::helpers::{get_receipts, get_replies, insert_message, insert_reply};
 
 use super::{
-    AgentMessages, FileType, MessageBundle, MessageContents, P2PMessage, P2PMessageFilterBatch,
-    P2PMessageHashTables, P2PMessageReceipt, Payload, ReceiptContents,
+    FileType, P2PMessage, P2PMessageData, P2PMessageFilterBatch, P2PMessageHashTables,
+    P2PMessageReceipt, Payload,
 };
 
 pub fn get_next_messages_handler(
@@ -24,7 +24,7 @@ pub fn get_next_messages_handler(
 
     let mut agent_messages: HashMap<String, Vec<String>> = HashMap::new();
     agent_messages.insert(filter.conversant.clone().to_string(), Vec::new());
-    let mut message_contents: HashMap<String, MessageBundle> = HashMap::new();
+    let mut message_contents: HashMap<String, (P2PMessageData, Vec<String>)> = HashMap::new();
     let mut receipt_contents: HashMap<String, P2PMessageReceipt> = HashMap::new();
     let mut reply_pairs: HashMap<String, Vec<String>> = HashMap::new();
     let mut later_message_hashes: Vec<EntryHash> = Vec::new();
@@ -119,7 +119,6 @@ pub fn get_next_messages_handler(
                 }
             }
         } else {
-            debug!("The hidden entry is {:?}", message.clone());
             continue;
         }
     }
@@ -143,9 +142,15 @@ pub fn get_next_messages_handler(
 
     get_replies(&mut reply_pairs, &mut message_contents)?;
 
+    // Ok(P2PMessageHashTables(
+    //     AgentMessages(agent_messages),
+    //     MessageContents(message_contents),
+    //     ReceiptContents(receipt_contents),
+    // ))
+
     Ok(P2PMessageHashTables(
-        AgentMessages(agent_messages),
-        MessageContents(message_contents),
-        ReceiptContents(receipt_contents),
+        agent_messages,
+        message_contents,
+        receipt_contents,
     ))
 }

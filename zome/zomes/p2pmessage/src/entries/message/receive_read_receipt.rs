@@ -1,13 +1,11 @@
 use hdk::prelude::*;
 use std::collections::HashMap;
 
-// use super::helpers::commit_receipts;
+use super::{P2PMessageReceipt, ReceiptSignal, Signal, SignalDetails};
 
-use super::{P2PMessageReceipt, ReceiptContents, ReceiptSignal, Signal, SignalDetails};
-
-pub fn receive_read_receipt_handler(receipt: P2PMessageReceipt) -> ExternResult<ReceiptContents> {
-    // let receipts = commit_receipts(vec![receipt.clone()])?; //input is only a single receipt with a vector of messages hashes
-
+pub fn receive_read_receipt_handler(
+    receipt: P2PMessageReceipt,
+) -> ExternResult<HashMap<String, P2PMessageReceipt>> {
     let receipt_entry = Entry::App(receipt.clone().try_into()?);
     let receipt_hash = host_call::<CreateInput, HeaderHash>(
         __create,
@@ -19,13 +17,11 @@ pub fn receive_read_receipt_handler(receipt: P2PMessageReceipt) -> ExternResult<
     )?;
 
     let mut receipt_contents: HashMap<String, P2PMessageReceipt> = HashMap::new();
-    receipt_contents.insert(
-        receipt_hash.clone().to_string(), //b64 check
-        receipt.clone(),
-    );
+    receipt_contents.insert(receipt_hash.to_string(), receipt);
 
     let signal = Signal::P2PMessageReceipt(ReceiptSignal {
-        receipt: ReceiptContents(receipt_contents.clone()),
+        // receipt: ReceiptContents(receipt_contents.clone()),
+        receipt: receipt_contents.clone(),
     });
 
     let signal_details = SignalDetails {
@@ -35,5 +31,5 @@ pub fn receive_read_receipt_handler(receipt: P2PMessageReceipt) -> ExternResult<
 
     emit_signal(&signal_details)?;
 
-    Ok(ReceiptContents(receipt_contents))
+    Ok(receipt_contents)
 }

@@ -3,15 +3,15 @@ use hdk::prelude::*;
 use file_types::{FileMetadata, Payload, PayloadInput};
 
 use super::{
-    MessageDataAndReceipt, MessageInputWithTimestamp, P2PFileBytes, P2PMessage, P2PMessageData,
-    P2PMessageReceipt, P2PMessageReplyTo, ReceiveMessageInput,
+    MessageWithTimestampInput, P2PFileBytes, P2PMessage, P2PMessageData, P2PMessageReceipt,
+    P2PMessageReplyTo, ReceiveMessageInput,
 };
 use crate::utils::error;
 
 // test_stub: this zome function is a test function to test get by timestamp
 pub fn send_message_with_timestamp_handler(
-    message_input: MessageInputWithTimestamp,
-) -> ExternResult<MessageDataAndReceipt> {
+    message_input: MessageWithTimestampInput,
+) -> ExternResult<((EntryHash, P2PMessageData), (EntryHash, P2PMessageReceipt))> {
     let message = P2PMessage {
         author: agent_info()?.agent_latest_pubkey,
         receiver: message_input.receiver,
@@ -46,7 +46,10 @@ pub fn send_message_with_timestamp_handler(
         PayloadInput::File { ref file_bytes, .. } => Some(P2PFileBytes((*file_bytes).clone())),
     };
 
-    let receive_input = ReceiveMessageInput(message.clone(), file.clone());
+    let receive_input = ReceiveMessageInput {
+        message: message.clone(),
+        file: file.clone(),
+    };
 
     let receive_call_result: ZomeCallResponse = call_remote(
         message.receiver.clone(),
@@ -58,24 +61,23 @@ pub fn send_message_with_timestamp_handler(
 
     match receive_call_result {
         ZomeCallResponse::Ok(extern_io) => {
-            let received_receipt: P2PMessageReceipt = extern_io.decode()?;
-
-            let received_receipt_entry = Entry::App(received_receipt.clone().try_into()?);
-            host_call::<CreateInput, HeaderHash>(
-                __create,
-                CreateInput::new(
-                    P2PMessageReceipt::entry_def().id,
-                    received_receipt_entry,
-                    ChainTopOrdering::Relaxed,
-                ),
-            )?;
-
             let message_entry = Entry::App(message.clone().try_into()?);
             host_call::<CreateInput, HeaderHash>(
                 __create,
                 CreateInput::new(
                     P2PMessage::entry_def().id,
                     message_entry.clone(),
+                    ChainTopOrdering::Relaxed,
+                ),
+            )?;
+
+            let received_receipt: P2PMessageReceipt = extern_io.decode()?;
+            let received_receipt_entry = Entry::App(received_receipt.clone().try_into()?);
+            host_call::<CreateInput, HeaderHash>(
+                __create,
+                CreateInput::new(
+                    P2PMessageReceipt::entry_def().id,
+                    received_receipt_entry,
                     ChainTopOrdering::Relaxed,
                 ),
             )?;
@@ -96,7 +98,7 @@ pub fn send_message_with_timestamp_handler(
 
             let message_return;
             if let Some(ref reply_to_hash) = message.reply_to {
-                let queried_messages: Vec<Element> = query(
+                let mut queried_messages: Vec<Element> = query(
                     QueryFilter::new()
                         .entry_type(EntryType::App(AppEntryType::new(
                             EntryDefIndex::from(0),
@@ -105,6 +107,7 @@ pub fn send_message_with_timestamp_handler(
                         )))
                         .include_entries(true),
                 )?;
+                queried_messages.reverse();
 
                 for queried_message in queried_messages.clone().into_iter() {
                     if let Ok(message_entry) =
@@ -130,7 +133,7 @@ pub fn send_message_with_timestamp_handler(
                                 reply_to: Some(replied_to_message),
                             };
 
-                            return Ok(MessageDataAndReceipt(
+                            return Ok((
                                 (hash_entry(&message)?, message_return),
                                 (hash_entry(&received_receipt)?, received_receipt),
                             ));
@@ -149,7 +152,7 @@ pub fn send_message_with_timestamp_handler(
                 reply_to: None,
             };
 
-            Ok(MessageDataAndReceipt(
+            Ok((
                 (hash_entry(&message)?, message_return),
                 (hash_entry(&received_receipt)?, received_receipt),
             ))

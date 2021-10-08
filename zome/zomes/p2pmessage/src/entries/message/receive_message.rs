@@ -6,15 +6,14 @@ use super::{
 };
 
 pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMessageReceipt> {
-    // let receipt = P2PMessageReceipt::from_message(input.0.clone())?;
     let receipt = P2PMessageReceipt {
-        id: vec![hash_entry(&input.0)?],
+        id: vec![hash_entry(&input.message)?],
         status: Status::Delivered {
             timestamp: sys_time()?,
         },
     };
     let receipt_entry = Entry::App(receipt.clone().try_into()?);
-    let message_entry = Entry::App(input.0.clone().try_into()?);
+    let message_entry = Entry::App(input.message.clone().try_into()?);
     host_call::<CreateInput, HeaderHash>(
         __create,
         CreateInput::new(
@@ -32,7 +31,7 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
         ),
     )?;
 
-    if let Some(file) = input.1.clone() {
+    if let Some(file) = input.file.clone() {
         let file_entry = Entry::App(file.clone().try_into()?);
         host_call::<CreateInput, HeaderHash>(
             __create,
@@ -46,13 +45,13 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
 
     let mut message_return;
     message_return = P2PMessageData {
-        author: input.0.author.clone(),
-        receiver: input.0.receiver.clone(),
-        payload: input.0.payload.clone(),
-        time_sent: input.0.time_sent.clone(),
+        author: input.message.author.clone(),
+        receiver: input.message.receiver.clone(),
+        payload: input.message.payload.clone(),
+        time_sent: input.message.time_sent.clone(),
         reply_to: None,
     };
-    if let Some(ref reply_to_hash) = input.0.reply_to {
+    if let Some(ref reply_to_hash) = input.message.reply_to {
         let queried_messages: Vec<Element> = query(
             QueryFilter::new()
                 .entry_type(EntryType::App(AppEntryType::new(
@@ -62,13 +61,13 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
                 )))
                 .include_entries(true),
         )?;
-        for queried_message in queried_messages.clone().into_iter() {
-            if let Ok(message_entry) = TryInto::<P2PMessage>::try_into(queried_message.clone()) {
+        for queried_message in queried_messages.into_iter() {
+            if let Ok(message_entry) = TryInto::<P2PMessage>::try_into(queried_message) {
                 let message_hash = hash_entry(&message_entry)?;
 
                 if *reply_to_hash == message_hash {
                     let replied_to_message = P2PMessageReplyTo {
-                        hash: message_hash.clone(),
+                        hash: message_hash,
                         author: message_entry.author,
                         receiver: message_entry.receiver,
                         payload: message_entry.payload,
@@ -77,10 +76,10 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
                     };
 
                     message_return = P2PMessageData {
-                        author: input.0.author.clone(),
-                        receiver: input.0.receiver.clone(),
-                        payload: input.0.payload.clone(),
-                        time_sent: input.0.time_sent.clone(),
+                        author: input.message.author.clone(),
+                        receiver: input.message.receiver.clone(),
+                        payload: input.message.payload.clone(),
+                        time_sent: input.message.time_sent.clone(),
                         reply_to: Some(replied_to_message),
                     };
                 }
@@ -90,7 +89,7 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
 
     let signal = Signal::Message(MessageSignal {
         message: MessageDataAndReceipt(
-            (hash_entry(&input.0.clone())?, message_return),
+            (hash_entry(&input.message.clone())?, message_return),
             (hash_entry(&receipt.clone())?, receipt.clone()),
         ),
     });
