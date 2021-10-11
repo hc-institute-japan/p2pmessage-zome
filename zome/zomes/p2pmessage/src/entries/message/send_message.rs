@@ -161,7 +161,7 @@ pub fn send_message_handler(
             return error("Sorry, something went wrong. [Authorization error]");
         }
         ZomeCallResponse::NetworkError(_e) => {
-            return error("Sorry, something went wrong. [Network error]");
+            return error("Sorry, something went wrong. [Network error 2]");
         }
         ZomeCallResponse::CountersigningSession(_e) => {
             return error("Sorry, something went wrong. [Countersigning error]");

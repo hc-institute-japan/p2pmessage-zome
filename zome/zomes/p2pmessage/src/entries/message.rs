@@ -13,7 +13,7 @@ pub mod helpers;
 pub mod init;
 pub mod pin_message;
 pub mod read_message;
-// pub mod receive_message;
+pub mod receive_message;
 pub mod receive_read_receipt;
 pub mod send_message;
 pub mod send_message_with_timestamp;

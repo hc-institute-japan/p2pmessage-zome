@@ -4,6 +4,10 @@ import { Base64 } from "js-base64";
 import { Installables } from "../types";
 import { delay, serializeHash } from "../utils";
 
+function init() {
+  return (conductor) => conductor.call("p2pmessage", "init", undefined);
+}
+
 function sendMessage(message) {
   return (conductor) => conductor.call("p2pmessage", "send_message", message);
 }
@@ -70,15 +74,19 @@ const messaging = async (conductorConfig, installation: Installables) => {
       let agent_pubkey_alice_string = serializeHash(agent_pubkey_alice);
       let agent_pubkey_bobby_string = serializeHash(agent_pubkey_bobby);
 
-      // let list = {};
-      // alice.setSignalHandler((signal) => {
-      //   // sendMessageSignalHandler(signal, list)(agent_pubkey_alice);
-      //   console.log("receiving signal...", signal);
-      // });
-      // bobby.setSignalHandler((signal) => {
-      //   // sendMessageSignalHandler(signal, list)(agent_pubkey_bobby);
-      //   console.log("receiving signal...", signal);
-      // });
+      // await alice.startup({});
+      // await bobby.startup({});
+      await delay(4000);
+
+      let list = {};
+      alice.setSignalHandler((signal) => {
+        // sendMessageSignalHandler(signal, list)(agent_pubkey_alice);
+        console.log("receiving signal...", signal);
+      });
+      bobby.setSignalHandler((signal) => {
+        // sendMessageSignalHandler(signal, list)(agent_pubkey_bobby);
+        console.log("receiving signal...", signal);
+      });
 
       const messages = [
         {
@@ -132,6 +140,10 @@ const messaging = async (conductorConfig, installation: Installables) => {
           replyTo: null,
         },
       ];
+
+      await init()(alice_cell);
+      await init()(bobby_cell);
+      await delay(10000);
 
       /*
        * alice sends 3 messages to bobby

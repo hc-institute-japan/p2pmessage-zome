@@ -33,8 +33,8 @@ const installables: Installables = {
 };
 
 messaging(conductorConfig, installables);
-getters(conductorConfig, installables);
-receipts(conductorConfig, installables); // pass
+// getters(conductorConfig, installables);
+// receipts(conductorConfig, installables); // pass
 // signals(conductorConfig, installables); // 0 tests
-pin(conductorConfig, installables); // pass
+// pin(conductorConfig, installables); // pass
 // playground(conductorConfig, installables);

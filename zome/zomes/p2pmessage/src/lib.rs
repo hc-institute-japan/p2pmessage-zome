@@ -17,7 +17,7 @@ use message::get_previous_messages::get_previous_messages_handler;
 use message::init::init_handler;
 use message::pin_message::pin_message_handler;
 use message::read_message::read_message_handler;
-// use message::receive_message::receive_message_handler;
+use message::receive_message::receive_message_handler;
 use message::receive_read_receipt::receive_read_receipt_handler;
 use message::send_message::send_message_handler;
 use message::send_message_with_timestamp::send_message_with_timestamp_handler;
@@ -68,10 +68,10 @@ fn send_message_with_timestamp(
     return send_message_with_timestamp_handler(message_input);
 }
 
-// #[hdk_extern] // not called from the front end
-// fn receive_message(input: ReceiveMessageInput) -> ExternResult<P2PMessageReceipt> {
-//     return receive_message_handler(input.0, input.1);
-// }
+#[hdk_extern]
+fn receive_message(input: ReceiveMessageInput) -> ExternResult<P2PMessageReceipt> {
+    return receive_message_handler(input);
+}
 
 #[hdk_extern]
 fn read_message(
