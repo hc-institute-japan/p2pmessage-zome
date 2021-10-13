@@ -28,13 +28,23 @@ pub fn get_messages_by_agent_by_timestamp_handler(
     let mut receipt_contents: HashMap<String, P2PMessageReceipt> = HashMap::new();
     let mut reply_pairs: HashMap<String, Vec<String>> = HashMap::new();
 
-    let day_start = (filter.date.as_seconds_and_nanos().0 / 86400) * 86400;
-    let day_end = day_start + 86399;
+    // input is in microseconds since epoch
+    let day_start = filter.date.as_micros();
+    let day_end = day_start + 86399 * 1000000;
 
     for message in queried_messages.into_iter() {
         if let Ok(message_entry) = TryInto::<P2PMessage>::try_into(message.clone()) {
             let message_hash = hash_entry(&message_entry)?;
 
+            debug!(
+                "nicko input timestamp: {:?} {:?}",
+                day_start.clone(),
+                day_end.clone()
+            );
+            debug!(
+                "nicko messag timesent: {:?}",
+                message_entry.time_sent.clone()
+            );
             // TODO: use header timestamp for message_time
             if message_entry.time_sent.as_micros() >= day_start
                 && message_entry.time_sent.as_micros() <= day_end
