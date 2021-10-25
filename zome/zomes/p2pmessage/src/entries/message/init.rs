@@ -5,7 +5,7 @@ use hdk::prelude::*;
  */
 
 pub fn init_handler() -> ExternResult<InitCallbackResult> {
-    let zome_name: ZomeName = zome_info()?.zome_name;
+    let zome_name: ZomeName = zome_info()?.name;
 
     let mut receive_message_function: GrantedFunctions = BTreeSet::new();
     receive_message_function.insert((zome_name.clone(), "receive_message".into()));

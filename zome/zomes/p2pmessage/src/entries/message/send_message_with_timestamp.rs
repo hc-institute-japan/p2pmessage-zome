@@ -53,7 +53,7 @@ pub fn send_message_with_timestamp_handler(
 
     let receive_call_result: ZomeCallResponse = call_remote(
         message.receiver.clone(),
-        zome_info()?.zome_name,
+        zome_info()?.name,
         "receive_message".into(),
         None,
         &receive_input,
@@ -102,7 +102,7 @@ pub fn send_message_with_timestamp_handler(
                     QueryFilter::new()
                         .entry_type(EntryType::App(AppEntryType::new(
                             EntryDefIndex::from(0),
-                            zome_info()?.zome_id,
+                            zome_info()?.id,
                             EntryVisibility::Private,
                         )))
                         .include_entries(true),

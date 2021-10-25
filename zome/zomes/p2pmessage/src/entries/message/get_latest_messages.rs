@@ -10,7 +10,7 @@ pub fn get_latest_messages_handler(batch_size: u8) -> ExternResult<P2PMessageHas
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(0),
-                zome_info()?.zome_id,
+                zome_info()?.id,
                 EntryVisibility::Private,
             )))
             .include_entries(true),

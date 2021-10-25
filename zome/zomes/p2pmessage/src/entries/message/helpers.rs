@@ -60,7 +60,7 @@ pub fn get_receipts(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(1),
-                zome_info()?.zome_id,
+                zome_info()?.id,
                 EntryVisibility::Private,
             )))
             .include_entries(true),
@@ -97,7 +97,7 @@ pub fn get_replies(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(0),
-                zome_info()?.zome_id,
+                zome_info()?.id,
                 EntryVisibility::Private,
             )))
             .include_entries(true),

@@ -10,7 +10,7 @@ pub fn get_file_bytes_handler(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(2),
-                zome_info()?.zome_id,
+                zome_info()?.id,
                 EntryVisibility::Private,
             )))
             .include_entries(true),
