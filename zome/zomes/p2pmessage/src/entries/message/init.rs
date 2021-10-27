@@ -11,13 +11,16 @@ pub fn init_handler() -> ExternResult<InitCallbackResult> {
     receive_message_function.insert((zome_name.clone(), "receive_message".into()));
 
     let mut receive_receipt_function = BTreeSet::new();
-    receive_receipt_function.insert((zome_name.clone(), "receive_read_receipt".into()));
+    receive_receipt_function.insert((zome_name.clone(), "receive_receipt".into()));
 
     let mut typing_function: GrantedFunctions = BTreeSet::new();
     typing_function.insert((zome_name.clone(), "typing".into()));
 
     let mut recv_remote_signal_function: GrantedFunctions = BTreeSet::new();
     recv_remote_signal_function.insert((zome_name.clone(), "recv_remote_signal".into()));
+
+    let mut post_commit_function: GrantedFunctions = BTreeSet::new();
+    post_commit_function.insert((zome_name.clone(), "post_commit".into()));
 
     let mut sync_pins_function: GrantedFunctions = BTreeSet::new();
     sync_pins_function.insert((zome_name.clone(), "sync_pins".into()));
@@ -29,7 +32,7 @@ pub fn init_handler() -> ExternResult<InitCallbackResult> {
     })?;
 
     create_cap_grant(CapGrantEntry {
-        tag: "receive_read_receipt".into(),
+        tag: "receive_receipt".into(),
         access: CapAccess::Unrestricted,
         functions: receive_receipt_function,
     })?;
@@ -44,6 +47,12 @@ pub fn init_handler() -> ExternResult<InitCallbackResult> {
         tag: "recv_remote_signal".into(),
         access: CapAccess::Unrestricted,
         functions: recv_remote_signal_function,
+    })?;
+
+    create_cap_grant(CapGrantEntry {
+        tag: "post_commit".into(),
+        access: CapAccess::Unrestricted,
+        functions: post_commit_function,
     })?;
 
     create_cap_grant(CapGrantEntry {

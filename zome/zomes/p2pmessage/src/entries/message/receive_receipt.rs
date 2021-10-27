@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use super::{P2PMessageReceipt, ReceiptSignal, Signal, SignalDetails};
 
-pub fn receive_read_receipt_handler(
+pub fn receive_receipt_handler(
     receipt: P2PMessageReceipt,
 ) -> ExternResult<HashMap<String, P2PMessageReceipt>> {
     let receipt_entry = Entry::App(receipt.clone().try_into()?);

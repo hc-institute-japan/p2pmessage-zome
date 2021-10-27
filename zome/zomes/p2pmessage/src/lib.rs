@@ -7,6 +7,8 @@ use std::collections::HashMap;
 
 use message::*;
 
+use message::commit_message_to_receiver_chain::commit_message_to_receiver_chain_handler;
+use message::commit_receipt_to_sender_chain::commit_receipt_to_sender_chain_handler;
 use message::get_adjacent_messages::get_adjacent_messages_handler;
 use message::get_file_bytes::get_file_bytes_handler;
 use message::get_latest_messages::get_latest_messages_handler;
@@ -14,11 +16,12 @@ use message::get_messages_by_agent_by_timestamp::get_messages_by_agent_by_timest
 use message::get_next_messages::get_next_messages_handler;
 use message::get_pinned_messages::get_pinned_messages_handler;
 use message::get_previous_messages::get_previous_messages_handler;
+use message::helpers::{get_message_from_chain, get_receipt_from_chain};
 use message::init::init_handler;
 use message::pin_message::pin_message_handler;
 use message::read_message::read_message_handler;
 use message::receive_message::receive_message_handler;
-use message::receive_read_receipt::receive_read_receipt_handler;
+use message::receive_receipt::receive_receipt_handler;
 use message::send_message::send_message_handler;
 use message::send_message_with_timestamp::send_message_with_timestamp_handler;
 use message::sync_pins::sync_pins_handler;
@@ -55,9 +58,55 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
 }
 
 #[hdk_extern]
-fn send_message(
-    message_input: MessageInput,
-) -> ExternResult<((EntryHash, P2PMessageData), (EntryHash, P2PMessageReceipt))> {
+fn post_commit(headers: Vec<SignedHeaderHashed>) -> ExternResult<PostCommitCallbackResult> {
+    for signed_header in headers.into_iter() {
+        match signed_header.header() {
+            Header::Create(create) => {
+                let agent_pubkey = agent_info()?.agent_latest_pubkey;
+                match &create.entry_type {
+                    EntryType::App(apptype) => match apptype.id() {
+                        EntryDefIndex(0) => {
+                            debug!("this is a p2pmessage");
+                            let message_entry = get_message_from_chain(create.entry_hash.clone())?;
+                            if agent_pubkey == message_entry.author.clone() {
+                                debug!("nicko committed message to sender, ask receiver to commit");
+                                commit_message_to_receiver_chain_handler(message_entry.clone())?
+                            }
+                        }
+                        EntryDefIndex(1) => {
+                            debug!("this is a p2pmessagereceipt");
+                            // this should be a receipt for a single message
+                            // receipt committed when receiving a message
+                            let receipt_entry = get_receipt_from_chain(create.entry_hash.clone())?;
+                            let receipt_status: Status = receipt_entry.status.clone();
+                            if let Status::Delivered { .. } = receipt_status {
+                                let message_entry =
+                                    get_message_from_chain(receipt_entry.id[0].clone())?;
+                                if agent_pubkey == message_entry.receiver {
+                                    debug!("nicko committed delivered receipt to receiver, ask sender to commit");
+                                    let input = ReceiveReceiptInput {
+                                        receipt: receipt_entry,
+                                        receiver: message_entry.author,
+                                    };
+                                    commit_receipt_to_sender_chain_handler(input)?
+                                }
+                            }
+                        }
+                        EntryDefIndex(2) => debug!("this is a p2pfilebytes"),
+                        EntryDefIndex(3) => debug!("this is a p2pmessagepin"),
+                        _ => debug!("nicko def index does not exist"),
+                    },
+                    _ => debug!("this is a create for a system entry"),
+                };
+            }
+            _ => debug!("nicko this is another header"),
+        }
+    }
+    Ok(PostCommitCallbackResult::Success)
+}
+
+#[hdk_extern]
+fn send_message(message_input: MessageInput) -> ExternResult<(EntryHash, P2PMessageData)> {
     return send_message_handler(message_input);
 }
 
@@ -108,10 +157,8 @@ fn typing(typing_info: P2PTypingDetailIO) -> ExternResult<()> {
 }
 
 #[hdk_extern]
-fn receive_read_receipt(
-    receipt: P2PMessageReceipt,
-) -> ExternResult<HashMap<String, P2PMessageReceipt>> {
-    return receive_read_receipt_handler(receipt);
+fn receive_receipt(receipt: P2PMessageReceipt) -> ExternResult<HashMap<String, P2PMessageReceipt>> {
+    return receive_receipt_handler(receipt);
 }
 
 #[hdk_extern]

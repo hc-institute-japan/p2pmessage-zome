@@ -2,15 +2,12 @@ use hdk::prelude::*;
 
 use file_types::{FileMetadata, Payload, PayloadInput};
 
-use super::{
-    MessageInput, P2PFileBytes, P2PMessage, P2PMessageData, P2PMessageReceipt, P2PMessageReplyTo,
-    ReceiveMessageInput,
-};
-use crate::utils::error;
+use super::{MessageInput, P2PFileBytes, P2PMessage, P2PMessageData, P2PMessageReplyTo};
+// use crate::utils::error;
 
 pub fn send_message_handler(
     message_input: MessageInput,
-) -> ExternResult<((EntryHash, P2PMessageData), (EntryHash, P2PMessageReceipt))> {
+) -> ExternResult<(EntryHash, P2PMessageData)> {
     // TODO: check if receiver is blocked
 
     let message = P2PMessage {
@@ -42,129 +39,78 @@ pub fn send_message_handler(
         reply_to: message_input.reply_to,
     };
 
-    let file = match message_input.payload {
-        PayloadInput::Text { .. } => None,
-        PayloadInput::File { ref file_bytes, .. } => Some(P2PFileBytes((*file_bytes).clone())),
-    };
-
-    let receive_input = ReceiveMessageInput {
-        message: message.clone(),
-        file: file.clone(),
-    };
-
-    let receive_call_result: ZomeCallResponse = call_remote(
-        message.receiver.clone(),
-        zome_info()?.name,
-        "receive_message".into(),
-        None,
-        &receive_input,
+    let message_entry = Entry::App(message.clone().try_into()?);
+    host_call::<CreateInput, HeaderHash>(
+        __create,
+        CreateInput::new(
+            P2PMessage::entry_def().id,
+            message_entry.clone(),
+            ChainTopOrdering::Relaxed,
+        ),
     )?;
 
-    match receive_call_result {
-        ZomeCallResponse::Ok(extern_io) => {
-            let message_entry = Entry::App(message.clone().try_into()?);
-            host_call::<CreateInput, HeaderHash>(
-                __create,
-                CreateInput::new(
-                    P2PMessage::entry_def().id,
-                    message_entry.clone(),
-                    ChainTopOrdering::Relaxed,
-                ),
-            )?;
+    if let PayloadInput::File { ref file_bytes, .. } = message_input.payload {
+        let p2pfile = P2PFileBytes(file_bytes.clone());
+        let p2pfile_entry = Entry::App(p2pfile.clone().try_into()?);
+        host_call::<CreateInput, HeaderHash>(
+            __create,
+            CreateInput::new(
+                P2PFileBytes::entry_def().id,
+                p2pfile_entry,
+                ChainTopOrdering::Relaxed,
+            ),
+        )?;
+        ()
+    };
 
-            let received_receipt: P2PMessageReceipt = extern_io.decode()?;
-            let received_receipt_entry = Entry::App(received_receipt.clone().try_into()?);
-            host_call::<CreateInput, HeaderHash>(
-                __create,
-                CreateInput::new(
-                    P2PMessageReceipt::entry_def().id,
-                    received_receipt_entry,
-                    ChainTopOrdering::Relaxed,
-                ),
-            )?;
+    let message_return;
+    if let Some(ref reply_to_hash) = message.reply_to {
+        let queried_messages: Vec<Element> = query(
+            QueryFilter::new()
+                .entry_type(EntryType::App(AppEntryType::new(
+                    EntryDefIndex::from(0),
+                    zome_info()?.id,
+                    EntryVisibility::Private,
+                )))
+                .include_entries(true),
+        )?;
 
-            if let PayloadInput::File { file_bytes, .. } = message_input.payload {
-                let p2pfile = P2PFileBytes(file_bytes.clone());
-                let p2pfile_entry = Entry::App(p2pfile.clone().try_into()?);
-                host_call::<CreateInput, HeaderHash>(
-                    __create,
-                    CreateInput::new(
-                        P2PFileBytes::entry_def().id,
-                        p2pfile_entry,
-                        ChainTopOrdering::Relaxed,
-                    ),
-                )?;
-                ()
-            };
+        for queried_message in queried_messages.clone().into_iter() {
+            if let Ok(message_entry) = TryInto::<P2PMessage>::try_into(queried_message.clone()) {
+                let message_hash = hash_entry(&message_entry)?;
 
-            let message_return;
-            if let Some(ref reply_to_hash) = message.reply_to {
-                let queried_messages: Vec<Element> = query(
-                    QueryFilter::new()
-                        .entry_type(EntryType::App(AppEntryType::new(
-                            EntryDefIndex::from(0),
-                            zome_info()?.id,
-                            EntryVisibility::Private,
-                        )))
-                        .include_entries(true),
-                )?;
+                if *reply_to_hash == message_hash {
+                    let replied_to_message = P2PMessageReplyTo {
+                        hash: message_hash.clone(),
+                        author: message_entry.author,
+                        receiver: message_entry.receiver,
+                        payload: message_entry.payload,
+                        time_sent: message_entry.time_sent,
+                        reply_to: None,
+                    };
 
-                for queried_message in queried_messages.clone().into_iter() {
-                    if let Ok(message_entry) =
-                        TryInto::<P2PMessage>::try_into(queried_message.clone())
-                    {
-                        let message_hash = hash_entry(&message_entry)?;
+                    message_return = P2PMessageData {
+                        author: message.author.clone(),
+                        receiver: message.receiver.clone(),
+                        payload: message.payload.clone(),
+                        time_sent: message.time_sent.clone(),
+                        reply_to: Some(replied_to_message),
+                    };
 
-                        if *reply_to_hash == message_hash {
-                            let replied_to_message = P2PMessageReplyTo {
-                                hash: message_hash.clone(),
-                                author: message_entry.author,
-                                receiver: message_entry.receiver,
-                                payload: message_entry.payload,
-                                time_sent: message_entry.time_sent,
-                                reply_to: None,
-                            };
-
-                            message_return = P2PMessageData {
-                                author: message.author.clone(),
-                                receiver: message.receiver.clone(),
-                                payload: message.payload.clone(),
-                                time_sent: message.time_sent.clone(),
-                                reply_to: Some(replied_to_message),
-                            };
-
-                            return Ok((
-                                (hash_entry(&message)?, message_return),
-                                (hash_entry(&received_receipt)?, received_receipt),
-                            ));
-                        }
-                    } else {
-                        continue;
-                    }
+                    return Ok((hash_entry(&message)?, message_return));
                 }
+            } else {
+                continue;
             }
-
-            let message_return = P2PMessageData {
-                author: message.author.clone(),
-                receiver: message.receiver.clone(),
-                payload: message.payload.clone(),
-                time_sent: message.time_sent.clone(),
-                reply_to: None,
-            };
-
-            Ok((
-                (hash_entry(&message)?, message_return),
-                (hash_entry(&received_receipt)?, received_receipt),
-            ))
-        }
-        ZomeCallResponse::Unauthorized(_, _, _, _) => {
-            return error("Sorry, something went wrong. [Authorization error]");
-        }
-        ZomeCallResponse::NetworkError(_e) => {
-            return error("Sorry, something went wrong. [Network error 2]");
-        }
-        ZomeCallResponse::CountersigningSession(_e) => {
-            return error("Sorry, something went wrong. [Countersigning error]");
         }
     }
+    message_return = P2PMessageData {
+        author: message.author.clone(),
+        receiver: message.receiver.clone(),
+        payload: message.payload.clone(),
+        time_sent: message.time_sent.clone(),
+        reply_to: None,
+    };
+
+    Ok((hash_entry(&message)?, message_return))
 }

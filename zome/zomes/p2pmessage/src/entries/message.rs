@@ -2,6 +2,8 @@ use derive_more::{From, Into};
 use hdk::prelude::{timestamp::Timestamp, *};
 use std::collections::HashMap;
 
+pub mod commit_message_to_receiver_chain;
+pub mod commit_receipt_to_sender_chain;
 pub mod get_adjacent_messages;
 pub mod get_file_bytes;
 pub mod get_latest_messages;
@@ -14,7 +16,7 @@ pub mod init;
 pub mod pin_message;
 pub mod read_message;
 pub mod receive_message;
-pub mod receive_read_receipt;
+pub mod receive_receipt;
 pub mod send_message;
 pub mod send_message_with_timestamp;
 pub mod sync_pins;
@@ -26,8 +28,8 @@ use file_types::{FileType, Payload, PayloadInput};
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct P2PMessage {
-    author: AgentPubKey,
-    receiver: AgentPubKey,
+    pub author: AgentPubKey,
+    pub receiver: AgentPubKey,
     payload: Payload,
     time_sent: Timestamp,
     reply_to: Option<EntryHash>,
@@ -35,8 +37,8 @@ pub struct P2PMessage {
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct P2PMessageReceipt {
-    id: Vec<EntryHash>,
-    status: Status,
+    pub id: Vec<EntryHash>,
+    pub status: Status,
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
@@ -122,6 +124,12 @@ pub struct PinMessageInput {
 pub struct ReceiveMessageInput {
     message: P2PMessage,
     file: Option<P2PFileBytes>,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct ReceiveReceiptInput {
+    pub receipt: P2PMessageReceipt,
+    pub receiver: AgentPubKey,
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]

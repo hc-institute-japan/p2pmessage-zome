@@ -17,7 +17,7 @@ pub fn read_message_handler(
     let zome_call_response: ZomeCallResponse = call_remote(
         read_message_input.sender,
         zome_info()?.name,
-        FunctionName("receive_read_receipt".into()),
+        FunctionName("receive_receipt".into()),
         None,
         &receipt,
     )?;
