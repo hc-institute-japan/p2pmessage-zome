@@ -22,7 +22,7 @@ pub mod send_message_with_timestamp;
 pub mod sync_pins;
 pub mod typing;
 
-use file_types::{FileType, Payload, PayloadInput};
+use file_types::{FileMetadata, FileType, Payload, PayloadInput};
 
 // ENTRY STRUCTURES
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
@@ -33,6 +33,40 @@ pub struct P2PMessage {
     payload: Payload,
     time_sent: Timestamp,
     reply_to: Option<EntryHash>,
+}
+
+impl P2PMessage {
+    pub fn from_input(input: MessageWithTimestampInput) -> ExternResult<Self> {
+        let message = P2PMessage {
+            author: agent_info()?.agent_latest_pubkey,
+            receiver: input.receiver,
+            payload: match input.payload {
+                PayloadInput::Text { ref payload } => Payload::Text {
+                    payload: payload.to_owned(),
+                },
+                PayloadInput::File {
+                    ref metadata,
+                    ref file_type,
+                    ref file_bytes,
+                } => {
+                    let p2pfile = P2PFileBytes(file_bytes.clone());
+                    let file_hash = hash_entry(&p2pfile)?;
+                    Payload::File {
+                        metadata: FileMetadata {
+                            file_name: metadata.file_name.clone(),
+                            file_size: metadata.file_size.clone(),
+                            file_type: metadata.file_type.clone(),
+                            file_hash: file_hash,
+                        },
+                        file_type: file_type.clone(),
+                    }
+                }
+            },
+            time_sent: input.timestamp,
+            reply_to: input.reply_to,
+        };
+        Ok(message)
+    }
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
@@ -204,6 +238,8 @@ pub enum Signal {
     P2PTypingDetailSignal(TypingSignal),
     P2PMessageReceipt(ReceiptSignal),
     P2PPinSignal(PinSignal),
+    ErrorMessage(ErrorMessage),
+    ErrorReceipt(ErrorReceipt),
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
@@ -230,6 +266,16 @@ pub struct PinSignal {
 pub struct TypingSignal {
     agent: AgentPubKey,
     is_typing: bool,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct ErrorMessage {
+    pub message: P2PMessage,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct ErrorReceipt {
+    pub receipt: P2PMessageReceipt,
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]

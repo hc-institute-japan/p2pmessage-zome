@@ -1,11 +1,13 @@
 use hdk::prelude::*;
+use std::collections::HashMap;
 
-use super::ReceiveReceiptInput;
+use super::{P2PMessageReceipt, ReceiveReceiptInput};
 use crate::utils::error;
 
+#[allow(dead_code)]
 pub fn commit_receipt_to_sender_chain_handler(
     receive_input: ReceiveReceiptInput,
-) -> ExternResult<()> {
+) -> ExternResult<HashMap<String, P2PMessageReceipt>> {
     let receive_call_result: ZomeCallResponse = call_remote(
         receive_input.receiver.clone(),
         zome_info()?.name,
@@ -15,7 +17,7 @@ pub fn commit_receipt_to_sender_chain_handler(
     )?;
 
     match receive_call_result {
-        ZomeCallResponse::Ok(_) => Ok(()),
+        ZomeCallResponse::Ok(extern_io) => Ok(extern_io.decode()?),
         ZomeCallResponse::Unauthorized(_, _, _, _) => {
             return error("Sorry, something went wrong. [Authorization error]");
         }

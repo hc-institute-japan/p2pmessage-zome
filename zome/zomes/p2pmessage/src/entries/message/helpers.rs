@@ -209,6 +209,7 @@ pub fn get_file_from_chain(file_hash: EntryHash) -> ExternResult<P2PFileBytes> {
     return error("Sorry. File not found.");
 }
 
+#[allow(dead_code)]
 pub fn get_receipt_from_chain(receipt_hash: EntryHash) -> ExternResult<P2PMessageReceipt> {
     let queried_receipts: Vec<Element> = query(
         QueryFilter::new()
