@@ -1,7 +1,9 @@
 use hdk::prelude::*;
 use std::collections::HashMap;
 
-use super::{P2PMessage, P2PMessageData, P2PMessageReceipt, P2PMessageReplyTo};
+use super::{P2PFileBytes, P2PMessage, P2PMessageData, P2PMessageReceipt, P2PMessageReplyTo};
+
+use crate::utils::error;
 
 pub fn insert_message(
     agent_messages: &mut HashMap<String, Vec<String>>,
@@ -60,7 +62,7 @@ pub fn get_receipts(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(1),
-                zome_info()?.zome_id,
+                zome_info()?.id,
                 EntryVisibility::Private,
             )))
             .include_entries(true),
@@ -97,7 +99,7 @@ pub fn get_replies(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(0),
-                zome_info()?.zome_id,
+                zome_info()?.id,
                 EntryVisibility::Private,
             )))
             .include_entries(true),
@@ -140,6 +142,97 @@ pub fn get_replies(
     }
 
     Ok(())
+}
+
+pub fn get_message_from_chain(hash: EntryHash) -> ExternResult<P2PMessage> {
+    let mut queried_messages: Vec<Element> = query(
+        QueryFilter::new()
+            .entry_type(EntryType::App(AppEntryType::new(
+                EntryDefIndex::from(0),
+                zome_info()?.id,
+                EntryVisibility::Private,
+            )))
+            .include_entries(true),
+    )?;
+    queried_messages.reverse();
+
+    for element in queried_messages.into_iter() {
+        // let element_header = element.clone().header_address();
+        // let element_entry = element.clone().entry();
+        let message_entry = TryInto::<P2PMessage>::try_into(element.clone())?;
+        let message_hash = hash_entry(message_entry.clone())?;
+        // match hash {
+        //     Header => {
+        //         if hash == element_header {
+        //             let message_entry = TryInto::<P2PMessage>::try_into(element.clone())?;
+        //             return Ok(message_entry);
+        //         }
+        //     }
+        //     Entry => {
+        //         let message_entry = TryInto::<P2PMessage>::try_into(element.clone())?;
+        //         let entry_hash = hash_entry(message_entry.clone())?;
+        //         if entry_hash == hash.into() {
+        //             return Ok(message_entry);
+        //         }
+        //     }
+        // }
+        if hash == message_hash {
+            return Ok(message_entry);
+        }
+    }
+
+    return error("Sorry. Entry not found.");
+}
+
+pub fn get_file_from_chain(file_hash: EntryHash) -> ExternResult<P2PFileBytes> {
+    let queried_files: Vec<Element> = query(
+        QueryFilter::new()
+            .entry_type(EntryType::App(AppEntryType::new(
+                EntryDefIndex::from(2),
+                zome_info()?.id,
+                EntryVisibility::Private,
+            )))
+            .include_entries(true),
+    )?;
+
+    for file in queried_files.into_iter() {
+        if let Ok(file_entry) = TryInto::<P2PFileBytes>::try_into(file.clone()) {
+            let entry_hash = hash_entry(&file_entry)?;
+
+            if entry_hash == file_hash {
+                return Ok(file_entry);
+            }
+        } else {
+            continue;
+        }
+    }
+    return error("Sorry. File not found.");
+}
+
+#[allow(dead_code)]
+pub fn get_receipt_from_chain(receipt_hash: EntryHash) -> ExternResult<P2PMessageReceipt> {
+    let queried_receipts: Vec<Element> = query(
+        QueryFilter::new()
+            .entry_type(EntryType::App(AppEntryType::new(
+                EntryDefIndex::from(1),
+                zome_info()?.id,
+                EntryVisibility::Private,
+            )))
+            .include_entries(true),
+    )?;
+
+    for receipt in queried_receipts.into_iter() {
+        if let Ok(receipt_entry) = TryInto::<P2PMessageReceipt>::try_into(receipt.clone()) {
+            let entry_hash = hash_entry(&receipt_entry)?;
+
+            if entry_hash == receipt_hash {
+                return Ok(receipt_entry);
+            }
+        } else {
+            continue;
+        }
+    }
+    return error("Sorry. Receipt not found.");
 }
 
 // pub fn _commit_receipts(receipts: Vec<P2PMessageReceipt>) -> ExternResult<ReceiptContents> {

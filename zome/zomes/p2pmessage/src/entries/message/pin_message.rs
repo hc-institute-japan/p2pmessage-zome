@@ -32,7 +32,7 @@ pub fn pin_message_handler(
 
     let zome_call_response: ZomeCallResponse = call_remote(
         conversant,
-        zome_info()?.zome_name,
+        zome_info()?.name,
         FunctionName("sync_pins".into()),
         None,
         &pin,

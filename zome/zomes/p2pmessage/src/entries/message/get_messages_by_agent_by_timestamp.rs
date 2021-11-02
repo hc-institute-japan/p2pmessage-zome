@@ -15,7 +15,7 @@ pub fn get_messages_by_agent_by_timestamp_handler(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(0),
-                zome_info()?.zome_id,
+                zome_info()?.id,
                 EntryVisibility::Private,
             )))
             .include_entries(true),
@@ -36,15 +36,6 @@ pub fn get_messages_by_agent_by_timestamp_handler(
         if let Ok(message_entry) = TryInto::<P2PMessage>::try_into(message.clone()) {
             let message_hash = hash_entry(&message_entry)?;
 
-            debug!(
-                "nicko input timestamp: {:?} {:?}",
-                day_start.clone(),
-                day_end.clone()
-            );
-            debug!(
-                "nicko messag timesent: {:?}",
-                message_entry.time_sent.clone()
-            );
             // TODO: use header timestamp for message_time
             if message_entry.time_sent.as_micros() >= day_start
                 && message_entry.time_sent.as_micros() <= day_end

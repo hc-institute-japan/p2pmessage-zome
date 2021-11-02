@@ -2,6 +2,8 @@ use derive_more::{From, Into};
 use hdk::prelude::{timestamp::Timestamp, *};
 use std::collections::HashMap;
 
+pub mod commit_message_to_receiver_chain;
+pub mod commit_receipt_to_sender_chain;
 pub mod get_adjacent_messages;
 pub mod get_file_bytes;
 pub mod get_latest_messages;
@@ -14,29 +16,63 @@ pub mod init;
 pub mod pin_message;
 pub mod read_message;
 pub mod receive_message;
-pub mod receive_read_receipt;
+pub mod receive_receipt;
 pub mod send_message;
 pub mod send_message_with_timestamp;
 pub mod sync_pins;
 pub mod typing;
 
-use file_types::{FileType, Payload, PayloadInput};
+use file_types::{FileMetadata, FileType, Payload, PayloadInput};
 
 // ENTRY STRUCTURES
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct P2PMessage {
-    author: AgentPubKey,
-    receiver: AgentPubKey,
+    pub author: AgentPubKey,
+    pub receiver: AgentPubKey,
     payload: Payload,
     time_sent: Timestamp,
     reply_to: Option<EntryHash>,
 }
 
+impl P2PMessage {
+    pub fn from_input(input: MessageWithTimestampInput) -> ExternResult<Self> {
+        let message = P2PMessage {
+            author: agent_info()?.agent_latest_pubkey,
+            receiver: input.receiver,
+            payload: match input.payload {
+                PayloadInput::Text { ref payload } => Payload::Text {
+                    payload: payload.to_owned(),
+                },
+                PayloadInput::File {
+                    ref metadata,
+                    ref file_type,
+                    ref file_bytes,
+                } => {
+                    let p2pfile = P2PFileBytes(file_bytes.clone());
+                    let file_hash = hash_entry(&p2pfile)?;
+                    Payload::File {
+                        metadata: FileMetadata {
+                            file_name: metadata.file_name.clone(),
+                            file_size: metadata.file_size.clone(),
+                            file_type: metadata.file_type.clone(),
+                            file_hash: file_hash,
+                        },
+                        file_type: file_type.clone(),
+                    }
+                }
+            },
+            time_sent: input.timestamp,
+            reply_to: input.reply_to,
+        };
+        Ok(message)
+    }
+}
+
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct P2PMessageReceipt {
-    id: Vec<EntryHash>,
-    status: Status,
+    pub id: Vec<EntryHash>,
+    pub status: Status,
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
@@ -125,6 +161,12 @@ pub struct ReceiveMessageInput {
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct ReceiveReceiptInput {
+    pub receipt: P2PMessageReceipt,
+    pub receiver: AgentPubKey,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 #[serde(tag = "status", rename_all = "camelCase")]
 pub enum Status {
     Sent { timestamp: Timestamp },
@@ -196,6 +238,8 @@ pub enum Signal {
     P2PTypingDetailSignal(TypingSignal),
     P2PMessageReceipt(ReceiptSignal),
     P2PPinSignal(PinSignal),
+    ErrorMessage(ErrorMessage),
+    ErrorReceipt(ErrorReceipt),
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
@@ -222,6 +266,16 @@ pub struct PinSignal {
 pub struct TypingSignal {
     agent: AgentPubKey,
     is_typing: bool,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct ErrorMessage {
+    pub message: P2PMessage,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct ErrorReceipt {
+    pub receipt: P2PMessageReceipt,
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]

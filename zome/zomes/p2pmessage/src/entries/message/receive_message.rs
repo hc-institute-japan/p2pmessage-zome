@@ -56,7 +56,7 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
             QueryFilter::new()
                 .entry_type(EntryType::App(AppEntryType::new(
                     EntryDefIndex::from(0),
-                    zome_info()?.zome_id,
+                    zome_info()?.id,
                     EntryVisibility::Private,
                 )))
                 .include_entries(true),
