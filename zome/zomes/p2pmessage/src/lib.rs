@@ -58,18 +58,20 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
     return init_handler();
 }
 
-#[hdk_extern]
-fn post_commit(headers: Vec<SignedHeaderHashed>) -> ExternResult<PostCommitCallbackResult> {
+#[hdk_extern(infallible)]
+fn post_commit(headers: Vec<SignedHeaderHashed>) {
     for signed_header in headers.into_iter() {
         match signed_header.header() {
             Header::Create(create) => {
-                let agent_pubkey = agent_info()?.agent_latest_pubkey;
+                let agent_pubkey = agent_info().unwrap().agent_latest_pubkey;
                 match &create.entry_type {
                     EntryType::App(apptype) => match apptype.id() {
                         EntryDefIndex(0) => {
-                            let message_entry = get_message_from_chain(create.entry_hash.clone())?;
+                            let message_entry =
+                                get_message_from_chain(create.entry_hash.clone()).unwrap();
                             if agent_pubkey == message_entry.author.clone() {
-                                commit_message_to_receiver_chain_handler(message_entry.clone())?;
+                                commit_message_to_receiver_chain_handler(message_entry.clone())
+                                    .unwrap();
                             }
                         }
                         EntryDefIndex(1) => {
@@ -96,7 +98,6 @@ fn post_commit(headers: Vec<SignedHeaderHashed>) -> ExternResult<PostCommitCallb
             _ => (),
         }
     }
-    Ok(PostCommitCallbackResult::Success)
 }
 
 #[hdk_extern]
