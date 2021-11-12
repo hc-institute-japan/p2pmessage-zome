@@ -112,12 +112,6 @@ pub fn get_latest_messages_handler(batch_size: u8) -> ExternResult<P2PMessageHas
 
     get_replies(&mut reply_pairs, &mut message_contents)?;
 
-    // Ok(P2PMessageHashTables(
-    //     AgentMessages(agent_messages),
-    //     MessageContents(message_contents),
-    //     ReceiptContents(receipt_contents),
-    // ))
-
     Ok(P2PMessageHashTables(
         agent_messages,
         message_contents,

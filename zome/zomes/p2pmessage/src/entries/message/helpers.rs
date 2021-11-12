@@ -157,31 +157,38 @@ pub fn get_message_from_chain(hash: EntryHash) -> ExternResult<P2PMessage> {
     queried_messages.reverse();
 
     for element in queried_messages.into_iter() {
-        // let element_header = element.clone().header_address();
-        // let element_entry = element.clone().entry();
         let message_entry = TryInto::<P2PMessage>::try_into(element.clone())?;
         let message_hash = hash_entry(message_entry.clone())?;
-        // match hash {
-        //     Header => {
-        //         if hash == element_header {
-        //             let message_entry = TryInto::<P2PMessage>::try_into(element.clone())?;
-        //             return Ok(message_entry);
-        //         }
-        //     }
-        //     Entry => {
-        //         let message_entry = TryInto::<P2PMessage>::try_into(element.clone())?;
-        //         let entry_hash = hash_entry(message_entry.clone())?;
-        //         if entry_hash == hash.into() {
-        //             return Ok(message_entry);
-        //         }
-        //     }
-        // }
+
         if hash == message_hash {
             return Ok(message_entry);
         }
     }
 
-    return error("Sorry. Entry not found.");
+    return error("Sorry. Message entry for hash not found.");
+}
+
+pub fn get_receipt_from_chain(hash: EntryHash) -> ExternResult<P2PMessageReceipt> {
+    let queried_receipts: Vec<Element> = query(
+        QueryFilter::new()
+            .entry_type(EntryType::App(AppEntryType::new(
+                EntryDefIndex::from(1),
+                zome_info()?.id,
+                EntryVisibility::Private,
+            )))
+            .include_entries(true),
+    )?;
+
+    for element in queried_receipts {
+        let receipt_entry = TryInto::<P2PMessageReceipt>::try_into(element.clone())?;
+        let receipt_hash = hash_entry(receipt_entry.clone())?;
+
+        if hash == receipt_hash {
+            return Ok(receipt_entry);
+        }
+    }
+
+    return error("Sorry. Receipt entry for hash not found.");
 }
 
 pub fn get_file_from_chain(file_hash: EntryHash) -> ExternResult<P2PFileBytes> {
@@ -195,8 +202,8 @@ pub fn get_file_from_chain(file_hash: EntryHash) -> ExternResult<P2PFileBytes> {
             .include_entries(true),
     )?;
 
-    for file in queried_files.into_iter() {
-        if let Ok(file_entry) = TryInto::<P2PFileBytes>::try_into(file.clone()) {
+    for element in queried_files.into_iter() {
+        if let Ok(file_entry) = TryInto::<P2PFileBytes>::try_into(element.clone()) {
             let entry_hash = hash_entry(&file_entry)?;
 
             if entry_hash == file_hash {
@@ -206,93 +213,5 @@ pub fn get_file_from_chain(file_hash: EntryHash) -> ExternResult<P2PFileBytes> {
             continue;
         }
     }
-    return error("Sorry. File not found.");
+    return error("Sorry. File entry for hash not found.");
 }
-
-#[allow(dead_code)]
-pub fn get_receipt_from_chain(receipt_hash: EntryHash) -> ExternResult<P2PMessageReceipt> {
-    let queried_receipts: Vec<Element> = query(
-        QueryFilter::new()
-            .entry_type(EntryType::App(AppEntryType::new(
-                EntryDefIndex::from(1),
-                zome_info()?.id,
-                EntryVisibility::Private,
-            )))
-            .include_entries(true),
-    )?;
-
-    for receipt in queried_receipts.into_iter() {
-        if let Ok(receipt_entry) = TryInto::<P2PMessageReceipt>::try_into(receipt.clone()) {
-            let entry_hash = hash_entry(&receipt_entry)?;
-
-            if entry_hash == receipt_hash {
-                return Ok(receipt_entry);
-            }
-        } else {
-            continue;
-        }
-    }
-    return error("Sorry. Receipt not found.");
-}
-
-// pub fn _commit_receipts(receipts: Vec<P2PMessageReceipt>) -> ExternResult<ReceiptContents> {
-//     // Query all the receipts
-//     let query_result: Vec<Element> = query(
-//         QueryFilter::new()
-//             .entry_type(EntryType::App(AppEntryType::new(
-//                 EntryDefIndex::from(1),
-//                 zome_info()?.zome_id,
-//                 EntryVisibility::Private,
-//             )))
-//             .include_entries(true),
-//     )?;
-
-//     // Get all receipts from query result
-//     let all_receipts = query_result
-//         .into_iter()
-//         .filter_map(|el| {
-//             if let Ok(Some(receipt)) = el.into_inner().1.to_app_option::<P2PMessageReceipt>() {
-//                 return Some(receipt);
-//             } else {
-//                 None
-//             }
-//         })
-//         .collect::<Vec<P2PMessageReceipt>>();
-
-//     // initialize hash map that will be returned
-//     let mut receipts_hash_map: HashMap<String, P2PMessageReceipt> = HashMap::new();
-
-//     // Iterate through the receipts in the argument and push them into the hash map
-//     receipts.clone().into_iter().for_each(|receipt| {
-//         if let Ok(hash) = hash_entry(&receipt) {
-//             receipts_hash_map.insert(hash.to_string(), receipt);
-//         }
-//     });
-
-//     // Iterate through the receipts to check if the receipt has been committed, remove them from the hash map if it is
-//     // used for loops instead of for_each because you cant break iterators
-//     for i in 0..all_receipts.len() {
-//         let receipt = all_receipts[i].clone();
-//         let hash = hash_entry(&receipt)?;
-
-//         if receipts_hash_map.contains_key(&hash.clone().to_string()) {
-//             if let Status::Read { timestamp: _ } = receipt.status {
-//                 receipts_hash_map.remove(&hash.clone().to_string());
-//             }
-//         }
-
-//         if receipts_hash_map.is_empty() {
-//             break;
-//         }
-//     }
-
-//     // iterate the remaining contents of the hashmap
-//     receipts_hash_map
-//         .clone()
-//         .into_iter()
-//         .for_each(|(_entry_hash, receipt)| {
-//             create_entry(&receipt).expect("Expected P2P message receipt entry");
-//         });
-
-//     Ok(ReceiptContents(receipts_hash_map))
-// }

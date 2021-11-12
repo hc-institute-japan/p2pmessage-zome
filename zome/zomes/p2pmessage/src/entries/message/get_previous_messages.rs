@@ -161,12 +161,6 @@ pub fn get_previous_messages_handler(
 
     get_replies(&mut reply_pairs, &mut message_contents)?;
 
-    // Ok(P2PMessageHashTables(
-    //     AgentMessages(agent_messages),
-    //     MessageContents(message_contents),
-    //     ReceiptContents(receipt_contents),
-    // ))
-
     Ok(P2PMessageHashTables(
         agent_messages,
         message_contents,

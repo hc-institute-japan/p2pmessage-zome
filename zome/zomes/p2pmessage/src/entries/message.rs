@@ -155,6 +155,18 @@ pub struct PinMessageInput {
 }
 
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct CommitMessageInput {
+    pub message_hash: EntryHash,
+    pub message: Option<P2PMessage>,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+pub struct CommitReceiptInput {
+    receipt_hash: Option<EntryHash>,
+    message: Option<P2PMessageReceipt>,
+}
+
+#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
 pub struct ReceiveMessageInput {
     message: P2PMessage,
     file: Option<P2PFileBytes>,

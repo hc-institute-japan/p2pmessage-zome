@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use message::*;
 
 use message::commit_message_to_receiver_chain::commit_message_to_receiver_chain_handler;
-// use message::commit_receipt_to_sender_chain::commit_receipt_to_sender_chain_handler;
+use message::commit_receipt_to_sender_chain::commit_receipt_to_sender_chain_handler;
 use message::get_adjacent_messages::get_adjacent_messages_handler;
 use message::get_file_bytes::get_file_bytes_handler;
 use message::get_latest_messages::get_latest_messages_handler;
@@ -17,7 +17,6 @@ use message::get_messages_by_agent_by_timestamp::get_messages_by_agent_by_timest
 use message::get_next_messages::get_next_messages_handler;
 use message::get_pinned_messages::get_pinned_messages_handler;
 use message::get_previous_messages::get_previous_messages_handler;
-use message::helpers::get_message_from_chain;
 use message::init::init_handler;
 use message::pin_message::pin_message_handler;
 use message::read_message::read_message_handler;
@@ -63,32 +62,15 @@ fn post_commit(headers: Vec<SignedHeaderHashed>) {
     for signed_header in headers.into_iter() {
         match signed_header.header() {
             Header::Create(create) => {
-                let agent_pubkey = agent_info().unwrap().agent_latest_pubkey;
                 match &create.entry_type {
                     EntryType::App(apptype) => match apptype.id() {
                         EntryDefIndex(0) => {
-                            let message_entry =
-                                get_message_from_chain(create.entry_hash.clone()).unwrap();
-                            if agent_pubkey == message_entry.author.clone() {
-                                commit_message_to_receiver_chain_handler(message_entry.clone())
-                                    .unwrap();
-                            }
+                            let _res =
+                                commit_message_to_receiver_chain_handler(create.entry_hash.clone());
                         }
                         EntryDefIndex(1) => {
-                            ()
-                            // let receipt_entry = get_receipt_from_chain(create.entry_hash.clone())?;
-                            // let receipt_status: Status = receipt_entry.status.clone();
-                            // if let Status::Delivered { .. } = receipt_status {
-                            //     let message_entry =
-                            //         get_message_from_chain(receipt_entry.id[0].clone())?;
-                            //     if agent_pubkey == message_entry.receiver {
-                            //         let input = ReceiveReceiptInput {
-                            //             receipt: receipt_entry.clone(),
-                            //             receiver: message_entry.author,
-                            //         };
-                            //         commit_receipt_to_sender_chain_handler(input)?;
-                            //     }
-                            // }
+                            let _res =
+                                commit_receipt_to_sender_chain_handler(create.entry_hash.clone());
                         }
                         _ => (),
                     },
@@ -113,11 +95,8 @@ fn send_message_with_timestamp(
 }
 
 #[hdk_extern]
-fn commit_message_to_receiver_chain(
-    input: MessageWithTimestampInput,
-) -> ExternResult<P2PMessageReceipt> {
-    let message = P2PMessage::from_input(input)?;
-    return commit_message_to_receiver_chain_handler(message);
+fn commit_message_to_receiver_chain(input: EntryHash) -> ExternResult<P2PMessageReceipt> {
+    return commit_message_to_receiver_chain_handler(input);
 }
 
 #[hdk_extern]

@@ -20,7 +20,6 @@ pub fn receive_receipt_handler(
     receipt_contents.insert(receipt_hash.to_string(), receipt.clone());
 
     let signal = Signal::P2PMessageReceipt(ReceiptSignal {
-        // receipt: ReceiptContents(receipt_contents.clone()),
         receipt: receipt_contents.clone(),
     });
 
