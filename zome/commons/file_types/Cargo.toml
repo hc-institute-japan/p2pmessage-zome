@@ -10,7 +10,7 @@ name = "file_types"
 crate-type = [ "cdylib", "rlib" ]
 
 [dependencies]
-derive_more = "0.99.16"
-serde = "1.0.123"
-hdk = "0.0.116"
+derive_more = "0"
+serde = "1"
+hdk = "0.0.118"
 holo_hash = {version = "*", features = ["encoding"]}
