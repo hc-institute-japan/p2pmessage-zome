@@ -7,6 +7,7 @@ use entries::message::{self};
 use std::collections::HashMap;
 
 use message::*;
+use system_message::*;
 
 use message::commit_message_to_receiver_chain::commit_message_to_receiver_chain_handler;
 use message::commit_receipt_to_sender_chain::commit_receipt_to_sender_chain_handler;
@@ -26,12 +27,15 @@ use message::send_message::send_message_handler;
 use message::send_message_with_timestamp::send_message_with_timestamp_handler;
 use message::sync_pins::sync_pins_handler;
 use message::typing::typing_handler;
+use system_message::commit_notification_to_receiver_chain::commit_notification_to_receiver_chain_handler;
+use system_message::notify::notify_handler;
 
 entry_defs![
     P2PMessage::entry_def(),
     P2PMessageReceipt::entry_def(),
     P2PFileBytes::entry_def(),
-    P2PMessagePin::entry_def()
+    P2PMessagePin::entry_def(),
+    SystemMessage::entry_def()
 ];
 
 pub fn error<T>(reason: &str) -> ExternResult<T> {
@@ -71,6 +75,11 @@ fn post_commit(headers: Vec<SignedHeaderHashed>) {
                         EntryDefIndex(1) => {
                             let _res =
                                 commit_receipt_to_sender_chain_handler(create.entry_hash.clone());
+                        }
+                        EntryDefIndex(3) => {
+                            let _res = commit_notification_to_receiver_chain_handler(
+                                create.entry_hash.clone(),
+                            );
                         }
                         _ => (),
                     },
