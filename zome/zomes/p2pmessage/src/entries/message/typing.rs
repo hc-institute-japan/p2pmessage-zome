@@ -17,6 +17,15 @@ pub fn typing_handler(typing_info: P2PTypingDetailIO) -> ExternResult<()> {
 
     agents.push(typing_info.agent);
 
-    remote_signal(ExternIO::encode(signal_details)?, agents)?;
-    Ok(())
+    let signal_details_result: Result<ExternIO, SerializedBytesError> = ExternIO::encode(signal_details);
+    match signal_details_result {
+        Ok(signal_details) => {
+            remote_signal(signal_details, agents)?;
+            return Ok(())
+        }
+        Err(e) => return Err(wasm_error!(WasmErrorInner::Guest(String::from(e))))
+    }
+    
+    // remote_signal(ExternIO::encode(signal_details)?, agents)?;
+    // Ok(())
 }

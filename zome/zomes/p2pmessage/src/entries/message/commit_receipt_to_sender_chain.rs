@@ -24,7 +24,13 @@ pub fn commit_receipt_to_sender_chain_handler(
             )?;
 
             match receive_call_result {
-                ZomeCallResponse::Ok(extern_io) => return Ok(extern_io.decode()?),
+                ZomeCallResponse::Ok(extern_io) => {
+                    let result = extern_io.decode();
+                    match result {
+                        Ok(map) => return Ok(map),
+                        Err(e) => return Err(wasm_error!(WasmErrorInner::Guest(String::from(e))))
+                    }
+                },
                 ZomeCallResponse::Unauthorized(_, _, _, _) => {
                     return error("Sorry, something went wrong. [Authorization error]");
                 }

@@ -6,11 +6,10 @@ use super::helpers::{get_receipts, get_replies, insert_message, insert_reply};
 use super::{P2PMessage, P2PMessageData, P2PMessageHashTables, P2PMessageReceipt};
 
 pub fn get_latest_messages_handler(batch_size: u8) -> ExternResult<P2PMessageHashTables> {
-    let mut queried_messages: Vec<Element> = query(
+    let mut queried_messages: Vec<Record> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(0),
-                zome_info()?.id,
                 EntryVisibility::Private,
             )))
             .include_entries(true),

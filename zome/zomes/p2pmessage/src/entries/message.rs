@@ -24,9 +24,11 @@ pub mod typing;
 
 use file_types::{FileMetadata, FileType, Payload, PayloadInput};
 
+
+
 // ENTRY STRUCTURES
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
+#[derive(Clone, From)]
+#[hdk_entry_helper]
 pub struct P2PMessage {
     pub author: AgentPubKey,
     pub receiver: AgentPubKey,
@@ -69,58 +71,73 @@ impl P2PMessage {
     }
 }
 
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+#[derive(Clone)]
+#[hdk_entry_helper]
 pub struct P2PMessageReceipt {
     pub id: Vec<EntryHash>,
     pub status: Status,
 }
 
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+#[derive(Clone)]
+#[hdk_entry_helper]
 pub struct P2PMessagePin {
     id: Vec<EntryHash>,
     conversants: Vec<AgentPubKey>,
     status: PinStatus,
 }
 
-#[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]
+#[derive(Clone)]
+#[hdk_entry_helper]
 pub struct P2PFileBytes(SerializedBytes);
 
-// ENTRY DEFINITIONS
-entry_def!(P2PMessage
-    EntryDef {
-        id: "p2pmessage".into(),
-        visibility: EntryVisibility::Private,
-        crdt_type: CrdtType,
-        required_validations: RequiredValidations::default(),
-        required_validation_type: RequiredValidationType::Element
-    }
-);
+// #[derive(EntryDefRegistration)]
+// enum EntryTypes {
+//     #[entry_def(name="p2pmessage", required_validations=5, visibility="private")]
+//     P2PMessage(P2PMessage),
+//     #[entry_def(name="p2pmessagereceipt", required_validations=5, visibility="private")]
+//     P2PMessageReceipt(P2PMessageReceipt),
+//     #[entry_def(name="p2pmessagepin", required_validations=5, visibility="private")]
+//     P2PMessagePin(P2PMessagePin),
+//     #[entry_def(name="p2pfilebytes", required_validations=5, visibility="private")]
+//     P2PFileBytes(P2PFileBytes),
+// }
 
-entry_def!(P2PFileBytes
-    EntryDef {
-        id: "p2pfilebytes".into(),
-        visibility: EntryVisibility::Private,
-        crdt_type: CrdtType,
-        required_validations: RequiredValidations::default(),
-        required_validation_type: RequiredValidationType::Element
-    }
-);
+// // ENTRY DEFINITIONS
+// entry_def!(P2PMessage
+//     EntryDef {
+//         id: "p2pmessage".into(),
+//         visibility: EntryVisibility::Private,
+//         crdt_type: CrdtType,
+//         required_validations: RequiredValidations::default(),
+//         required_validation_type: RequiredValidationType::Element
+//     }
+// );
 
-entry_def!(P2PMessageReceipt EntryDef {
-    id: "p2pmessagereceipt".into(),
-    visibility: EntryVisibility::Private,
-    crdt_type: CrdtType,
-    required_validations: RequiredValidations::default(),
-    required_validation_type: RequiredValidationType::Element
-});
+// entry_def!(P2PFileBytes
+//     EntryDef {
+//         id: "p2pfilebytes".into(),
+//         visibility: EntryVisibility::Private,
+//         crdt_type: CrdtType,
+//         required_validations: RequiredValidations::default(),
+//         required_validation_type: RequiredValidationType::Element
+//     }
+// );
 
-entry_def!(P2PMessagePin EntryDef {
-    id: "p2pmessagepin".into(),
-    visibility: EntryVisibility::Private,
-    crdt_type: CrdtType,
-    required_validations: RequiredValidations::default(),
-    required_validation_type: RequiredValidationType::Element
-});
+// entry_def!(P2PMessageReceipt EntryDef {
+//     id: "p2pmessagereceipt".into(),
+//     visibility: EntryVisibility::Private,
+//     crdt_type: CrdtType,
+//     required_validations: RequiredValidations::default(),
+//     required_validation_type: RequiredValidationType::Element
+// });
+
+// entry_def!(P2PMessagePin EntryDef {
+//     id: "p2pmessagepin".into(),
+//     visibility: EntryVisibility::Private,
+//     crdt_type: CrdtType,
+//     required_validations: RequiredValidations::default(),
+//     required_validation_type: RequiredValidationType::Element
+// });
 
 // INPUT STRUCTURES FROM THE FRONTEND
 #[derive(Serialize, Deserialize, SerializedBytes, Clone, Debug)]

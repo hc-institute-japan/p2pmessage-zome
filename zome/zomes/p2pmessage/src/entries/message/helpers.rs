@@ -58,11 +58,10 @@ pub fn get_receipts(
     message_contents: &mut HashMap<String, (P2PMessageData, Vec<String>)>,
     receipt_contents: &mut HashMap<String, P2PMessageReceipt>,
 ) -> ExternResult<()> {
-    let queried_receipts: Vec<Element> = query(
+    let queried_receipts: Vec<Record> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(1),
-                zome_info()?.id,
                 EntryVisibility::Private,
             )))
             .include_entries(true),
@@ -95,11 +94,10 @@ pub fn get_replies(
     reply_pairs: &mut HashMap<String, Vec<String>>,
     message_contents: &mut HashMap<String, (P2PMessageData, Vec<String>)>,
 ) -> ExternResult<()> {
-    let queried_messages: Vec<Element> = query(
+    let queried_messages: Vec<Record> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(0),
-                zome_info()?.id,
                 EntryVisibility::Private,
             )))
             .include_entries(true),
@@ -145,19 +143,18 @@ pub fn get_replies(
 }
 
 pub fn get_message_from_chain(hash: EntryHash) -> ExternResult<P2PMessage> {
-    let mut queried_messages: Vec<Element> = query(
+    let mut queried_messages: Vec<Record> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(0),
-                zome_info()?.id,
                 EntryVisibility::Private,
             )))
             .include_entries(true),
     )?;
     queried_messages.reverse();
 
-    for element in queried_messages.into_iter() {
-        let message_entry = TryInto::<P2PMessage>::try_into(element.clone())?;
+    for record in queried_messages.into_iter() {
+        let message_entry = TryInto::<P2PMessage>::try_into(record.clone())?;
         let message_hash = hash_entry(message_entry.clone())?;
 
         if hash == message_hash {
@@ -169,18 +166,17 @@ pub fn get_message_from_chain(hash: EntryHash) -> ExternResult<P2PMessage> {
 }
 
 pub fn get_receipt_from_chain(hash: EntryHash) -> ExternResult<P2PMessageReceipt> {
-    let queried_receipts: Vec<Element> = query(
+    let queried_receipts: Vec<Record> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(1),
-                zome_info()?.id,
                 EntryVisibility::Private,
             )))
             .include_entries(true),
     )?;
 
-    for element in queried_receipts {
-        let receipt_entry = TryInto::<P2PMessageReceipt>::try_into(element.clone())?;
+    for record in queried_receipts {
+        let receipt_entry = TryInto::<P2PMessageReceipt>::try_into(record.clone())?;
         let receipt_hash = hash_entry(receipt_entry.clone())?;
 
         if hash == receipt_hash {
@@ -192,18 +188,17 @@ pub fn get_receipt_from_chain(hash: EntryHash) -> ExternResult<P2PMessageReceipt
 }
 
 pub fn get_file_from_chain(file_hash: EntryHash) -> ExternResult<P2PFileBytes> {
-    let queried_files: Vec<Element> = query(
+    let queried_files: Vec<Record> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(2),
-                zome_info()?.id,
                 EntryVisibility::Private,
             )))
             .include_entries(true),
     )?;
 
-    for element in queried_files.into_iter() {
-        if let Ok(file_entry) = TryInto::<P2PFileBytes>::try_into(element.clone()) {
+    for record in queried_files.into_iter() {
+        if let Ok(file_entry) = TryInto::<P2PFileBytes>::try_into(record.clone()) {
             let entry_hash = hash_entry(&file_entry)?;
 
             if entry_hash == file_hash {

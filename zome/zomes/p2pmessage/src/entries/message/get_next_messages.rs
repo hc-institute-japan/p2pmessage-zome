@@ -11,11 +11,10 @@ use super::{
 pub fn get_next_messages_handler(
     filter: P2PMessageFilterBatch,
 ) -> ExternResult<P2PMessageHashTables> {
-    let mut queried_messages: Vec<Element> = query(
+    let mut queried_messages: Vec<Record> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(0),
-                zome_info()?.id,
                 EntryVisibility::Private,
             )))
             .include_entries(true),

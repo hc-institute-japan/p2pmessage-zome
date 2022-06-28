@@ -41,16 +41,22 @@ pub fn pin_message_handler(
     match zome_call_response {
         ZomeCallResponse::Ok(extern_io) => {
             let pin_entry = Entry::App(pin.clone().try_into()?);
-            let pin_hash = host_call::<CreateInput, HeaderHash>(
+            let pin_hash = host_call::<CreateInput, ActionHash>(
                 __create,
                 CreateInput::new(
-                    P2PMessagePin::entry_def().id,
+                    EntryDefLocation::app(0),
+                    EntryVisibility::Private,
                     pin_entry,
                     ChainTopOrdering::Relaxed,
                 ),
             )?;
             pinned_messages.insert(pin_hash.to_string(), pin);
-            return Ok(extern_io.decode()?);
+            // return Ok(extern_io.decode()?);
+            let result = extern_io.decode();
+            match result {
+                Ok(map) => return Ok(map),
+                Err(e) => return Err(wasm_error!(WasmErrorInner::Guest(String::from(e))))
+            }
         }
         ZomeCallResponse::Unauthorized(_, _, _, _) => {
             return error("Sorry, something went wrong. [Authorization error]");

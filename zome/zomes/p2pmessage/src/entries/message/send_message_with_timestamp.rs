@@ -62,100 +62,109 @@ pub fn send_message_with_timestamp_handler(
     match receive_call_result {
         ZomeCallResponse::Ok(extern_io) => {
             let message_entry = Entry::App(message.clone().try_into()?);
-            host_call::<CreateInput, HeaderHash>(
+            host_call::<CreateInput, ActionHash>(
                 __create,
                 CreateInput::new(
-                    P2PMessage::entry_def().id,
+                    EntryDefLocation::app(0),
+                    EntryVisibility::Private,
                     message_entry.clone(),
                     ChainTopOrdering::Relaxed,
                 ),
             )?;
 
-            let received_receipt: P2PMessageReceipt = extern_io.decode()?;
-            let received_receipt_entry = Entry::App(received_receipt.clone().try_into()?);
-            host_call::<CreateInput, HeaderHash>(
-                __create,
-                CreateInput::new(
-                    P2PMessageReceipt::entry_def().id,
-                    received_receipt_entry,
-                    ChainTopOrdering::Relaxed,
-                ),
-            )?;
+            // let received_receipt: P2PMessageReceipt = extern_io.decode()?;
 
-            if let PayloadInput::File { file_bytes, .. } = message_input.payload {
-                let p2pfile = P2PFileBytes(file_bytes.clone());
-                let p2pfile_entry = Entry::App(p2pfile.clone().try_into()?);
-                host_call::<CreateInput, HeaderHash>(
-                    __create,
-                    CreateInput::new(
-                        P2PFileBytes::entry_def().id,
-                        p2pfile_entry,
-                        ChainTopOrdering::Relaxed,
-                    ),
-                )?;
-                ()
-            };
-
-            let message_return;
-            if let Some(ref reply_to_hash) = message.reply_to {
-                let mut queried_messages: Vec<Element> = query(
-                    QueryFilter::new()
-                        .entry_type(EntryType::App(AppEntryType::new(
-                            EntryDefIndex::from(0),
-                            zome_info()?.id,
+            let received_receipt_result: Result<P2PMessageReceipt, SerializedBytesError> = extern_io.decode();
+            match received_receipt_result {
+                Ok(received_receipt) => {
+                    let received_receipt_entry = Entry::App(received_receipt.clone().try_into()?);
+                    host_call::<CreateInput, ActionHash>(
+                        __create,
+                        CreateInput::new(
+                            EntryDefLocation::app(0),
                             EntryVisibility::Private,
-                        )))
-                        .include_entries(true),
-                )?;
-                queried_messages.reverse();
+                            received_receipt_entry,
+                            ChainTopOrdering::Relaxed,
+                        ),
+                    )?;
 
-                for queried_message in queried_messages.clone().into_iter() {
-                    if let Ok(message_entry) =
-                        TryInto::<P2PMessage>::try_into(queried_message.clone())
-                    {
-                        let message_hash = hash_entry(&message_entry)?;
+                    if let PayloadInput::File { file_bytes, .. } = message_input.payload {
+                        let p2pfile = P2PFileBytes(file_bytes.clone());
+                        let p2pfile_entry = Entry::App(p2pfile.clone().try_into()?);
+                        host_call::<CreateInput, ActionHash>(
+                            __create,
+                            CreateInput::new(
+                                EntryDefLocation::app(0),
+                                EntryVisibility::Private,
+                                p2pfile_entry,
+                                ChainTopOrdering::Relaxed,
+                            ),
+                        )?;
+                        ()
+                    };
 
-                        if *reply_to_hash == message_hash {
-                            let replied_to_message = P2PMessageReplyTo {
-                                hash: message_hash.clone(),
-                                author: message_entry.author,
-                                receiver: message_entry.receiver,
-                                payload: message_entry.payload,
-                                time_sent: message_entry.time_sent,
-                                reply_to: None,
-                            };
+                    let message_return;
+                    if let Some(ref reply_to_hash) = message.reply_to {
+                        let mut queried_messages: Vec<Record> = query(
+                            QueryFilter::new()
+                                .entry_type(EntryType::App(AppEntryType::new(
+                                    EntryDefIndex::from(0),
+                                    EntryVisibility::Private,
+                                )))
+                                .include_entries(true),
+                        )?;
+                        queried_messages.reverse();
 
-                            message_return = P2PMessageData {
-                                author: message.author.clone(),
-                                receiver: message.receiver.clone(),
-                                payload: message.payload.clone(),
-                                time_sent: message.time_sent.clone(),
-                                reply_to: Some(replied_to_message),
-                            };
+                        for queried_message in queried_messages.clone().into_iter() {
+                            if let Ok(message_entry) =
+                                TryInto::<P2PMessage>::try_into(queried_message.clone())
+                            {
+                                let message_hash = hash_entry(&message_entry)?;
 
-                            return Ok((
-                                (hash_entry(&message)?, message_return),
-                                (hash_entry(&received_receipt)?, received_receipt),
-                            ));
+                                if *reply_to_hash == message_hash {
+                                    let replied_to_message = P2PMessageReplyTo {
+                                        hash: message_hash.clone(),
+                                        author: message_entry.author,
+                                        receiver: message_entry.receiver,
+                                        payload: message_entry.payload,
+                                        time_sent: message_entry.time_sent,
+                                        reply_to: None,
+                                    };
+
+                                    message_return = P2PMessageData {
+                                        author: message.author.clone(),
+                                        receiver: message.receiver.clone(),
+                                        payload: message.payload.clone(),
+                                        time_sent: message.time_sent.clone(),
+                                        reply_to: Some(replied_to_message),
+                                    };
+
+                                    return Ok((
+                                        (hash_entry(&message)?, message_return),
+                                        (hash_entry(&received_receipt)?, received_receipt),
+                                    ));
+                                }
+                            } else {
+                                continue;
+                            }
                         }
-                    } else {
-                        continue;
                     }
+
+                    message_return = P2PMessageData {
+                        author: message.author.clone(),
+                        receiver: message.receiver.clone(),
+                        payload: message.payload.clone(),
+                        time_sent: message.time_sent.clone(),
+                        reply_to: None,
+                    };
+
+                    Ok((
+                        (hash_entry(&message)?, message_return),
+                        (hash_entry(&received_receipt)?, received_receipt),
+                    ))
                 }
+                Err(e) => return Err(wasm_error!(WasmErrorInner::Guest(String::from(e))))
             }
-
-            message_return = P2PMessageData {
-                author: message.author.clone(),
-                receiver: message.receiver.clone(),
-                payload: message.payload.clone(),
-                time_sent: message.time_sent.clone(),
-                reply_to: None,
-            };
-
-            Ok((
-                (hash_entry(&message)?, message_return),
-                (hash_entry(&received_receipt)?, received_receipt),
-            ))
         }
         ZomeCallResponse::Unauthorized(_, _, _, _) => {
             return error("Sorry, something went wrong. [Authorization error]");

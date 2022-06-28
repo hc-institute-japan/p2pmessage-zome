@@ -2,7 +2,8 @@ use hdk::prelude::*;
 
 use file_types::{FileMetadata, Payload, PayloadInput};
 
-use super::{MessageInput, P2PFileBytes, P2PMessage, P2PMessageData, P2PMessageReplyTo};
+use super::{MessageInput, P2PFileBytes, P2PMessage, Status, P2PMessageReceipt, P2PMessageData, P2PMessageReplyTo};
+use crate::receive_receipt::receive_receipt_handler;
 // use crate::utils::error;
 
 pub fn send_message_handler(
@@ -40,22 +41,25 @@ pub fn send_message_handler(
     };
 
     let message_entry = Entry::App(message.clone().try_into()?);
-    host_call::<CreateInput, HeaderHash>(
+    host_call::<CreateInput, ActionHash>(
         __create,
         CreateInput::new(
-            P2PMessage::entry_def().id,
+            EntryDefLocation::app(0),
+            EntryVisibility::Private,
             message_entry.clone(),
             ChainTopOrdering::Relaxed,
         ),
     )?;
+    debug!("create_entry message");
 
     if let PayloadInput::File { ref file_bytes, .. } = message_input.payload {
         let p2pfile = P2PFileBytes(file_bytes.clone());
         let p2pfile_entry = Entry::App(p2pfile.clone().try_into()?);
-        host_call::<CreateInput, HeaderHash>(
+        host_call::<CreateInput, ActionHash>(
             __create,
             CreateInput::new(
-                P2PFileBytes::entry_def().id,
+                EntryDefLocation::app(0),
+                EntryVisibility::Private,
                 p2pfile_entry,
                 ChainTopOrdering::Relaxed,
             ),
@@ -63,13 +67,24 @@ pub fn send_message_handler(
         ()
     };
 
+    // message self
+    if message.author.clone() == message.receiver.clone() {
+        let received_receipt = P2PMessageReceipt {
+            id: vec!(hash_entry(&message)?),
+            status: Status::Read {
+                timestamp: sys_time()?,
+            }
+        };
+        
+        let _res = receive_receipt_handler(received_receipt.clone())?;
+    }
+
     let message_return;
     if let Some(ref reply_to_hash) = message.reply_to {
-        let queried_messages: Vec<Element> = query(
+        let queried_messages: Vec<Record> = query(
             QueryFilter::new()
                 .entry_type(EntryType::App(AppEntryType::new(
                     EntryDefIndex::from(0),
-                    zome_info()?.id,
                     EntryVisibility::Private,
                 )))
                 .include_entries(true),

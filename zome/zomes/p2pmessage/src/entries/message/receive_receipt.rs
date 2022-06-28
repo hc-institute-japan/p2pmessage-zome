@@ -7,10 +7,12 @@ pub fn receive_receipt_handler(
     receipt: P2PMessageReceipt,
 ) -> ExternResult<HashMap<String, P2PMessageReceipt>> {
     let receipt_entry = Entry::App(receipt.clone().try_into()?);
-    let receipt_hash = host_call::<CreateInput, HeaderHash>(
+    
+    let receipt_hash = host_call::<CreateInput, ActionHash>(
         __create,
         CreateInput::new(
-            P2PMessageReceipt::entry_def().id,
+            EntryDefLocation::app(0),
+            EntryVisibility::Private,
             receipt_entry,
             ChainTopOrdering::Relaxed,
         ),
@@ -28,7 +30,11 @@ pub fn receive_receipt_handler(
         payload: signal,
     };
 
+    debug!("receive receipt emitting signal {:?} for agent {:}", signal_details.clone(), agent_info()?.agent_latest_pubkey);
+
     emit_signal(&signal_details)?;
+    
+    debug!("signal emitted");
 
     Ok(receipt_contents)
 }

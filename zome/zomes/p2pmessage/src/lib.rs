@@ -26,30 +26,36 @@ use message::send_message::send_message_handler;
 use message::send_message_with_timestamp::send_message_with_timestamp_handler;
 use message::sync_pins::sync_pins_handler;
 use message::typing::typing_handler;
+use message::helpers::get_message_from_chain;
 
-entry_defs![
-    P2PMessage::entry_def(),
-    P2PMessageReceipt::entry_def(),
-    P2PFileBytes::entry_def(),
-    P2PMessagePin::entry_def()
-];
+// entry_defs![
+//     P2PMessage::entry_def(),
+//     P2PMessageReceipt::entry_def(),
+//     P2PFileBytes::entry_def(),
+//     P2PMessagePin::entry_def()
+// ];
 
 pub fn error<T>(reason: &str) -> ExternResult<T> {
-    Err(WasmError::Guest(String::from(reason)))
+    Err(wasm_error!(WasmErrorInner::Guest(String::from(reason))))
 }
 
 pub fn err<T>(code: &str, message: &str) -> ExternResult<T> {
-    Err(WasmError::Guest(format!(
+    Err(wasm_error!(WasmErrorInner::Guest(format!(
         "{{\"code\": \"{}\", \"message\": \"{}\"}}",
         code, message
-    )))
+    ))))
 }
 
 #[hdk_extern]
 fn recv_remote_signal(signal: ExternIO) -> ExternResult<()> {
-    let signal_detail: SignalDetails = signal.decode()?;
-    emit_signal(&signal_detail)?;
-    Ok(())
+    let signal_detail_result: Result<SignalDetails, SerializedBytesError> = signal.decode();
+    match signal_detail_result {
+        Ok(signal_detail) => {
+            emit_signal(&signal_detail)?;
+            return Ok(())
+        },
+        Err(e) => return Err(wasm_error!(WasmErrorInner::Guest(String::from(e))))
+    }
 }
 
 #[hdk_extern]
@@ -58,16 +64,22 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
 }
 
 #[hdk_extern(infallible)]
-fn post_commit(headers: Vec<SignedHeaderHashed>) {
-    for signed_header in headers.into_iter() {
-        match signed_header.header() {
-            Header::Create(create) => {
+fn post_commit(actions: Vec<SignedActionHashed>) {
+    for signed_action in actions.into_iter() {
+        match signed_action.action() {
+            Action::Create(create) => {
                 match &create.entry_type {
                     EntryType::App(apptype) => match apptype.id() {
                         EntryDefIndex(0) => {
+                            let message = get_message_from_chain(create.entry_hash.clone()).unwrap();
+                            if message.author == message.receiver {
+                                debug!("post commit return ()");
+                                return ()
+                            } else {
                             let _res =
                                 commit_message_to_receiver_chain_handler(create.entry_hash.clone());
-                        }
+                            }
+                        },
                         EntryDefIndex(1) => {
                             let _res =
                                 commit_receipt_to_sender_chain_handler(create.entry_hash.clone());

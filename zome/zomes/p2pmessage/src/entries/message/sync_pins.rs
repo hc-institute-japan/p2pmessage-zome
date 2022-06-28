@@ -5,10 +5,11 @@ use super::{P2PMessagePin, PinSignal, Signal, SignalDetails};
 
 pub fn sync_pins_handler(pin: P2PMessagePin) -> ExternResult<HashMap<String, P2PMessagePin>> {
     let pin_entry = Entry::App(pin.clone().try_into()?);
-    let pin_hash = host_call::<CreateInput, HeaderHash>(
+    let pin_hash = host_call::<CreateInput, ActionHash>(
         __create,
         CreateInput::new(
-            P2PMessagePin::entry_def().id,
+            EntryDefLocation::app(0),
+            EntryVisibility::Private,
             pin_entry,
             ChainTopOrdering::Relaxed,
         ),

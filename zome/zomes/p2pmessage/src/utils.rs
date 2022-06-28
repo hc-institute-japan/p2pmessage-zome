@@ -1,9 +1,9 @@
 use hdk::prelude::*;
 
-pub fn _try_from_element<T: TryFrom<SerializedBytes>>(element: Element) -> ExternResult<T> {
-    let element_entry = element.clone().into_inner().1;
-    match element_entry {
-        element::ElementEntry::Present(entry) => _try_from_entry::<T>(entry.clone()),
+pub fn _try_from_record<T: TryFrom<SerializedBytes>>(record: Record) -> ExternResult<T> {
+    let record_entry = record.clone().into_inner().1;
+    match record_entry {
+        record::RecordEntry::Present(entry) => _try_from_entry::<T>(entry.clone()),
         _ => crate::error("Sorry, something went wrong. [Conversion error]"),
     }
 }
@@ -19,5 +19,5 @@ pub fn _try_from_entry<T: TryFrom<SerializedBytes>>(entry: Entry) -> ExternResul
 }
 
 pub fn error<T>(reason: &str) -> ExternResult<T> {
-    Err(WasmError::Guest(String::from(reason)))
+    Err(wasm_error!(WasmErrorInner::Guest(String::from(reason))))
 }
