@@ -5,5 +5,10 @@ integrity:
   uuid: 00000000-0000-0000-0000-000000000000
   properties: ~
   zomes: 
-    - name: p2pmessage
-      bundled: ../target/wasm32-unknown-unknown/release/p2pmessage.wasm
+    - name: p2pmessage_integrity
+      bundled: ../target/wasm32-unknown-unknown/release/p2pmessage_integrity.wasm
+
+coordinator:
+  zomes: 
+    - name: p2pmessage_coordinator
+      bundled: ../target/wasm32-unknown-unknown/release/p2pmessage_coordinator.wasm
