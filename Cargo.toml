@@ -2,6 +2,8 @@
 members = [
   "zome/zomes/p2pmessage/integrity",
   "zome/zomes/p2pmessage/coordinator",
+  "zome/zomes/p2pmessage/types/coordinator_types",
+  "zome/zomes/p2pmessage/types/integrity_types",
 ]
 
 [profile.dev]
