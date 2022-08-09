@@ -1,17 +1,18 @@
 use hdk::prelude::*;
 use std::collections::HashMap;
 
-use p2pmessage_integrity_types::*;
 use p2pmessage_coordinator_types::*;
+use p2pmessage_integrity_types::*;
 
 use crate::helpers::{get_receipts, insert_message};
 
 pub fn get_pinned_messages_handler(conversant: AgentPubKey) -> ExternResult<P2PMessageHashTables> {
+    let zome_info = zome_info()?;
     let mut queried_pins: Vec<Record> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(3),
-                0.into(),
+                zome_info.id,
                 EntryVisibility::Private,
             )))
             .include_entries(true),
@@ -21,7 +22,7 @@ pub fn get_pinned_messages_handler(conversant: AgentPubKey) -> ExternResult<P2PM
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(0),
-                0.into(),
+                zome_info.id,
                 EntryVisibility::Private,
             )))
             .include_entries(true),

@@ -1,7 +1,7 @@
 use hdk::prelude::*;
 
-use p2pmessage_integrity_types::*;
 use p2pmessage_coordinator_types::*;
+use p2pmessage_integrity_types::*;
 
 use crate::receive_receipt::receive_receipt_handler;
 
@@ -40,10 +40,11 @@ pub fn send_message_handler(
     };
 
     let message_entry = Entry::App(message.clone().try_into()?);
+    let zome_info = zome_info()?;
     host_call::<CreateInput, ActionHash>(
         __create,
         CreateInput::new(
-            EntryDefLocation::app(0, 0),
+            EntryDefLocation::app(zome_info.id, 0),
             EntryVisibility::Private,
             message_entry.clone(),
             ChainTopOrdering::Relaxed,
@@ -57,7 +58,7 @@ pub fn send_message_handler(
         host_call::<CreateInput, ActionHash>(
             __create,
             CreateInput::new(
-                EntryDefLocation::app(0, 0),
+                EntryDefLocation::app(zome_info.id, 0),
                 EntryVisibility::Private,
                 p2pfile_entry,
                 ChainTopOrdering::Relaxed,
@@ -69,12 +70,12 @@ pub fn send_message_handler(
     // message self
     if message.author.clone() == message.receiver.clone() {
         let received_receipt = P2PMessageReceipt {
-            id: vec!(hash_entry(&message)?),
+            id: vec![hash_entry(&message)?],
             status: Status::Read {
                 timestamp: sys_time()?,
-            }
+            },
         };
-        
+
         let _res = receive_receipt_handler(received_receipt.clone())?;
     }
 
@@ -84,7 +85,7 @@ pub fn send_message_handler(
             QueryFilter::new()
                 .entry_type(EntryType::App(AppEntryType::new(
                     EntryDefIndex::from(0),
-                    0.into(),
+                    zome_info.id,
                     EntryVisibility::Private,
                 )))
                 .include_entries(true),

@@ -1,18 +1,19 @@
 use hdk::prelude::*;
 use std::collections::HashMap;
 
-use p2pmessage_integrity_types::*;
 use p2pmessage_coordinator_types::*;
+use p2pmessage_integrity_types::*;
 
 pub fn receive_receipt_handler(
     receipt: P2PMessageReceipt,
 ) -> ExternResult<HashMap<String, P2PMessageReceipt>> {
     let receipt_entry = Entry::App(receipt.clone().try_into()?);
-    
+    let zome_info = zome_info()?;
+
     let receipt_hash = host_call::<CreateInput, ActionHash>(
         __create,
         CreateInput::new(
-            EntryDefLocation::app(0, 0),
+            EntryDefLocation::app(zome_info.id, 0),
             EntryVisibility::Private,
             receipt_entry,
             ChainTopOrdering::Relaxed,

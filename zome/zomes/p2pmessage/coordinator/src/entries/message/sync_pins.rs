@@ -1,15 +1,16 @@
 use hdk::prelude::*;
 use std::collections::HashMap;
 
-use p2pmessage_integrity_types::*;
 use p2pmessage_coordinator_types::*;
+use p2pmessage_integrity_types::*;
 
 pub fn sync_pins_handler(pin: P2PMessagePin) -> ExternResult<HashMap<String, P2PMessagePin>> {
     let pin_entry = Entry::App(pin.clone().try_into()?);
+    let zome_info = zome_info()?;
     let pin_hash = host_call::<CreateInput, ActionHash>(
         __create,
         CreateInput::new(
-            EntryDefLocation::app(0, 0),
+            EntryDefLocation::app(zome_info.id, 0),
             EntryVisibility::Private,
             pin_entry,
             ChainTopOrdering::Relaxed,

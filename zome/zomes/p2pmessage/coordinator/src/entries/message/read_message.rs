@@ -1,8 +1,8 @@
 use hdk::prelude::*;
 use std::collections::HashMap;
 
-use p2pmessage_integrity_types::*;
 use p2pmessage_coordinator_types::*;
+use p2pmessage_integrity_types::*;
 
 use crate::utils::error;
 
@@ -27,11 +27,11 @@ pub fn read_message_handler(
     match zome_call_response {
         ZomeCallResponse::Ok(extern_io) => {
             let read_receipt_entry = Entry::App(receipt.try_into()?);
-            
+            let zome_info = zome_info()?;
             host_call::<CreateInput, ActionHash>(
                 __create,
                 CreateInput::new(
-                    EntryDefLocation::app(0, 0),
+                    EntryDefLocation::app(zome_info.id, 0),
                     EntryVisibility::Private,
                     read_receipt_entry,
                     ChainTopOrdering::Relaxed,
@@ -41,7 +41,7 @@ pub fn read_message_handler(
             let result = extern_io.decode();
             match result {
                 Ok(map) => return Ok(map),
-                Err(e) => return Err(wasm_error!(WasmErrorInner::Guest(String::from(e))))
+                Err(e) => return Err(wasm_error!(WasmErrorInner::Guest(String::from(e)))),
             }
         }
         ZomeCallResponse::Unauthorized(_, _, _, _) => {

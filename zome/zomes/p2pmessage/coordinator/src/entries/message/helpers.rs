@@ -1,8 +1,8 @@
 use hdk::prelude::*;
 use std::collections::HashMap;
 
-use p2pmessage_integrity_types::*;
 use p2pmessage_coordinator_types::*;
+use p2pmessage_integrity_types::*;
 
 use crate::utils::error;
 
@@ -59,11 +59,12 @@ pub fn get_receipts(
     message_contents: &mut HashMap<String, (P2PMessageData, Vec<String>)>,
     receipt_contents: &mut HashMap<String, P2PMessageReceipt>,
 ) -> ExternResult<()> {
+    let zome_info = zome_info()?;
     let queried_receipts: Vec<Record> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(1),
-                0.into(),
+                zome_info.id,
                 EntryVisibility::Private,
             )))
             .include_entries(true),
@@ -96,11 +97,12 @@ pub fn get_replies(
     reply_pairs: &mut HashMap<String, Vec<String>>,
     message_contents: &mut HashMap<String, (P2PMessageData, Vec<String>)>,
 ) -> ExternResult<()> {
+    let zome_info = zome_info()?;
     let queried_messages: Vec<Record> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(0),
-                0.into(),
+                zome_info.id,
                 EntryVisibility::Private,
             )))
             .include_entries(true),
@@ -146,11 +148,12 @@ pub fn get_replies(
 }
 
 pub fn get_message_from_chain(hash: EntryHash) -> ExternResult<P2PMessage> {
+    let zome_info = zome_info()?;
     let mut queried_messages: Vec<Record> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(0),
-                0.into(),
+                zome_info.id,
                 EntryVisibility::Private,
             )))
             .include_entries(true),
@@ -170,11 +173,12 @@ pub fn get_message_from_chain(hash: EntryHash) -> ExternResult<P2PMessage> {
 }
 
 pub fn get_receipt_from_chain(hash: EntryHash) -> ExternResult<P2PMessageReceipt> {
+    let zome_info = zome_info()?;
     let queried_receipts: Vec<Record> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(1),
-                0.into(),
+                zome_info.id,
                 EntryVisibility::Private,
             )))
             .include_entries(true),
@@ -193,11 +197,12 @@ pub fn get_receipt_from_chain(hash: EntryHash) -> ExternResult<P2PMessageReceipt
 }
 
 pub fn get_file_from_chain(file_hash: EntryHash) -> ExternResult<P2PFileBytes> {
+    let zome_info = zome_info()?;
     let queried_files: Vec<Record> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(2),
-                0.into(),
+                zome_info.id,
                 EntryVisibility::Private,
             )))
             .include_entries(true),

@@ -1,7 +1,7 @@
 use hdk::prelude::*;
 
-use p2pmessage_integrity_types::*;
 use p2pmessage_coordinator_types::*;
+use p2pmessage_integrity_types::*;
 
 use crate::utils::error;
 
@@ -48,9 +48,10 @@ pub fn send_message_with_timestamp_handler(
         file: file.clone(),
     };
 
+    let zome_info = zome_info()?;
     let receive_call_result: ZomeCallResponse = call_remote(
         message.receiver.clone(),
-        zome_info()?.name,
+        zome_info.name,
         "receive_message".into(),
         None,
         &receive_input,
@@ -62,21 +63,22 @@ pub fn send_message_with_timestamp_handler(
             host_call::<CreateInput, ActionHash>(
                 __create,
                 CreateInput::new(
-                    EntryDefLocation::app(0, 0),
+                    EntryDefLocation::app(zome_info.id, 0),
                     EntryVisibility::Private,
                     message_entry.clone(),
                     ChainTopOrdering::Relaxed,
                 ),
             )?;
 
-            let received_receipt_result: Result<P2PMessageReceipt, SerializedBytesError> = extern_io.decode();
+            let received_receipt_result: Result<P2PMessageReceipt, SerializedBytesError> =
+                extern_io.decode();
             match received_receipt_result {
                 Ok(received_receipt) => {
                     let received_receipt_entry = Entry::App(received_receipt.clone().try_into()?);
                     host_call::<CreateInput, ActionHash>(
                         __create,
                         CreateInput::new(
-                            EntryDefLocation::app(0, 0),
+                            EntryDefLocation::app(zome_info.id, 0),
                             EntryVisibility::Private,
                             received_receipt_entry,
                             ChainTopOrdering::Relaxed,
@@ -89,7 +91,7 @@ pub fn send_message_with_timestamp_handler(
                         host_call::<CreateInput, ActionHash>(
                             __create,
                             CreateInput::new(
-                                EntryDefLocation::app(0, 0),
+                                EntryDefLocation::app(zome_info.id, 0),
                                 EntryVisibility::Private,
                                 p2pfile_entry,
                                 ChainTopOrdering::Relaxed,
@@ -104,7 +106,7 @@ pub fn send_message_with_timestamp_handler(
                             QueryFilter::new()
                                 .entry_type(EntryType::App(AppEntryType::new(
                                     EntryDefIndex::from(0),
-                                    0.into(),
+                                    zome_info.id,
                                     EntryVisibility::Private,
                                 )))
                                 .include_entries(true),
@@ -159,7 +161,7 @@ pub fn send_message_with_timestamp_handler(
                         (hash_entry(&received_receipt)?, received_receipt),
                     ))
                 }
-                Err(e) => return Err(wasm_error!(WasmErrorInner::Guest(String::from(e))))
+                Err(e) => return Err(wasm_error!(WasmErrorInner::Guest(String::from(e)))),
             }
         }
         ZomeCallResponse::Unauthorized(_, _, _, _) => {

@@ -1,7 +1,7 @@
 use hdk::prelude::*;
 
-use p2pmessage_integrity_types::*;
 use p2pmessage_coordinator_types::*;
+use p2pmessage_integrity_types::*;
 
 pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMessageReceipt> {
     let receipt = P2PMessageReceipt {
@@ -12,10 +12,11 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
     };
     let receipt_entry = Entry::App(receipt.clone().try_into()?);
     let message_entry = Entry::App(input.message.clone().try_into()?);
+    let zome_info = zome_info()?;
     host_call::<CreateInput, ActionHash>(
         __create,
         CreateInput::new(
-            EntryDefLocation::app(0, 0),
+            EntryDefLocation::app(zome_info.id, 0),
             EntryVisibility::Private,
             message_entry,
             ChainTopOrdering::Relaxed,
@@ -24,7 +25,7 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
     host_call::<CreateInput, ActionHash>(
         __create,
         CreateInput::new(
-            EntryDefLocation::app(0, 0),
+            EntryDefLocation::app(zome_info.id, 0),
             EntryVisibility::Private,
             receipt_entry,
             ChainTopOrdering::Relaxed,
@@ -36,7 +37,7 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
         host_call::<CreateInput, ActionHash>(
             __create,
             CreateInput::new(
-                EntryDefLocation::app(0, 0),
+                EntryDefLocation::app(zome_info.id, 0),
                 EntryVisibility::Private,
                 file_entry,
                 ChainTopOrdering::Relaxed,
@@ -57,7 +58,7 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
             QueryFilter::new()
                 .entry_type(EntryType::App(AppEntryType::new(
                     EntryDefIndex::from(0),
-                    0.into(),
+                    zome_info.id,
                     EntryVisibility::Private,
                 )))
                 .include_entries(true),
