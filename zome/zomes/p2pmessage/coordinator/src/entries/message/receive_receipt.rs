@@ -13,7 +13,7 @@ pub fn receive_receipt_handler(
     let receipt_hash = host_call::<CreateInput, ActionHash>(
         __create,
         CreateInput::new(
-            EntryDefLocation::app(zome_info.id, 0),
+            EntryDefLocation::app(zome_info.id, 1),
             EntryVisibility::Private,
             receipt_entry,
             ChainTopOrdering::Relaxed,

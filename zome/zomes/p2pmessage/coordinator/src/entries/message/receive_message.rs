@@ -25,7 +25,7 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
     host_call::<CreateInput, ActionHash>(
         __create,
         CreateInput::new(
-            EntryDefLocation::app(zome_info.id, 0),
+            EntryDefLocation::app(zome_info.id, 1),
             EntryVisibility::Private,
             receipt_entry,
             ChainTopOrdering::Relaxed,
@@ -37,7 +37,7 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
         host_call::<CreateInput, ActionHash>(
             __create,
             CreateInput::new(
-                EntryDefLocation::app(zome_info.id, 0),
+                EntryDefLocation::app(zome_info.id, 3),
                 EntryVisibility::Private,
                 file_entry,
                 ChainTopOrdering::Relaxed,

@@ -31,7 +31,7 @@ pub fn read_message_handler(
             host_call::<CreateInput, ActionHash>(
                 __create,
                 CreateInput::new(
-                    EntryDefLocation::app(zome_info.id, 0),
+                    EntryDefLocation::app(zome_info.id, 1),
                     EntryVisibility::Private,
                     read_receipt_entry,
                     ChainTopOrdering::Relaxed,

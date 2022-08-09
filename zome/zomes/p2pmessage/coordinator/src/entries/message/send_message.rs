@@ -58,7 +58,7 @@ pub fn send_message_handler(
         host_call::<CreateInput, ActionHash>(
             __create,
             CreateInput::new(
-                EntryDefLocation::app(zome_info.id, 0),
+                EntryDefLocation::app(zome_info.id, 3),
                 EntryVisibility::Private,
                 p2pfile_entry,
                 ChainTopOrdering::Relaxed,

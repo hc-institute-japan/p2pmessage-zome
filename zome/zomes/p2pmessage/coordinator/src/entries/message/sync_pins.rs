@@ -10,7 +10,7 @@ pub fn sync_pins_handler(pin: P2PMessagePin) -> ExternResult<HashMap<String, P2P
     let pin_hash = host_call::<CreateInput, ActionHash>(
         __create,
         CreateInput::new(
-            EntryDefLocation::app(zome_info.id, 0),
+            EntryDefLocation::app(zome_info.id, 2),
             EntryVisibility::Private,
             pin_entry,
             ChainTopOrdering::Relaxed,

@@ -48,7 +48,7 @@ pub fn pin_message_handler(
             let pin_hash = host_call::<CreateInput, ActionHash>(
                 __create,
                 CreateInput::new(
-                    EntryDefLocation::app(zome_info.id, 0),
+                    EntryDefLocation::app(zome_info.id, 2),
                     EntryVisibility::Private,
                     pin_entry,
                     ChainTopOrdering::Relaxed,
