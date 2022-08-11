@@ -43,12 +43,11 @@ pub fn pin_message_handler(
     match zome_call_response {
         ZomeCallResponse::Ok(extern_io) => {
             let pin_entry = Entry::App(pin.clone().try_into()?);
-            let zome_info = zome_info()?;
 
             let pin_hash = host_call::<CreateInput, ActionHash>(
                 __create,
                 CreateInput::new(
-                    EntryDefLocation::app(zome_info.id, 2),
+                    EntryDefLocation::app(2),
                     EntryVisibility::Private,
                     pin_entry,
                     ChainTopOrdering::Relaxed,

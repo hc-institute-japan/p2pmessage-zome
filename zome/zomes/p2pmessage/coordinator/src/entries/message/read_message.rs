@@ -27,11 +27,10 @@ pub fn read_message_handler(
     match zome_call_response {
         ZomeCallResponse::Ok(extern_io) => {
             let read_receipt_entry = Entry::App(receipt.try_into()?);
-            let zome_info = zome_info()?;
             host_call::<CreateInput, ActionHash>(
                 __create,
                 CreateInput::new(
-                    EntryDefLocation::app(zome_info.id, 1),
+                    EntryDefLocation::app(1),
                     EntryVisibility::Private,
                     read_receipt_entry,
                     ChainTopOrdering::Relaxed,

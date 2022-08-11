@@ -8,12 +8,11 @@ pub fn receive_receipt_handler(
     receipt: P2PMessageReceipt,
 ) -> ExternResult<HashMap<String, P2PMessageReceipt>> {
     let receipt_entry = Entry::App(receipt.clone().try_into()?);
-    let zome_info = zome_info()?;
 
     let receipt_hash = host_call::<CreateInput, ActionHash>(
         __create,
         CreateInput::new(
-            EntryDefLocation::app(zome_info.id, 1),
+            EntryDefLocation::app(1),
             EntryVisibility::Private,
             receipt_entry,
             ChainTopOrdering::Relaxed,

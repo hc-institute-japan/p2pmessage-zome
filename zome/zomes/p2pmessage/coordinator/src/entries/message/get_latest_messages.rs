@@ -7,12 +7,10 @@ use p2pmessage_integrity_types::*;
 use crate::helpers::{get_receipts, get_replies, insert_message, insert_reply};
 
 pub fn get_latest_messages_handler(batch_size: u8) -> ExternResult<P2PMessageHashTables> {
-    let zome_info = zome_info()?;
     let mut queried_messages: Vec<Record> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(0),
-                zome_info.id,
                 EntryVisibility::Private,
             )))
             .include_entries(true),

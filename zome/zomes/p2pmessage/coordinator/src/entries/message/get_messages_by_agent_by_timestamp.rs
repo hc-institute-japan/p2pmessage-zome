@@ -9,12 +9,10 @@ use crate::helpers::{get_receipts, get_replies, insert_message, insert_reply};
 pub fn get_messages_by_agent_by_timestamp_handler(
     filter: P2PMessageFilterAgentTimestamp,
 ) -> ExternResult<P2PMessageHashTables> {
-    let zome_info = zome_info()?;
     let mut queried_messages: Vec<Record> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(0),
-                zome_info.id,
                 EntryVisibility::Private,
             )))
             .include_entries(true),

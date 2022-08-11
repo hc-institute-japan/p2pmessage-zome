@@ -48,10 +48,9 @@ pub fn send_message_with_timestamp_handler(
         file: file.clone(),
     };
 
-    let zome_info = zome_info()?;
     let receive_call_result: ZomeCallResponse = call_remote(
         message.receiver.clone(),
-        zome_info.name,
+        zome_info()?.name,
         "receive_message".into(),
         None,
         &receive_input,
@@ -63,7 +62,7 @@ pub fn send_message_with_timestamp_handler(
             host_call::<CreateInput, ActionHash>(
                 __create,
                 CreateInput::new(
-                    EntryDefLocation::app(zome_info.id, 0),
+                    EntryDefLocation::app(0),
                     EntryVisibility::Private,
                     message_entry.clone(),
                     ChainTopOrdering::Relaxed,
@@ -78,7 +77,7 @@ pub fn send_message_with_timestamp_handler(
                     host_call::<CreateInput, ActionHash>(
                         __create,
                         CreateInput::new(
-                            EntryDefLocation::app(zome_info.id, 1),
+                            EntryDefLocation::app(1),
                             EntryVisibility::Private,
                             received_receipt_entry,
                             ChainTopOrdering::Relaxed,
@@ -91,7 +90,7 @@ pub fn send_message_with_timestamp_handler(
                         host_call::<CreateInput, ActionHash>(
                             __create,
                             CreateInput::new(
-                                EntryDefLocation::app(zome_info.id, 3),
+                                EntryDefLocation::app(3),
                                 EntryVisibility::Private,
                                 p2pfile_entry,
                                 ChainTopOrdering::Relaxed,
@@ -106,7 +105,6 @@ pub fn send_message_with_timestamp_handler(
                             QueryFilter::new()
                                 .entry_type(EntryType::App(AppEntryType::new(
                                     EntryDefIndex::from(0),
-                                    zome_info.id,
                                     EntryVisibility::Private,
                                 )))
                                 .include_entries(true),

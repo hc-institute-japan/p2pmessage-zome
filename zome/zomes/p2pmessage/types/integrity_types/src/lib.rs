@@ -1,5 +1,5 @@
 use derive_more::{From};
-use hdi::prelude::{timestamp::Timestamp, *};
+use holochain_deterministic_integrity::prelude::{timestamp::Timestamp, *};
 
 /* 
  * ENTRY STRUCTURES

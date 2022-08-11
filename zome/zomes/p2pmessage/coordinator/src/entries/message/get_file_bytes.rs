@@ -6,12 +6,10 @@ use p2pmessage_integrity_types::*;
 pub fn get_file_bytes_handler(
     file_hashes: Vec<EntryHash>,
 ) -> ExternResult<HashMap<String, P2PFileBytes>> {
-    let zome_info = zome_info()?;
     let queried_files: Vec<Record> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
                 EntryDefIndex::from(2),
-                zome_info.id,
                 EntryVisibility::Private,
             )))
             .include_entries(true),

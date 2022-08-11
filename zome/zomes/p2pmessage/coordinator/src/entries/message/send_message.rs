@@ -40,11 +40,10 @@ pub fn send_message_handler(
     };
 
     let message_entry = Entry::App(message.clone().try_into()?);
-    let zome_info = zome_info()?;
     host_call::<CreateInput, ActionHash>(
         __create,
         CreateInput::new(
-            EntryDefLocation::app(zome_info.id, 0),
+            EntryDefLocation::app(0),
             EntryVisibility::Private,
             message_entry.clone(),
             ChainTopOrdering::Relaxed,
@@ -58,7 +57,7 @@ pub fn send_message_handler(
         host_call::<CreateInput, ActionHash>(
             __create,
             CreateInput::new(
-                EntryDefLocation::app(zome_info.id, 3),
+                EntryDefLocation::app(3),
                 EntryVisibility::Private,
                 p2pfile_entry,
                 ChainTopOrdering::Relaxed,
@@ -85,7 +84,6 @@ pub fn send_message_handler(
             QueryFilter::new()
                 .entry_type(EntryType::App(AppEntryType::new(
                     EntryDefIndex::from(0),
-                    zome_info.id,
                     EntryVisibility::Private,
                 )))
                 .include_entries(true),

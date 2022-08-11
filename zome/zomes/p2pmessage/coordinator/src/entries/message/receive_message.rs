@@ -12,11 +12,10 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
     };
     let receipt_entry = Entry::App(receipt.clone().try_into()?);
     let message_entry = Entry::App(input.message.clone().try_into()?);
-    let zome_info = zome_info()?;
     host_call::<CreateInput, ActionHash>(
         __create,
         CreateInput::new(
-            EntryDefLocation::app(zome_info.id, 0),
+            EntryDefLocation::app(0),
             EntryVisibility::Private,
             message_entry,
             ChainTopOrdering::Relaxed,
@@ -25,7 +24,7 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
     host_call::<CreateInput, ActionHash>(
         __create,
         CreateInput::new(
-            EntryDefLocation::app(zome_info.id, 1),
+            EntryDefLocation::app(1),
             EntryVisibility::Private,
             receipt_entry,
             ChainTopOrdering::Relaxed,
@@ -37,7 +36,7 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
         host_call::<CreateInput, ActionHash>(
             __create,
             CreateInput::new(
-                EntryDefLocation::app(zome_info.id, 3),
+                EntryDefLocation::app(3),
                 EntryVisibility::Private,
                 file_entry,
                 ChainTopOrdering::Relaxed,
@@ -58,7 +57,6 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
             QueryFilter::new()
                 .entry_type(EntryType::App(AppEntryType::new(
                     EntryDefIndex::from(0),
-                    zome_info.id,
                     EntryVisibility::Private,
                 )))
                 .include_entries(true),
