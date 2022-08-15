@@ -192,7 +192,7 @@ pub fn get_file_from_chain(file_hash: EntryHash) -> ExternResult<P2PFileBytes> {
     let queried_files: Vec<Record> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
-                EntryDefIndex::from(2),
+                EntryDefIndex::from(3),
                 EntryVisibility::Private,
             )))
             .include_entries(true),

@@ -10,7 +10,7 @@ pub fn get_pinned_messages_handler(conversant: AgentPubKey) -> ExternResult<P2PM
     let mut queried_pins: Vec<Record> = query(
         QueryFilter::new()
             .entry_type(EntryType::App(AppEntryType::new(
-                EntryDefIndex::from(3),
+                EntryDefIndex::from(2),
                 EntryVisibility::Private,
             )))
             .include_entries(true),
