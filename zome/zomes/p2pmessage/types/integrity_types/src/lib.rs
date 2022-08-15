@@ -8,6 +8,7 @@ use holochain_deterministic_integrity::prelude::{timestamp::Timestamp, *};
  
 #[derive(Clone, From)]
 #[hdk_entry_helper]
+#[serde(rename_all = "camelCase")]
 pub struct P2PMessage {
     pub author: AgentPubKey,
     pub receiver: AgentPubKey,
@@ -17,8 +18,8 @@ pub struct P2PMessage {
 }
 
 #[derive(Clone)]
-// #[serde(rename_all = "camelCase")]
 #[hdk_entry_helper]
+#[serde(rename_all = "camelCase")]
 pub struct P2PMessageReceipt {
     pub id: Vec<EntryHash>,
     pub status: Status,
@@ -26,6 +27,7 @@ pub struct P2PMessageReceipt {
 
 #[derive(Clone)]
 #[hdk_entry_helper]
+#[serde(rename_all = "camelCase")]
 pub struct P2PMessagePin {
     pub id: Vec<EntryHash>,
     pub conversants: Vec<AgentPubKey>,
