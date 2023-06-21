@@ -3,6 +3,8 @@ use hdk::prelude::*;
 use p2pmessage_coordinator_types::*;
 use p2pmessage_integrity_types::*;
 
+use super::utils::this_zome_index;
+
 pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMessageReceipt> {
     let receipt = P2PMessageReceipt {
         id: vec![hash_entry(&input.message)?],
@@ -13,18 +15,18 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
     let receipt_entry = Entry::App(receipt.clone().try_into()?);
     let message_entry = Entry::App(input.message.clone().try_into()?);
     host_call::<CreateInput, ActionHash>(
-        __create,
+        __hc__create_1,
         CreateInput::new(
-            EntryDefLocation::app(0),
+            EntryDefLocation::app(this_zome_index()?, 0),
             EntryVisibility::Private,
             message_entry,
             ChainTopOrdering::Relaxed,
         ),
     )?;
     host_call::<CreateInput, ActionHash>(
-        __create,
+        __hc__create_1,
         CreateInput::new(
-            EntryDefLocation::app(1),
+            EntryDefLocation::app(this_zome_index()?, 1),
             EntryVisibility::Private,
             receipt_entry,
             ChainTopOrdering::Relaxed,
@@ -34,9 +36,9 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
     if let Some(file) = input.file.clone() {
         let file_entry = Entry::App(file.clone().try_into()?);
         host_call::<CreateInput, ActionHash>(
-            __create,
+            __hc__create_1,
             CreateInput::new(
-                EntryDefLocation::app(3),
+                EntryDefLocation::app(this_zome_index()?, 3),
                 EntryVisibility::Private,
                 file_entry,
                 ChainTopOrdering::Relaxed,
@@ -55,8 +57,9 @@ pub fn receive_message_handler(input: ReceiveMessageInput) -> ExternResult<P2PMe
     if let Some(ref reply_to_hash) = input.message.reply_to {
         let queried_messages: Vec<Record> = query(
             QueryFilter::new()
-                .entry_type(EntryType::App(AppEntryType::new(
+                .entry_type(EntryType::App(AppEntryDef::new(
                     EntryDefIndex::from(0),
+                    this_zome_index()?,
                     EntryVisibility::Private,
                 )))
                 .include_entries(true),

@@ -5,6 +5,8 @@ use p2pmessage_integrity_types::*;
 
 use crate::utils::error;
 
+use super::utils::this_zome_index;
+
 // test_stub: this zome function is a test function to test get by timestamp
 pub fn send_message_with_timestamp_handler(
     message_input: MessageWithTimestampInput,
@@ -60,9 +62,9 @@ pub fn send_message_with_timestamp_handler(
         ZomeCallResponse::Ok(extern_io) => {
             let message_entry = Entry::App(message.clone().try_into()?);
             host_call::<CreateInput, ActionHash>(
-                __create,
+                __hc__create_1,
                 CreateInput::new(
-                    EntryDefLocation::app(0),
+                    EntryDefLocation::app(this_zome_index()?, 0),
                     EntryVisibility::Private,
                     message_entry.clone(),
                     ChainTopOrdering::Relaxed,
@@ -75,9 +77,9 @@ pub fn send_message_with_timestamp_handler(
                 Ok(received_receipt) => {
                     let received_receipt_entry = Entry::App(received_receipt.clone().try_into()?);
                     host_call::<CreateInput, ActionHash>(
-                        __create,
+                        __hc__create_1,
                         CreateInput::new(
-                            EntryDefLocation::app(1),
+                            EntryDefLocation::app(this_zome_index()?, 1),
                             EntryVisibility::Private,
                             received_receipt_entry,
                             ChainTopOrdering::Relaxed,
@@ -88,9 +90,9 @@ pub fn send_message_with_timestamp_handler(
                         let p2pfile = P2PFileBytes(file_bytes.clone());
                         let p2pfile_entry = Entry::App(p2pfile.clone().try_into()?);
                         host_call::<CreateInput, ActionHash>(
-                            __create,
+                            __hc__create_1,
                             CreateInput::new(
-                                EntryDefLocation::app(3),
+                                EntryDefLocation::app(this_zome_index()?, 3),
                                 EntryVisibility::Private,
                                 p2pfile_entry,
                                 ChainTopOrdering::Relaxed,
@@ -103,8 +105,9 @@ pub fn send_message_with_timestamp_handler(
                     if let Some(ref reply_to_hash) = message.reply_to {
                         let mut queried_messages: Vec<Record> = query(
                             QueryFilter::new()
-                                .entry_type(EntryType::App(AppEntryType::new(
+                                .entry_type(EntryType::App(AppEntryDef::new(
                                     EntryDefIndex::from(0),
+                                    this_zome_index()?,
                                     EntryVisibility::Private,
                                 )))
                                 .include_entries(true),
@@ -162,7 +165,7 @@ pub fn send_message_with_timestamp_handler(
                 Err(e) => return Err(wasm_error!(WasmErrorInner::Guest(String::from(e)))),
             }
         }
-        ZomeCallResponse::Unauthorized(_, _, _, _) => {
+        ZomeCallResponse::Unauthorized(..) => {
             return error("Sorry, something went wrong. [Authorization error]");
         }
         ZomeCallResponse::NetworkError(e) => {

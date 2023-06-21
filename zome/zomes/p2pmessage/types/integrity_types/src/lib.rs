@@ -1,11 +1,11 @@
-use derive_more::{From};
-use holochain_deterministic_integrity::prelude::{timestamp::Timestamp, *};
+use derive_more::From;
+use hdi::prelude::{timestamp::Timestamp, *};
 
-/* 
+/*
  * ENTRY STRUCTURES
  * AND RELATED STRUCTS
- */ 
- 
+ */
+
 #[derive(Clone, From)]
 #[hdk_entry_helper]
 #[serde(rename_all = "camelCase")]

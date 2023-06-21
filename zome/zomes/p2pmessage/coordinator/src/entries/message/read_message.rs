@@ -6,6 +6,8 @@ use p2pmessage_integrity_types::*;
 
 use crate::utils::error;
 
+use super::utils::this_zome_index;
+
 pub fn read_message_handler(
     read_message_input: ReadMessageInput,
 ) -> ExternResult<HashMap<String, P2PMessageReceipt>> {
@@ -28,9 +30,9 @@ pub fn read_message_handler(
         ZomeCallResponse::Ok(extern_io) => {
             let read_receipt_entry = Entry::App(receipt.try_into()?);
             host_call::<CreateInput, ActionHash>(
-                __create,
+                __hc__create_1,
                 CreateInput::new(
-                    EntryDefLocation::app(1),
+                    EntryDefLocation::app(this_zome_index()?, 1),
                     EntryVisibility::Private,
                     read_receipt_entry,
                     ChainTopOrdering::Relaxed,
@@ -43,7 +45,7 @@ pub fn read_message_handler(
                 Err(e) => return Err(wasm_error!(WasmErrorInner::Guest(String::from(e)))),
             }
         }
-        ZomeCallResponse::Unauthorized(_, _, _, _) => {
+        ZomeCallResponse::Unauthorized(..) => {
             return error("Sorry, something went wrong. [Authorization error]");
         }
         ZomeCallResponse::NetworkError(_e) => {

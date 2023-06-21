@@ -3,13 +3,16 @@ use std::collections::HashMap;
 
 use p2pmessage_integrity_types::*;
 
+use super::utils::this_zome_index;
+
 pub fn get_file_bytes_handler(
     file_hashes: Vec<EntryHash>,
 ) -> ExternResult<HashMap<String, P2PFileBytes>> {
     let queried_files: Vec<Record> = query(
         QueryFilter::new()
-            .entry_type(EntryType::App(AppEntryType::new(
+            .entry_type(EntryType::App(AppEntryDef::new(
                 EntryDefIndex::from(3),
+                this_zome_index()?,
                 EntryVisibility::Private,
             )))
             .include_entries(true),

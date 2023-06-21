@@ -4,15 +4,17 @@ use std::collections::HashMap;
 use p2pmessage_coordinator_types::*;
 use p2pmessage_integrity_types::*;
 
+use super::utils::this_zome_index;
+
 pub fn receive_receipt_handler(
     receipt: P2PMessageReceipt,
 ) -> ExternResult<HashMap<String, P2PMessageReceipt>> {
     let receipt_entry = Entry::App(receipt.clone().try_into()?);
 
     let receipt_hash = host_call::<CreateInput, ActionHash>(
-        __create,
+        __hc__create_1,
         CreateInput::new(
-            EntryDefLocation::app(1),
+            EntryDefLocation::app(this_zome_index()?, 1),
             EntryVisibility::Private,
             receipt_entry,
             ChainTopOrdering::Relaxed,

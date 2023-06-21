@@ -6,6 +6,8 @@ use p2pmessage_integrity_types::*;
 
 use crate::utils::error;
 
+use super::utils::this_zome_index;
+
 pub fn insert_message(
     agent_messages: &mut HashMap<String, Vec<String>>,
     message_contents: &mut HashMap<String, (P2PMessageData, Vec<String>)>,
@@ -61,8 +63,9 @@ pub fn get_receipts(
 ) -> ExternResult<()> {
     let queried_receipts: Vec<Record> = query(
         QueryFilter::new()
-            .entry_type(EntryType::App(AppEntryType::new(
+            .entry_type(EntryType::App(AppEntryDef::new(
                 EntryDefIndex::from(1),
+                this_zome_index()?,
                 EntryVisibility::Private,
             )))
             .include_entries(true),
@@ -97,8 +100,9 @@ pub fn get_replies(
 ) -> ExternResult<()> {
     let queried_messages: Vec<Record> = query(
         QueryFilter::new()
-            .entry_type(EntryType::App(AppEntryType::new(
+            .entry_type(EntryType::App(AppEntryDef::new(
                 EntryDefIndex::from(0),
+                this_zome_index()?,
                 EntryVisibility::Private,
             )))
             .include_entries(true),
@@ -146,8 +150,9 @@ pub fn get_replies(
 pub fn get_message_from_chain(hash: EntryHash) -> ExternResult<P2PMessage> {
     let mut queried_messages: Vec<Record> = query(
         QueryFilter::new()
-            .entry_type(EntryType::App(AppEntryType::new(
+            .entry_type(EntryType::App(AppEntryDef::new(
                 EntryDefIndex::from(0),
+                this_zome_index()?,
                 EntryVisibility::Private,
             )))
             .include_entries(true),
@@ -169,8 +174,9 @@ pub fn get_message_from_chain(hash: EntryHash) -> ExternResult<P2PMessage> {
 pub fn get_receipt_from_chain(hash: EntryHash) -> ExternResult<P2PMessageReceipt> {
     let queried_receipts: Vec<Record> = query(
         QueryFilter::new()
-            .entry_type(EntryType::App(AppEntryType::new(
+            .entry_type(EntryType::App(AppEntryDef::new(
                 EntryDefIndex::from(1),
+                this_zome_index()?,
                 EntryVisibility::Private,
             )))
             .include_entries(true),
@@ -191,8 +197,9 @@ pub fn get_receipt_from_chain(hash: EntryHash) -> ExternResult<P2PMessageReceipt
 pub fn get_file_from_chain(file_hash: EntryHash) -> ExternResult<P2PFileBytes> {
     let queried_files: Vec<Record> = query(
         QueryFilter::new()
-            .entry_type(EntryType::App(AppEntryType::new(
+            .entry_type(EntryType::App(AppEntryDef::new(
                 EntryDefIndex::from(3),
+                this_zome_index()?,
                 EntryVisibility::Private,
             )))
             .include_entries(true),
