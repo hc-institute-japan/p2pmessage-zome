@@ -2,13 +2,14 @@
 manifest_version: "1"
 name: p2pmessage
 integrity:
-  uuid: 00000000-0000-0000-0000-000000000000
+  network_seed: 00000000-0000-0000-0000-000000000000
   properties: ~
-  zomes: 
+  origin_time: 2022-02-11T23:05:19.470323Z
+  zomes:
     - name: p2pmessage_integrity
       bundled: ../target/wasm32-unknown-unknown/release/p2pmessage_integrity.wasm
 
 coordinator:
-  zomes: 
+  zomes:
     - name: p2pmessage_coordinator
       bundled: ../target/wasm32-unknown-unknown/release/p2pmessage_coordinator.wasm

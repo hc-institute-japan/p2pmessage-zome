@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use p2pmessage_integrity_types::{P2PMessageReceipt, Status};
 
 use crate::{
-    helpers::{get_receipt_from_chain, get_message_from_chain}, 
-    utils::error
+    helpers::{get_message_from_chain, get_receipt_from_chain},
+    utils::error,
 };
 
 #[allow(dead_code)]
@@ -31,10 +31,10 @@ pub fn commit_receipt_to_sender_chain_handler(
                     let result = extern_io.decode();
                     match result {
                         Ok(map) => return Ok(map),
-                        Err(e) => return Err(wasm_error!(WasmErrorInner::Guest(String::from(e))))
+                        Err(e) => return Err(wasm_error!(WasmErrorInner::Guest(String::from(e)))),
                     }
-                },
-                ZomeCallResponse::Unauthorized(_, _, _, _) => {
+                }
+                ZomeCallResponse::Unauthorized(..) => {
                     return error("Sorry, something went wrong. [Authorization error]");
                 }
                 ZomeCallResponse::NetworkError(_e) => {

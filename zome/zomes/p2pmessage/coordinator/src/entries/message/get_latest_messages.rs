@@ -6,11 +6,14 @@ use p2pmessage_integrity_types::*;
 
 use crate::helpers::{get_receipts, get_replies, insert_message, insert_reply};
 
+use super::utils::this_zome_index;
+
 pub fn get_latest_messages_handler(batch_size: u8) -> ExternResult<P2PMessageHashTables> {
     let mut queried_messages: Vec<Record> = query(
         QueryFilter::new()
-            .entry_type(EntryType::App(AppEntryType::new(
+            .entry_type(EntryType::App(AppEntryDef::new(
                 EntryDefIndex::from(0),
+                this_zome_index()?,
                 EntryVisibility::Private,
             )))
             .include_entries(true),

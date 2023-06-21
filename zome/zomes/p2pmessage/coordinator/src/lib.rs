@@ -1,12 +1,11 @@
 #[allow(dead_code)]
 use hdk::prelude::*;
-use std::collections::HashMap;
 use p2pmessage_coordinator_types::*;
 use p2pmessage_integrity_types::*;
+use std::collections::HashMap;
 
 mod entries;
 
-use entries::message::*;
 use entries::message::commit_message_to_receiver_chain::commit_message_to_receiver_chain_handler;
 use entries::message::commit_receipt_to_sender_chain::commit_receipt_to_sender_chain_handler;
 use entries::message::get_adjacent_messages::get_adjacent_messages_handler;
@@ -16,6 +15,7 @@ use entries::message::get_messages_by_agent_by_timestamp::get_messages_by_agent_
 use entries::message::get_next_messages::get_next_messages_handler;
 use entries::message::get_pinned_messages::get_pinned_messages_handler;
 use entries::message::get_previous_messages::get_previous_messages_handler;
+use entries::message::helpers::get_message_from_chain;
 use entries::message::init::init_handler;
 use entries::message::pin_message::pin_message_handler;
 use entries::message::read_message::read_message_handler;
@@ -25,7 +25,7 @@ use entries::message::send_message::send_message_handler;
 use entries::message::send_message_with_timestamp::send_message_with_timestamp_handler;
 use entries::message::sync_pins::sync_pins_handler;
 use entries::message::typing::typing_handler;
-use entries::message::helpers::get_message_from_chain;
+use entries::message::*;
 
 #[hdk_extern]
 fn recv_remote_signal(signal: ExternIO) -> ExternResult<()> {
@@ -33,9 +33,9 @@ fn recv_remote_signal(signal: ExternIO) -> ExternResult<()> {
     match signal_detail_result {
         Ok(signal_detail) => {
             emit_signal(&signal_detail)?;
-            return Ok(())
-        },
-        Err(e) => return Err(wasm_error!(WasmErrorInner::Guest(String::from(e))))
+            return Ok(());
+        }
+        Err(e) => return Err(wasm_error!(WasmErrorInner::Guest(String::from(e)))),
     }
 }
 
@@ -50,17 +50,19 @@ fn post_commit(actions: Vec<SignedActionHashed>) {
         match signed_action.action() {
             Action::Create(create) => {
                 match &create.entry_type {
-                    EntryType::App(apptype) => match apptype.id() {
+                    EntryType::App(apptype) => match apptype.entry_index() {
                         EntryDefIndex(0) => {
-                            let message = get_message_from_chain(create.entry_hash.clone()).unwrap();
+                            let message =
+                                get_message_from_chain(create.entry_hash.clone()).unwrap();
                             if message.author == message.receiver {
                                 debug!("post commit return ()");
-                                return ()
+                                return ();
                             } else {
-                            let _res =
-                                commit_message_to_receiver_chain_handler(create.entry_hash.clone());
+                                let _res = commit_message_to_receiver_chain_handler(
+                                    create.entry_hash.clone(),
+                                );
                             }
-                        },
+                        }
                         EntryDefIndex(1) => {
                             let _res =
                                 commit_receipt_to_sender_chain_handler(create.entry_hash.clone());

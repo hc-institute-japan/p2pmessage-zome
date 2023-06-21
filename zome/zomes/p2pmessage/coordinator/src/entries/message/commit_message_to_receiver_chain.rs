@@ -1,11 +1,11 @@
 use hdk::prelude::*;
 
-use p2pmessage_integrity_types::*;
 use p2pmessage_coordinator_types::*;
+use p2pmessage_integrity_types::*;
 
 use crate::{
-    helpers::{get_file_from_chain, get_message_from_chain}, 
-    utils::error
+    helpers::{get_file_from_chain, get_message_from_chain},
+    utils::error,
 };
 
 pub fn commit_message_to_receiver_chain_handler(
@@ -35,13 +35,14 @@ pub fn commit_message_to_receiver_chain_handler(
 
         match receive_call_result {
             ZomeCallResponse::Ok(extern_io) => {
-                let received_receipt_result: Result<P2PMessageReceipt, SerializedBytesError> = extern_io.decode();
+                let received_receipt_result: Result<P2PMessageReceipt, SerializedBytesError> =
+                    extern_io.decode();
                 match received_receipt_result {
                     Ok(received_receipt) => return Ok(received_receipt),
-                    Err(e) => return Err(wasm_error!(WasmErrorInner::Guest(String::from(e))))
+                    Err(e) => return Err(wasm_error!(WasmErrorInner::Guest(String::from(e)))),
                 }
             }
-            ZomeCallResponse::Unauthorized(_, _, _, _) => {
+            ZomeCallResponse::Unauthorized(..) => {
                 return error("Sorry, something went wrong. [Authorization error]");
             }
             ZomeCallResponse::NetworkError(_e) => {

@@ -6,6 +6,8 @@ use p2pmessage_integrity_types::*;
 
 use crate::utils::error;
 
+use super::utils::this_zome_index;
+
 pub fn pin_message_handler(
     pin_message_input: PinMessageInput,
 ) -> ExternResult<HashMap<String, P2PMessagePin>> {
@@ -45,9 +47,9 @@ pub fn pin_message_handler(
             let pin_entry = Entry::App(pin.clone().try_into()?);
 
             let pin_hash = host_call::<CreateInput, ActionHash>(
-                __create,
+                __hc__create_1,
                 CreateInput::new(
-                    EntryDefLocation::app(2),
+                    EntryDefLocation::app(this_zome_index()?, 2),
                     EntryVisibility::Private,
                     pin_entry,
                     ChainTopOrdering::Relaxed,
@@ -62,7 +64,7 @@ pub fn pin_message_handler(
                 Err(e) => return Err(wasm_error!(WasmErrorInner::Guest(String::from(e)))),
             }
         }
-        ZomeCallResponse::Unauthorized(_, _, _, _) => {
+        ZomeCallResponse::Unauthorized(..) => {
             return error("Sorry, something went wrong. [Authorization error]");
         }
         ZomeCallResponse::NetworkError(_e) => {

@@ -3,7 +3,7 @@ use hdk::prelude::*;
 use p2pmessage_coordinator_types::*;
 use p2pmessage_integrity_types::*;
 
-use crate::receive_receipt::receive_receipt_handler;
+use crate::{entries::message::utils::this_zome_index, receive_receipt::receive_receipt_handler};
 
 pub fn send_message_handler(
     message_input: MessageInput,
@@ -41,9 +41,9 @@ pub fn send_message_handler(
 
     let message_entry = Entry::App(message.clone().try_into()?);
     host_call::<CreateInput, ActionHash>(
-        __create,
+        __hc__create_1,
         CreateInput::new(
-            EntryDefLocation::app(0),
+            EntryDefLocation::app(this_zome_index()?, 0),
             EntryVisibility::Private,
             message_entry.clone(),
             ChainTopOrdering::Relaxed,
@@ -55,9 +55,9 @@ pub fn send_message_handler(
         let p2pfile = P2PFileBytes(file_bytes.clone());
         let p2pfile_entry = Entry::App(p2pfile.clone().try_into()?);
         host_call::<CreateInput, ActionHash>(
-            __create,
+            __hc__create_1,
             CreateInput::new(
-                EntryDefLocation::app(3),
+                EntryDefLocation::app(this_zome_index()?, 3),
                 EntryVisibility::Private,
                 p2pfile_entry,
                 ChainTopOrdering::Relaxed,
@@ -82,8 +82,9 @@ pub fn send_message_handler(
     if let Some(ref reply_to_hash) = message.reply_to {
         let queried_messages: Vec<Record> = query(
             QueryFilter::new()
-                .entry_type(EntryType::App(AppEntryType::new(
+                .entry_type(EntryType::App(AppEntryDef::new(
                     EntryDefIndex::from(0),
+                    this_zome_index()?,
                     EntryVisibility::Private,
                 )))
                 .include_entries(true),

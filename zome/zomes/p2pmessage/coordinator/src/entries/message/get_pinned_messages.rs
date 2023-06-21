@@ -6,11 +6,14 @@ use p2pmessage_integrity_types::*;
 
 use crate::helpers::{get_receipts, insert_message};
 
+use super::utils::this_zome_index;
+
 pub fn get_pinned_messages_handler(conversant: AgentPubKey) -> ExternResult<P2PMessageHashTables> {
     let mut queried_pins: Vec<Record> = query(
         QueryFilter::new()
-            .entry_type(EntryType::App(AppEntryType::new(
+            .entry_type(EntryType::App(AppEntryDef::new(
                 EntryDefIndex::from(2),
+                this_zome_index()?,
                 EntryVisibility::Private,
             )))
             .include_entries(true),
@@ -18,8 +21,9 @@ pub fn get_pinned_messages_handler(conversant: AgentPubKey) -> ExternResult<P2PM
 
     let mut queried_messages: Vec<Record> = query(
         QueryFilter::new()
-            .entry_type(EntryType::App(AppEntryType::new(
+            .entry_type(EntryType::App(AppEntryDef::new(
                 EntryDefIndex::from(0),
+                this_zome_index()?,
                 EntryVisibility::Private,
             )))
             .include_entries(true),
